@@ -1,626 +1,532 @@
 <script setup>
-// CORREÇÃO 1: Adicionado 'reactive' na importação
-import { ref, computed, reactive } from 'vue';
-import { jogo, acoes, dadosItens } from '../jogo.js';
+import { ref, computed } from 'vue';
+import { jogo, acoes, dadosItens, obterBuffRaca } from '../jogo.js';
 
-const filtroAtual = ref('todos');
+// --- ESTADO LOCAL ---
+const qtdsPorItem = ref({}); // Armazena a quantidade digitada para cada item (ex: { 'espada': 10 })
 
-// Estado local para controlar a quantidade selecionada
-const quantidadesSelecionadas = reactive({});
+// --- HELPERS DE ESTADO ---
+const getQtd = (id) => qtdsPorItem.value[id] || 1;
 
-// Função auxiliar para iniciar o contador se não existir
-const getQtdSelecionada = (id) => {
-    // CORREÇÃO 2: Corrigido o nome da variável (estava quantitiesSelecionadas)
-    if (!quantidadesSelecionadas[id]) quantidadesSelecionadas[id] = 1;
-    return quantidadesSelecionadas[id];
+const setQtd = (id, valor, max) => {
+    let v = parseInt(valor) || 1;
+    v = Math.max(1, v);
+    if (max) v = Math.min(v, max);
+    qtdsPorItem.value[id] = v;
 };
 
-// Funções de controle (+ e -)
-const alterarQtd = (id, delta) => {
-    const atual = quantidadesSelecionadas[id] || 1;
-    const novo = atual + delta;
-    if (novo >= 1) quantidadesSelecionadas[id] = novo;
-};
-
-const itensFiltrados = computed(() => {
-    if (filtroAtual.value === 'todos') return dadosItens;
-    return dadosItens.filter(i => i.tipo === filtroAtual.value);
-});
-const custoAcelerar = computed(() => {
-    if (!jogo.craftando.item) return 0;
-    const minutos = Math.ceil(jogo.craftando.tempoRestante / 60);
-    return minutos * 1000;
+// --- COMPUTEDS DE FERREIRO E BUFFS ---
+const ferreiroAtivo = computed(() => {
+    return jogo.funcionarios.find(f => f.profissao === 'ferreiro' && f.diasEmGreve === 0);
 });
 
-// --- Ícones de Recursos ---
-const getIconeRecurso = (id) => {
-    const basicos = ['madeira', 'couro', 'comida', 'ouro'];
-    // Ajuste aqui se sua pasta se chama 'recursos' ou se as imagens estão na raiz de assets
-    if (basicos.includes(id)) return `/assets/recursos/res_${id}.png`; 
-    return `/assets/recursos/min_${id}.png`; // Se você moveu minérios para craft ou resources, ajuste aqui
-};
+// Calcula os buffs visuais baseado no ferreiro atual
+const statsFerreiro = computed(() => {
+    if (!ferreiroAtivo.value) return { tempo: 0, falha: 0, poderReal: 0 };
 
-// --- Ícones de Stats ---
-const getIconeStat = (stat) => {
-    const mapa = {
-        ataque: '/assets/ui/icone_ataque.png',
-        defesa: '/assets/ui/icone_defesa.png',
-        vida: '/assets/ui/icone_vida.png',
-        precisao: '/assets/ui/icone_precisao.png',
-        evasao: '/assets/ui/icone_evasao.png',
-        agilidade: '/assets/ui/icone_evasao.png',
-        danocritico: '/assets/ui/icone_danocritico.png',
-        chancecritico: '/assets/ui/icone_chancecritico.png',
-        dano: '/assets/ui/icone_ataque.png' 
+    const base = ferreiroAtivo.value.poderEspecial || 0;
+    const buffRaca = obterBuffRaca(ferreiroAtivo.value); // % extra vinda do Lorde
+    const poderReal = base * (1 + (buffRaca / 100));
+
+    return {
+        poderReal: Math.floor(poderReal), 
+        tempo: Math.min(90, Math.floor(poderReal)), // % Redução Tempo (Max 90%)
+        falha: Math.min(100, Math.floor(poderReal)) // % Redução Falha
     };
-    return mapa[stat] || null;
+});
+
+// --- LÓGICA DE CRAFT ---
+
+// Calcula o máximo que dá pra fazer com os recursos atuais
+const getMaxCraft = (item) => {
+    let max = 9999;
+    for (const [recurso, qtd] of Object.entries(item.custo)) {
+        const estoque = jogo.minerios[recurso] !== undefined ? jogo.minerios[recurso] : (jogo[recurso] || 0);
+        const possivel = Math.floor(estoque / qtd);
+        if (possivel < max) max = possivel;
+    }
+    return max;
 };
 
-// Placeholder para imagem grande
-const getImagemItemGrande = (item) => item.img || '/assets/ui/icone_ataque.png';
-
-const getQuantidade = (nomeRecurso) => {
-    if (jogo.minerios && jogo.minerios[nomeRecurso] !== undefined) return jogo.minerios[nomeRecurso];
-    if (jogo[nomeRecurso] !== undefined) return jogo[nomeRecurso];
-    return 0;
+const fabricarItemDaLista = (item) => {
+    const qtd = getQtd(item.id);
+    const max = getMaxCraft(item);
+    
+    if (qtd > 0 && qtd <= max) {
+        acoes.fabricarItem(item, qtd);
+        // Opcional: Resetar quantidade após craftar
+        // qtdsPorItem.value[item.id] = 1; 
+    }
 };
 
-// VALIDAR SE PODE CRAFTAR
-const podeCraftar = (item) => {
-    const qtd = quantidadesSelecionadas[item.id] || 1;
-    return Object.keys(item.custo).every(rec => {
-        return getQuantidade(rec) >= (item.custo[rec] * qtd);
-    });
+// --- FORMATAÇÃO VISUAL ---
+
+// Tempo formatado com redução aplicada
+const getTempoCraft = (item, qtd) => {
+    const tempoBase = item.tempo * qtd;
+    const redutor = statsFerreiro.value ? (statsFerreiro.value.tempo / 100) : 0;
+    const final = Math.ceil(tempoBase * (1 - redutor));
+    
+    if (final < 60) return `${final}s`;
+    return `${Math.floor(final/60)}m ${final%60}s`;
 };
 
-const temRecursoSuficiente = (rec, custoUnitario, idItem) => {
-    const qtd = quantidadesSelecionadas[idItem] || 1;
-    return getQuantidade(rec) >= (custoUnitario * qtd);
+// Chance de sucesso (para exibir na lista)
+const getChanceSucesso = () => {
+    const baseFalha = 15; // 15% Base fixa do jogo
+    const redutor = statsFerreiro.value ? statsFerreiro.value.falha : 0;
+    const falhaFinal = baseFalha * (1 - (redutor / 100));
+    return (100 - falhaFinal).toFixed(1);
 };
 
-const formatarTempo = (s) => {
+// Formatação mm:ss para a fila
+const formatarTempoFila = (s) => {
+    if (s < 60) return `${Math.ceil(s)}s`;
     const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, '0')}`;
+    const rest = Math.ceil(s % 60);
+    return `${m}m ${rest}s`;
 };
+
+// Cores de Tier (mesma da Taverna)
+const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad','B':'#0233d1','A':'#8e44ad','S':'#f1c40f','SS':'#0fbdd1'}[t] || '#000');
 </script>
 
 <template>
   <div class="ferraria-container">
     
-    <div v-if="jogo.ferraria === 0" class="construcao-card destaque-ferraria">
-      <h4>⚔️ Construir Ferraria</h4>
-      <p>Necessário para forjar equipamentos.</p>
-      <div class="aviso-construcao">Vá até a aba <strong>CIDADE</strong>.</div>
+    <div class="header-taverna" style="border-color: #e67e22;">
+        <div class="titulo-nivel">
+            <h2>⚒️ Grande Forja</h2>
+        </div>
+        <div class="info-nivel">
+            <span class="badge-nivel" style="background: #d35400;">Nv {{ jogo.ferraria }}</span>
+        </div>
     </div>
 
-    <div v-else>
-        <div class="header-ferraria">
-            <h3>⚔️ Ferraria Nível {{ jogo.ferraria }}</h3>
+    <div class="secao-ferreiro-destaque">
+        <div v-if="ferreiroAtivo" class="card-funcionario ferreiro-ativo" :style="{ borderColor: corTier(ferreiroAtivo.tier) }">
+            <div class="card-topo" :style="{ backgroundColor: corTier(ferreiroAtivo.tier) }">
+                <span class="tier-badge">{{ ferreiroAtivo.tier }}</span>
+                <span class="card-nome">{{ ferreiroAtivo.nome }}</span>
+                <span class="tag-cargo">Mestre Ferreiro</span>
+            </div>
+            <div class="card-mid">
+                <img :src="`/assets/faces/${ferreiroAtivo.raca}/${ferreiroAtivo.imagem}.png`" class="avatar-func">
+                <div class="stats-ferreiro">
+                    <div class="stat-row">
+                        <span class="label">Velocidade:</span>
+                        <span class="valor verde">+{{ statsFerreiro.tempo }}%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">Qualidade:</span>
+                        <span class="valor ouro">+{{ statsFerreiro.falha }}% Redução de Falha</span>
+                    </div>
+                    <div class="stat-desc">
+                        "Com meu martelo, forjo o destino!"
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div v-else class="vazio-ferreiro">
+            <div class="msg-vazio">
+                🚫 NENHUM FERREIRO ALOCADO<br>
+                <span class="sub-msg">Contrate um na Taverna para reduzir tempo e evitar falhas (quebras).</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="lista-receitas-container">
+        
+        <div class="header-lista">
+            <span class="col-info">ITEM & ESTATÍSTICAS</span>
+            <span class="col-custo">CUSTO (UNIDADE)</span>
+            <span class="col-acao">PRODUÇÃO</span>
         </div>
 
-        <div class="status-forja" :class="{'ativo': jogo.craftando.item}">
-            <div v-if="jogo.craftando.item">
-                <div class="info-status">
+        <div class="lista-receitas-scroll">
+            <div v-for="item in dadosItens" :key="item.id" class="card-receita-row">
+                
+                <div class="receita-info">
+                    <div class="img-wrapper">
+                        <img :src="item.img" class="icon-receita">
+                        <span class="qtd-possuida">{{ jogo.itens[item.id] || 0 }} em estoque</span>
+                    </div>
                     
-                    <span class="texto-produzindo">
-                        🔥 Produzindo: 
-                        <strong>
-                            {{ (jogo.craftando.qtdLote > 1 ? jogo.craftando.qtdLote + 'x ' : '') + 
-                               (dadosItens.find(i => i.id === jogo.craftando.item)?.nome || '...') }}
-                        </strong>
-                    </span>
-                    <div class="status-actions">
-                        <small class="tempo-restante">{{ formatarTempo(jogo.craftando.tempoRestante) }}</small>
+                    <div class="textos-receita">
+                        <h4>{{ item.nome }}</h4>
                         
-                        <button 
-                            class="btn-acelerar" 
-                            @click="acoes.acelerarCraft()" 
-                            :title="'Pagar ' + custoAcelerar + ' ouro'"
-                            :disabled="jogo.ouro < custoAcelerar"
-                        >
-                            ⚡ {{ custoAcelerar }}
-                        </button>
-
-                        <button class="btn-cancelar-mini" @click="acoes.cancelarCraft()" title="Cancelar">✖</button>
-                    </div>
-                </div>
-                
-                <div class="barra-fundo">
-                    <div class="barra-progresso" :style="{width: (100 - (jogo.craftando.tempoRestante / jogo.craftando.tempoTotal * 100)) + '%'}"></div>
-                </div>
-            </div>
-            <div v-else>❄️ Forja Livre</div>
-        </div>
-
-        <div class="filtros-container">
-            <span class="label-filtro">Categoria:</span>
-            <select v-model="filtroAtual">
-                <option value="todos">Todos</option>
-                <option value="arma">⚔️ Armas</option>
-                <option value="armadura">🛡️ Armaduras</option>
-                <option value="municao">🏹 Munição</option>
-            </select>
-        </div>
-
-        <div class="lista-receitas">
-            <div v-for="item in itensFiltrados" :key="item.id" class="item-card" 
-                 :class="{ 'bloqueado': item.reqNivel > jogo.ferraria }">
-                
-                <div class="card-header">
-                    <span class="item-nome">{{ item.nome }}</span>
-                    <span v-if="item.reqNivel > jogo.ferraria" class="lock-tag">🔒 Nv {{ item.reqNivel }}</span>
-                </div>
-
-                <div class="card-body">
-                    <div class="item-visual-box">
-                        <img :src="getImagemItemGrande(item)" class="img-destaque" alt="Item">
-                    </div>
-                    <div class="item-stats-list">
-                        <div v-if="item.stats">
-                            <div v-for="(val, key) in item.stats" :key="key" class="stat-row">
-                                <img v-if="getIconeStat(key)" :src="getIconeStat(key)" class="icon-stat-list">
-                                <span v-else>{{ key }}:</span>
-                                <strong class="stat-value" :class="val > 0 ? 'pos' : 'neg'">{{ val }}</strong>
-                            </div>
+                        <div class="stats-badges">
+                             <span v-if="item.tipo" class="badge-tipo">
+                                {{ item.tipo.toUpperCase() }}
+                            </span>
+                            <span v-if="item.ataque" class="badge-stat ataque" title="Ataque">
+                                ⚔️ {{ item.ataque }}
+                            </span>
+                            <span v-if="item.defesa" class="badge-stat defesa" title="Defesa">
+                                🛡️ {{ item.defesa }}
+                            </span>
                         </div>
-                        <div v-else class="sem-stats">Recurso</div>
+                        <div class="desc-simples">{{ item.desc }}</div>
                     </div>
                 </div>
 
-                <div class="card-footer" v-if="item.reqNivel <= jogo.ferraria">
+                <div class="receita-custos">
+                    <div v-for="(qtd, rec) in item.custo" :key="rec" class="custo-pill"
+                         :class="{ 'falta-recurso': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(item.id)) }">
+                        <img :src="`/assets/recursos/min_${rec}.png`" @error="$event.target.src='/assets/ui/icone_madeira.png'" class="icon-micro">
+                        <span>{{ qtd }}</span>
+                        <span v-if="getQtd(item.id) > 1" class="subtotal">
+                            (Tot: {{ qtd * getQtd(item.id) }})
+                        </span>
+                    </div>
+                </div>
+
+                <div class="receita-acao">
                     
-                    <div class="info-craft-row">
-                        <div class="recursos-necessarios">
-                            <div v-for="(qtd, rec) in item.custo" :key="rec" 
-                                 class="mini-custo"
-                                 :class="{ 'falta': !temRecursoSuficiente(rec, qtd, item.id) }"
-                                 :title="'Custo Total: ' + (qtd * (quantidadesSelecionadas[item.id] || 1))">
-                                <img :src="getIconeRecurso(rec)">
-                                <span>{{ qtd * (quantidadesSelecionadas[item.id] || 1) }}</span>
-                            </div>
-                        </div>
-                        <div class="tempo-info">
-                            ⏱️ {{ formatarTempo(item.tempo * (quantidadesSelecionadas[item.id] || 1)) }}
-                        </div>
+                    <div class="controle-qtd">
+                        <button class="btn-qtd-mini" @click="setQtd(item.id, getQtd(item.id) - 1)">-</button>
+                        <input type="number" 
+                               :value="getQtd(item.id)" 
+                               @input="e => setQtd(item.id, e.target.value, getMaxCraft(item))"
+                               min="1" 
+                               :max="getMaxCraft(item)">
+                        <button class="btn-qtd-mini" @click="setQtd(item.id, getQtd(item.id) + 1, getMaxCraft(item))">+</button>
+                        <button class="btn-max-mini" @click="setQtd(item.id, getMaxCraft(item))">MAX</button>
                     </div>
 
-                    <div class="action-row">
-                        <div class="selector-qtd-group">
-                            <button class="btn-qtd side-l" @click="alterarQtd(item.id, -10)">-10</button>
-                            <button class="btn-qtd" @click="alterarQtd(item.id, -1)">-</button>
-                            
-                            <span class="num-qtd">{{ quantidadesSelecionadas[item.id] || 1 }}</span>
-                            
-                            <button class="btn-qtd" @click="alterarQtd(item.id, 1)">+</button>
-                            <button class="btn-qtd side-r" @click="alterarQtd(item.id, 10)">+10</button>
-                        </div>
-
-                        <button 
-                            v-if="jogo.craftando.item === item.id"
-                            class="btn-action btn-cancelar"
-                            @click="acoes.cancelarCraft()"
-                            title="Cancelar Produção"
-                        >
-                            ✖ Cancelar
-                        </button>
-
-                        <button 
-                            v-else-if="jogo.craftando.item"
-                            class="btn-action"
-                            disabled
-                        >
-                            ⏳ Ocupado
-                        </button>
-
-                        <button 
-                            v-else
-                            class="btn-action btn-forjar"
-                            @click="acoes.fabricarItem(item, quantidadesSelecionadas[item.id] || 1)"
-                            :disabled="!podeCraftar(item)"
-                        >
-                            🔨 Forjar
-                        </button>
+                    <div class="info-meta">
+                        <span class="info-tempo">⏳ {{ getTempoCraft(item, getQtd(item.id)) }}</span>
+                        <span class="info-chance" :class="{ 'chance-alta': parseFloat(getChanceSucesso()) > 90 }">
+                            {{ getChanceSucesso() }}% Sucesso
+                        </span>
                     </div>
 
+                    <button class="btn-craft-lista" 
+                            :disabled="!!jogo.craftando.item || getQtd(item.id) > getMaxCraft(item) || getQtd(item.id) < 1"
+                            @click="fabricarItemDaLista(item)">
+                        🔨 FORJAR
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>
+
+    <div v-if="jogo.craftando.item" class="fila-producao">
+        <div class="fila-header">
+            <h4>🔥 Forja em atividade...</h4>
+            <div class="fila-detalhes-texto">
+                Lote: <strong>{{ jogo.craftando.qtdLote }}x</strong> 
+                (Risco: {{ (jogo.craftando.chanceFalha * 100).toFixed(1) }}%)
+            </div>
+        </div>
+        
+        <div class="barra-progresso-container">
+            <div class="barra-progresso-fill" 
+                 :style="{ width: (100 - (jogo.craftando.tempoRestante / jogo.craftando.tempoTotal * 100)) + '%' }">
+            </div>
+            <span class="texto-progresso">
+                {{ formatarTempoFila(jogo.craftando.tempoRestante) }} restantes
+            </span>
+        </div>
+        
+        <div class="botoes-fila">
+             <button class="btn-cancelar" @click="acoes.cancelarCraft">Cancelar (Perde 10%)</button>
+             <button class="btn-acelerar" @click="acoes.acelerarCraft">Acelerar (Ouro)</button>
+        </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
-/* =========================================
-   1. ESTRUTURA E CABEÇALHO
-   ========================================= */
+@import '../css/taverna.css';
+
 .ferraria-container {
+    padding: 10px;
+    color: #ecf0f1;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* SEÇÃO DO FERREIRO */
+.secao-ferreiro-destaque {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+.ferreiro-ativo {
+    width: 100%;
+    max-width: 400px;
+    background: #2c3e50;
+    border-width: 2px;
+    border-style: solid;
     display: flex;
     flex-direction: column;
+}
+.ferreiro-ativo .card-mid {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+}
+.ferreiro-ativo .avatar-func {
+    width: 80px;
+    height: 80px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+.stats-ferreiro { flex: 1; }
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.95em;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
+}
+.valor.verde { color: #2ecc71; font-weight: bold; }
+.valor.ouro { color: #f1c40f; font-weight: bold; }
+.stat-desc {
+    margin-top: 8px;
+    font-style: italic;
+    font-size: 0.8em;
+    color: #95a5a6;
+    text-align: center;
+}
+.vazio-ferreiro {
+    border: 2px dashed #7f8c8d;
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px;
+    width: 100%;
+    color: #7f8c8d;
+    background: rgba(0,0,0,0.2);
+}
+
+/* LISTA VERTICAL */
+.lista-receitas-container {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid #34495e;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 600px; /* Altura fixa com scroll interno */
+}
+
+.header-lista {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.2fr;
+    background: rgba(0,0,0,0.5);
+    padding: 12px 15px;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #95a5a6;
+    border-bottom: 1px solid #34495e;
+    text-transform: uppercase;
+}
+
+.lista-receitas-scroll {
+    overflow-y: auto;
+    flex: 1;
+    padding: 10px;
+}
+
+/* CARD DA LINHA */
+.card-receita-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.2fr;
+    background: #1e272e;
+    margin-bottom: 8px;
+    border: 1px solid #2c3e50;
+    border-radius: 6px;
+    align-items: center;
+    padding: 12px;
+    transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.card-receita-row:hover {
+    border-color: #e67e22;
+    background: #252f38;
+}
+
+/* COLUNA 1: INFO */
+.receita-info {
+    display: flex;
+    align-items: center;
     gap: 15px;
 }
-
-.header-ferraria { 
-    background: #2c3e50; 
-    color: white; 
-    padding: 12px; 
-    border-radius: 8px; 
-    text-align: center; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+.img-wrapper {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 6px;
+    border: 1px solid #444;
+    padding: 2px;
 }
-
-.aviso-construcao { 
-    background: #fdedec; 
-    color: #c0392b; 
-    padding: 10px; 
-    border-radius: 5px; 
-    margin-top: 10px; 
-    font-size: 0.9em; 
-    border: 1px solid #fab1a0; 
+.icon-receita { width: 100%; height: 100%; object-fit: contain; }
+.qtd-possuida {
+    position: absolute;
+    bottom: -18px; left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.7em;
+    color: #95a5a6;
+    white-space: nowrap;
 }
+.textos-receita h4 { margin: 0 0 6px 0; color: #ecf0f1; font-size: 1.1em; letter-spacing: 0.5px; }
 
-/* =========================================
-   2. STATUS DA FORJA (BARRA DE PROGRESSO)
-   ========================================= */
-.status-forja { 
-    background: white; 
-    padding: 12px; 
-    border-radius: 8px; 
-    border: 1px solid #ddd; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-}
-
-.status-forja.ativo { 
-    border-color: #f39c12; 
-    background: #fef9e7; 
-}
-
-.info-status { 
-    display: flex; 
-    justify-content: space-between; /* Separa Texto <--> Botões */
-    align-items: center; 
-    margin-bottom: 8px; /* Um pouco mais de espaço pra barra */
-    font-size: 0.9em; 
-    flex-wrap: wrap; /* Garante que não quebre em celular muito pequeno */
-    gap: 10px;
-}
-
-.status-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.texto-produzindo {
-    color: #d35400; /* Um tom alaranjado para combinar com o tema */
-    font-size: 1.05em;
-}
-
-.tempo-restante {
-    font-weight: bold;
-    color: #555;
-}
-
-.barra-fundo { 
-    height: 6px; 
-    background: #eee; 
-    border-radius: 3px; 
-    overflow: hidden; 
-}
-
-.barra-progresso { 
-    height: 100%; 
-    background: #f39c12; 
-    transition: width 1s linear; 
-}
-
-/* Botão X pequeno para cancelar no status */
-.btn-cancelar-mini {
-    background: #c0392b; 
-    color: white; 
-    border: none; 
-    width: 20px; 
-    height: 20px; 
-    border-radius: 50%; 
-    font-size: 0.7em; 
-    cursor: pointer; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    transition: background 0.2s;
-}
-.btn-cancelar-mini:hover { background: #a93226; }
-
-/* Botão Acelerar (Dourado/Premium) */
-.btn-acelerar {
-    background: #f1c40f; 
-    color: #2c3e50;
-    border: 1px solid #d4ac0d;
-    border-radius: 4px;
-    padding: 2px 8px;
+/* BADGES */
+.stats-badges { display: flex; gap: 6px; align-items: center; }
+.badge-stat {
     font-size: 0.8em;
+    padding: 2px 6px;
+    border-radius: 3px;
     font-weight: bold;
-    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}
+.badge-stat.ataque { background: #c0392b; color: #fff; }
+.badge-stat.defesa { background: #2980b9; color: #fff; }
+.badge-tipo { font-size: 0.75em; background: #34495e; padding: 2px 5px; border-radius: 3px; color: #bdc3c7; font-weight: bold; }
+.desc-simples { font-size: 0.85em; color: #7f8c8d; font-style: italic; margin-top: 4px; }
+
+/* COLUNA 2: CUSTOS */
+.receita-custos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.custo-pill {
+    background: #111;
+    border: 1px solid #333;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
     display: flex;
     align-items: center;
-    gap: 4px;
-    transition: all 0.2s;
-    box-shadow: 0 2px 0 #b7950b;
+    gap: 5px;
 }
-.btn-acelerar:hover:not(:disabled) { background: #f4d03f; transform: translateY(-1px); }
-.btn-acelerar:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
-.btn-acelerar:disabled { background: #eee; color: #aaa; border-color: #ddd; box-shadow: none; cursor: not-allowed; }
+.custo-pill.falta-recurso { border-color: #e74c3c; color: #e74c3c; }
+.icon-micro { width: 16px; height: 16px; }
+.subtotal { font-size: 0.8em; color: #7f8c8d; margin-left: 2px; }
 
-/* =========================================
-   3. FILTROS
-   ========================================= */
-.filtros-container { 
-    display: flex; 
-    align-items: center; 
-    gap: 10px; 
-    justify-content: flex-end; 
-}
-
-.label-filtro { 
-    font-size: 0.9em; 
-    color: #7f8c8d; 
-    font-weight: bold; 
-}
-
-.filtros-container select { 
-    padding: 6px 10px; 
-    border-radius: 20px; 
-    border: 1px solid #bdc3c7; 
-    background: white; 
-    color: #2c3e50; 
-    font-weight: bold; 
-    cursor: pointer; 
-    outline: none; 
-}
-
-/* =========================================
-   4. LISTA E CARDS (ESTRUTURA)
-   ========================================= */
-.lista-receitas { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 12px; 
-}
-
-.item-card {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    transition: transform 0.2s;
+/* COLUNA 3: AÇÃO */
+.receita-acao {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: flex-end;
+    gap: 8px;
 }
-
-.item-card.bloqueado { 
-    opacity: 0.6; 
-    background: #f9f9f9; 
-    pointer-events: none; 
-}
-
-/* =========================================
-   5. CONTEÚDO DO CARD (HEADER/BODY)
-   ========================================= */
-.card-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    border-bottom: 1px solid #f0f0f0; 
-    padding-bottom: 8px; 
-}
-
-.item-nome { 
-    font-size: 1.1em; 
-    font-weight: bold; 
-    color: #2c3e50; 
-}
-
-.lock-tag { 
-    font-size: 0.8em; 
-    color: #c0392b; 
-    background: #fdedec; 
-    padding: 2px 8px; 
-    border-radius: 10px; 
-    font-weight: bold; 
-}
-
-.card-body { 
-    display: flex; 
-    gap: 15px; 
-    align-items: center; 
-}
-
-.item-visual-box {
-    width: 60px;
-    height: 60px;
-    background: #f4f6f7;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #ecf0f1;
-    flex-shrink: 0;
-}
-
-.img-destaque { 
-    width: 40px; 
-    height: 40px; 
-    object-fit: contain; 
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); 
-}
-
-.item-stats-list { 
-    flex: 1; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 4px; 
-}
-
-.stat-row { 
-    display: flex; 
-    align-items: center; 
-    gap: 6px; 
-    font-size: 0.9em; 
-    color: #34495e; 
-}
-
-.icon-stat-list { width: 16px; height: 16px; object-fit: contain; }
-.stat-value.pos { color: #27ae60; font-weight: bold; }
-.stat-value.neg { color: #c0392b; font-weight: bold; }
-.sem-stats { font-style: italic; color: #95a5a6; font-size: 0.85em; }
-
-/* =========================================
-   6. RODAPÉ DO CARD (CUSTOS E AÇÕES)
-   ========================================= */
-.card-footer { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px; 
-    margin-top: 5px; 
-}
-
-/* Linha de Custos */
-.info-craft-row {
-    background: #f8f9fa; 
-    border: 1px solid #eee; 
-    border-radius: 8px;
-    padding: 6px 10px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-}
-
-.recursos-necessarios { display: flex; gap: 10px; flex-wrap: wrap; }
-.mini-custo { display: flex; align-items: center; gap: 4px; font-size: 0.9em; font-weight: bold; color: #555; }
-.mini-custo img { width: 18px; height: 18px; }
-.mini-custo.falta { color: #e74c3c; opacity: 1; }
-.tempo-info { font-size: 0.85em; color: #7f8c8d; font-weight: bold; }
-
-/* Linha de Controles */
-.action-row { 
-    display: flex; 
-    gap: 10px; 
-    align-items: center; 
-    justify-content: space-between;
-}
-
-/* =========================================
-   7. SELETOR DE QUANTIDADE
-   ========================================= */
-.selector-qtd-group {
-    display: flex;
-    align-items: center;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background: #fff;
-    overflow: hidden;
-    height: 36px;
-}
-
-.btn-qtd {
-    background: #f9f9f9;
-    border: none;
-    padding: 0 10px;
-    height: 100%;
-    cursor: pointer;
+.controle-qtd { display: flex; align-items: center; gap: 4px; width: 100%; justify-content: flex-end; }
+.controle-qtd input {
+    width: 50px;
+    background: #000;
+    border: 1px solid #444;
+    color: #fff;
+    text-align: center;
+    padding: 4px;
     font-weight: bold;
-    font-size: 0.9em;
-    border-right: 1px solid #eee;
-    color: #555;
-    transition: background 0.2s;
+    border-radius: 3px;
 }
-.btn-qtd:hover { background: #e0e0e0; }
-.btn-qtd:last-child { border-right: none; }
-
-.btn-qtd.mini { background: #f0f0f0; color: #777; font-size: 0.8em; }
-
-.num-qtd { 
-    padding: 0 12px; 
-    font-weight: bold; 
-    min-width: 30px; 
-    text-align: center; 
-    color: #2c3e50; 
-    border-right: 1px solid #eee;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* =========================================
-   8. BOTÕES DE AÇÃO (FORJAR/CANCELAR)
-   ========================================= */
-.btn-action {
-    height: 36px;
-    padding: 0 20px;
-    border-radius: 6px;
-    border: none;
+.btn-qtd-mini {
+    background: #34495e; border: none; color: #fff;
+    width: 24px; height: 24px; cursor: pointer; border-radius: 3px;
     font-weight: bold;
-    cursor: pointer;
-    font-size: 0.95em;
+}
+.btn-qtd-mini:hover { background: #455a64; }
+.btn-max-mini {
+    background: #e67e22; border: none; color: #fff;
+    font-size: 0.75em; padding: 4px 8px; cursor: pointer; border-radius: 3px;
+    margin-left: 4px; font-weight: bold;
+}
+.btn-max-mini:hover { background: #d35400; }
+
+.info-meta {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.1s;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+.info-tempo { font-size: 0.85em; color: #f39c12; }
+.info-chance { font-size: 0.8em; color: #7f8c8d; }
+.info-chance.chance-alta { color: #2ecc71; }
+
+.btn-craft-lista {
+    background: linear-gradient(to bottom, #27ae60, #219150);
+    border: none;
     color: white;
+    padding: 8px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.95em;
+    box-shadow: 0 3px 0 #145a32;
+    width: 100%;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.btn-craft-lista:hover { filter: brightness(1.1); }
+.btn-craft-lista:active { transform: translateY(2px); box-shadow: none; }
+.btn-craft-lista:disabled {
+    background: #555;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
 }
 
-/* Verde - Forjar */
-.btn-forjar {
-    background: #27ae60;
-    box-shadow: 0 3px 0 #219150;
+/* FILA DE PRODUÇÃO */
+.fila-producao {
+    margin-top: 20px;
+    background: #2c3e50;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #34495e;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
 }
-.btn-forjar:active { transform: translateY(2px); box-shadow: none; }
-.btn-forjar:disabled { background: #bdc3c7; box-shadow: none; cursor: not-allowed; }
+.fila-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.fila-header h4 { margin: 0; color: #e67e22; }
+.fila-detalhes-texto { font-size: 0.9em; color: #bdc3c7; }
 
-/* Vermelho - Cancelar */
-.btn-cancelar {
-    background: #c0392b;
-    box-shadow: 0 3px 0 #96281b;
+.barra-progresso-container {
+    height: 24px;
+    background: #000;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    margin: 10px 0;
+    border: 1px solid #34495e;
 }
+.barra-progresso-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e67e22, #d35400);
+    transition: width 1s linear;
+}
+.texto-progresso {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    text-align: center;
+    font-size: 0.85em;
+    line-height: 24px;
+    text-shadow: 0 0 3px #000;
+    font-weight: bold;
+}
+.botoes-fila { display: flex; gap: 10px; justify-content: flex-end; }
+.botoes-fila button { padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; font-size: 0.85em; color: #fff; font-weight: bold; }
+.btn-cancelar { background: #c0392b; box-shadow: 0 3px 0 #922b21; }
 .btn-cancelar:active { transform: translateY(2px); box-shadow: none; }
+.btn-acelerar { background: #f1c40f; color: #000 !important; box-shadow: 0 3px 0 #d4ac0d; }
+.btn-acelerar:active { transform: translateY(2px); box-shadow: none; }
 
-/* =========================================
-   9. RESPONSIVIDADE (CORREÇÃO PARA CELULAR)
-   ========================================= */
-@media (max-width: 600px) {
-    /* Diminui o espaço entre o seletor e o botão forjar */
-    .action-row {
-        gap: 6px; 
+/* Responsividade Mobile */
+@media(max-width: 768px) {
+    .header-lista { display: none; }
+    .card-receita-row {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
     }
-
-    /* Força o seletor a tentar caber no espaço disponível */
-    .selector-qtd-group {
-        flex: 1; /* Ocupa todo espaço sobrando */
-        min-width: 0; /* Permite encolher abaixo do conteúdo se necessário */
-    }
-
-    /* Reduz drasticamente o espaçamento interno dos botões */
-    .btn-qtd {
-        padding: 0 4px; /* Era 10px, agora é 4px para caber */
-        font-size: 0.85em; /* Letra um pouco menor */
-        flex: 1; /* Distribui o espaço igualmente entre os botões */
-    }
-
-    /* Ajusta o número central */
-    .num-qtd {
-        padding: 0 6px;
-        min-width: 25px;
-        font-size: 0.9em;
-    }
-
-    /* Ajusta o botão de forjar/cancelar para ser mais compacto */
-    .btn-action {
-        padding: 0 12px;
-        font-size: 0.9em;
-        white-space: nowrap; /* Impede que o texto "Forjar" quebre linha */
-    }
+    .receita-acao { align-items: stretch; flex-direction: column; width: 100%; gap: 10px; border-top: 1px solid #333; padding-top: 10px; }
+    .controle-qtd { justify-content: space-between; }
+    .info-meta { flex-direction: row; justify-content: space-between; align-items: center; }
 }
 </style>

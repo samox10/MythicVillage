@@ -1,0 +1,558 @@
+.taverna-container { 
+    padding: 10px; 
+    width: 100%; /* Mudança: Ocupa tudo, igual a Mina */
+    box-sizing: border-box; /* Garante que o padding não estoure a tela */
+    max-width: 800px; /* Mantém o limite máximo igual da Mina */
+    margin: 0 auto; 
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- PAINEL DE INFORMAÇÕES (TOPO) --- */
+.info-painel { 
+    text-align: center; margin-bottom: 100px; background: #2c3e50; 
+    color: white; padding: 10px; border-radius: 8px; 
+    border: 1px solid #34495e; position: relative; 
+}
+.status-recrutamento {
+    display: flex; justify-content: center; align-items: center; gap: 15px;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.95em; font-weight: bold;
+}
+.stat-grupo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2); /* Fundo escuro sutil atrás do texto */
+    padding: 6px 15px;
+    border-radius: 20px; /* Bordas bem arredondadas (pílula) */
+    font-size: 0.95em;
+    font-weight: bold;
+    color: #ecf0f1; /* Texto quase branco */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s;
+}
+
+/* Cores específicas para diferenciar */
+.stat-grupo.comum {
+    border-bottom: 2px solid #bdc3c7; /* Linha sutil prateada */
+}
+
+.stat-grupo.elite {
+    border-bottom: 2px solid #f1c40f; /* Linha sutil dourada */
+}
+/* Responsividade para celular: empilhar se a tela for muito pequena */
+@media (max-width: 450px) {
+    .stat-grupo {
+        padding: 5px 10px;
+        font-size: 0.85em;
+        width: 100%;
+        justify-content: center;
+    }
+    .status-recrutamento {
+        gap: 10px;
+    }
+}
+
+.icone-stat {
+    font-size: 1.4em; /* Ícones um pouco maiores */
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+
+.divisor-stat {
+    width: 1px;
+    height: 25px;
+    background-color: rgba(255,255,255,0.15);
+}
+.btn-help { 
+    position: absolute; top: 10px; right: 10px; width: 25px; height: 25px; 
+    border-radius: 50%; background: #3498db; color: white; border: none; 
+    font-weight: bold; cursor: pointer; 
+}
+
+/* --- ABAS DE NAVEGAÇÃO --- */
+.abas-taverna { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 10px; /* Reduzido de 15px para 10px */
+}
+
+.abas-taverna button { 
+    flex: 1; 
+    padding: 12px; /* Botões mais "gordinhos" */
+    border: none; 
+    background: #34495e; 
+    color: #bdc3c7; 
+    font-weight: bold; 
+    cursor: pointer; 
+    border-radius: 8px; /* Arredondamento para combinar com o resto */
+    transition: all 0.2s; 
+    font-size: 1em; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.abas-taverna button.ativo { 
+    background: #d35400; 
+    color: white; 
+    /* Removemos a border-bottom antiga para ficar estilo "bloco" */
+    border-bottom: none; 
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.abas-taverna button:hover:not(.ativo) { 
+    background: #2c3e50; 
+}
+
+/* --- PAINEL DE RECRUTAMENTO --- */
+.painel-unificado { 
+    display: flex; 
+    background: #34495e; 
+    border-radius: 8px 8px 0 0; 
+    padding: 15px; /* Mais espaço interno */
+    color: white; 
+    gap: 15px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    align-items: stretch;
+    margin-bottom: 0; 
+}
+.barra-ordenacao-acoplada {
+    background: #34495e; /* Mesma cor do painel */
+    padding: 8px 15px;
+    /* Arredonda só embaixo para fechar o bloco */
+    border-radius: 0 0 8px 8px; 
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end; /* Alinha tudo à direita */
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1); /* Linha sutil separando */
+    color: white;
+    font-size: 0.9em;
+}
+
+.barra-ordenacao-acoplada select {
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #bdc3c7;
+    background: white;
+    color: #2c3e50;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.coluna-aleatoria { 
+    flex: 0 0 25%; display: flex; flex-direction: column; align-items: stretch;
+    justify-content: space-between; gap: 10px; 
+}
+.coluna-aleatoria h4 {
+    margin: 0;
+    width: auto; /* Deixa de ocupar 100% */
+}
+.btn-help-inline {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3498db;
+    color: white;
+    border: none;
+    font-weight: bold;
+    font-size: 0.8em;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 0 #2980b9;
+    transition: transform 0.1s;
+}
+
+.btn-help-inline:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+.coluna-especifica { flex: 1; display: flex; flex-direction: column; }
+.divisor-vertical { width: 1px; background: rgba(255,255,255,0.1); }
+h4 { margin: 0 0 5px 0; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; color: #bdc3c7; text-align: center; width: 100%; }
+
+/* Botões Aleatórios */
+.btn-aleatorio { 
+    background: linear-gradient(135deg, #2980b9, #3498db); border: none; 
+    border-radius: 6px; color: white; width: 100%; flex: 1; min-height: 60px;
+    padding: 5px 0; margin: 0; cursor: pointer; transition: transform 0.1s; 
+    display: flex; flex-direction: column; justify-content: center; align-items: center; 
+    box-shadow: 0 4px 0 #1a5276; 
+}
+.btn-aleatorio:active { transform: translateY(2px); box-shadow: none; }
+.btn-aleatorio:disabled { background: #7f8c8d; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
+.btn-elite { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 0 #6c3483; }
+.btn-aleatorio .preco { font-size: 1.1em; margin: 3px 0; color: #f1c40f; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
+.icone-grande { font-size: 1.8em; margin-bottom: 2px; }
+
+/* Grid de Especialistas */
+.icone-prof-mini { width: 33px; height: 33px; object-fit: contain; margin-bottom: 4px; } 
+.prof-icone { font-size: 1.3em; margin-bottom: 2px; } 
+.prof-nome { font-size: 0.65em; font-weight: normal; margin-bottom: 1px; }
+.prof-preco, .preco { font-size: 0.8em; color: #f1c40f; font-weight: bold; }
+
+/* --- LISTAGEM DE FUNCIONÁRIOS --- */
+.divisor-secao { border: 0; border-top: 1px solid #ccc; margin: 15px 0; opacity: 0.5; }
+.lista-funcionarios { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.vazio { grid-column: 1 / -1; text-align: center; color: #777; margin-top: 20px; font-size: 0.9em; }
+
+/* Utilitários de Filtro e Títulos */
+.filtros-container { background: #2c3e50; padding: 8px; border-radius: 5px; margin-bottom: 10px; color: white; text-align: right; }
+.filtros-container select { padding: 5px; border-radius: 4px; border: none; font-weight: bold; color: #2c3e50; }
+.titulo-secao { text-align: left; margin: 15px 0 5px 0; padding-bottom: 5px; border-bottom: 2px solid #ccc; font-size: 1em; font-weight: bold; text-transform: uppercase; color: #7f8c8d; }
+.titulo-secao.elite { color: #9b59b6; border-bottom-color: #9b59b6; }
+.titulo-secao.comum { color: #27ae60; border-bottom-color: #27ae60; }
+
+/* Modificadores do Card para Fusão */
+.card-funcionario.selecionado { transform: scale(0.98); opacity: 0.9; box-shadow: 0 0 15px rgba(155, 89, 182, 0.5); border-color: #9b59b6; }
+.card-funcionario.desativado { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; pointer-events: none; transform: scale(0.95); }
+
+/* --- MODAL DE AJUDA (PROBABILIDADES) --- */
+.modal-content-help { background: #2c3e50; color: white; padding: 15px; border-radius: 10px; text-align: center; width: 95%; max-width: 500px; border: 2px solid #3498db; max-height: 90vh; overflow-y: auto; }
+.aviso-help { font-size: 0.8em; color: #bdc3c7; margin-bottom: 10px; }
+.aviso-bonus { color: #2ecc71; font-weight: bold; margin-bottom: 5px; }
+.tabela-container { background: #34495e; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+.tabela-container h4 { color: #f39c12; margin-bottom: 5px; font-size: 0.9em; text-transform: uppercase; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+th { border-bottom: 1px solid #7f8c8d; padding: 5px; color: #ecf0f1; text-align: right; }
+th:first-child { text-align: left; }
+td { padding: 4px; border-bottom: 1px solid #2c3e50; text-align: right; }
+td:first-child { text-align: left; }
+.col-bonus { color: #2ecc71; font-weight: bold; }
+
+/* --- BADGES DE ATRIBUTOS --- */
+.badge-stat { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(0,0,0,0.1); background-color: #f0f0f0; color: #333; }
+.badge-stat.ataque { background-color: #ffebee; color: #c0392b; border-color: #ffcdd2; }
+.badge-stat.defesa { background-color: #e3f2fd; color: #1976d2; border-color: #bbdefb; }
+.badge-stat.velocidade { background-color: #e8f5e9; color: #388e3c; border-color: #c8e6c9; }
+.badge-stat.sorte { background-color: #fff8e1; color: #fbc02d; border-color: #ffecb3; }
+.badge-stat.xp { background-color: #f3e5f5; color: #8e24aa; border-color: #e1bee7; }
+.info-especial { margin-top: 5px; padding: 4px; border-radius: 4px; font-size: 0.75em; font-weight: bold; display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
+.info-especial.gerente { background: #2980b9; color: white; }
+.info-especial.comandante { background: #2980b9; color: white; }
+.info-especial.especial-card { background: #f1c40f; color: #2c3e50; padding: 6px; border-radius: 4px; font-size: 0.85em; margin-top: 5px; border: 1px solid #d4ac0d; }
+.icone-texto { width: 18px !important; height: 18px !important; object-fit: contain; vertical-align: middle; margin-right: 6px; margin-bottom: 3px; display: inline-block; }
+
+/* --- PAINEL DE FUSÃO --- */
+.painel-fusao-header.compacto { padding: 15px 10px; margin-bottom: 0; border-radius: 8px 8px 0 0; gap: 10px; background: #2c3e50; border: none; box-shadow: none; }
+.painel-fusao-header.compacto::before { display: none; }
+.painel-fusao-header::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(155, 89, 182, 0.1) 0%, rgba(0,0,0,0) 70%); z-index: 0; pointer-events: none; }
+
+.instrucoes-simples { color: #bdc3c7; font-size: 0.9em; margin-bottom: 5px; }
+.instrucoes { position: relative; z-index: 1; color: #bdc3c7; margin-bottom: 10px; font-size: 0.9em; }
+.icone-instrucao { font-size: 1.5em; display: block; margin-bottom: 5px; }
+
+.barra-ordenacao-fusao { background: #34495e; padding: 8px 15px; border-radius: 0 0 8px 8px; margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); }
+.filtros-container-fusao { display: flex; align-items: center; gap: 10px; color: white; font-size: 0.9em; }
+.filtros-container-fusao select { padding: 2px 6px; border-radius: 4px; border: 1px solid #bdc3c7; background: white; color: #2c3e50; font-weight: bold; cursor: pointer; font-size: 0.9em; height: auto; line-height: 1.2; }
+
+.contador-status { background: rgba(0,0,0,0.4) !important; border: 1px solid #555 !important; font-size: 0.95em; padding: 6px 20px; position: relative; z-index: 1; display: inline-block; border-radius: 20px; color: #95a5a6; font-weight: bold; transition: all 0.3s; }
+.contador-status.cheio { color: #f1c40f; border-color: #f1c40f; background: rgba(241, 196, 15, 0.1); box-shadow: 0 0 10px rgba(241, 196, 15, 0.2); }
+
+.btn-fundir-transformado { background: #27ae60; color: white; border: none; padding: 6px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75em; box-shadow: 0 0 10px rgba(39, 174, 96, 0.5); animation: pulseButton 1.5s infinite; transition: transform 0.1s; }
+.btn-fundir-transformado:hover { background: #2ecc71; transform: scale(1.05); }
+.btn-fundir-transformado:active { transform: scale(0.95); }
+.btn-fundir-acao { position: relative; z-index: 1; margin: 0; padding: 6px 20px; font-size: 0.9em; min-width: 150px; background: #27ae60; border: none; border-radius: 20px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #1e8449; transition: all 0.1s; display: inline-flex; justify-content: center; align-items: center; gap: 5px; }
+.btn-fundir-acao:hover { background-color: #2ecc71; transform: translateY(-1px); }
+.btn-fundir-acao:active { transform: translateY(2px); box-shadow: 0 1px 0 #1e8449; }
+@keyframes pulseButton { 0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); } 100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); } }
+
+/* --- MODAL CONFIRMAÇÃO DE FUSÃO --- */
+.modal-fusao-confirm { border-top: 5px solid #8e44ad; max-width: 400px; }
+.info-tier-fusao { margin: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 5px; color: #7f8c8d; }
+.badge-tier-gigante { font-size: 1.5em; font-weight: bold; color: white; padding: 5px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
+.tabela-probabilidades { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 20px; text-align: left; }
+.linha-probabilidade { margin-bottom: 12px; }
+.linha-probabilidade:last-child { margin-bottom: 0; }
+.label-prob { display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 4px; font-weight: bold; color: #34495e; }
+.barra-fundo-prob { width: 100%; height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+.barra-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease-out; }
+.barra-fill.upgrade { background: #27ae60; }
+.barra-fill.manter { background: #f1c40f; }
+.barra-fill.downgrade { background: #c0392b; }
+.aviso-travado { color: #e67e22; font-weight: bold; font-size: 0.9em; background: #fff3e0; padding: 8px; border-radius: 5px; margin-bottom: 15px; }
+
+/* Modais Específicos */
+.modal-content.upgrade { border-color: #f1c40f; box-shadow: 0 0 30px rgba(241, 196, 15, 0.6); }
+.modal-content.downgrade { border-color: #c0392b; }
+.modal-content h2 { font-size: 1.2em; margin-bottom: 10px; }
+.modal-content button { background: #2c3e50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: background 0.2s; }
+.modal-content button:hover { background: #34495e; }
+.btn-receber { background: #27ae60; color: white; padding: 12px 30px; font-size: 1.1em; margin-top: 10px; width: 100%; border: none; border-radius: 5px; box-shadow: 0 4px 0 #1e8449; cursor: pointer; }
+.btn-receber:active { transform: translateY(2px); box-shadow: 0 1px 0 #1e8449; }
+
+/* --- MODAL DE DEMISSÃO --- */
+.demissao-content { border: 3px solid #c0392b !important; }
+.botoes-demissao { display: flex; gap: 10px; margin-top: 15px; }
+.btn-cancelar-demissao { flex: 1; background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; }
+.btn-confirmar-demissao { flex: 1; background: #c0392b; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; box-shadow: 0 4px 0 #922b21; }
+.btn-confirmar-demissao:active { transform: translateY(2px); box-shadow: 0 1px 0 #922b21; }
+
+/* --- MODAL DE DUELO / CONFLITO --- */
+.modal-largo {
+    /* AQUI ESTAVA O ERRO: Mudamos para 650px fixo no PC com !important */
+    width: 650px !important; 
+    max-width: 95% !important; /* Garante que não estoure a tela se for menor que 650px */
+    padding: 15px;
+    
+    /* Configurações extras para garantir o visual */
+    display: flex;
+    flex-direction: column;
+}
+.duelo-container { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; gap: 10px; position: relative; }
+.lado-duelo { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.vs-badge { background: #c0392b; color: white; font-weight: 900; font-size: 1.2em; padding: 10px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3); z-index: 5; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); }
+.badge-duelo { background: #7f8c8d; color: white; font-size: 0.8em; font-weight: bold; padding: 5px; border-radius: 4px; text-transform: uppercase; }
+.badge-duelo.novo-badge { background: #f1c40f; color: #2c3e50; animation: pulse 1s infinite; }
+.btn-manter { background: #34495e; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-trocar { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 0 #1e8449; }
+.btn-trocar:hover { background: #2ecc71; }
+
+.modal-largo-vertical { width: 95%; max-width: 380px; padding: 15px; max-height: 90vh; overflow-y: auto; }
+.duelo-vertical-stack { display: flex; flex-direction: column; gap: 25px; position: relative; margin-top: 10px; }
+.opcao-wrapper { background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 10px; padding: 10px 10px 0 10px; position: relative; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.opcao-wrapper.novo { background: #fff8e1; border-color: #ffecb3; }
+.label-topo { font-size: 0.8em; font-weight: bold; color: #7f8c8d; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+.label-topo.novo-cor { color: #f39c12; }
+.vs-badge-static { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #c0392b; color: white; font-weight: 900; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10; font-size: 0.9em; }
+.btn-selecionar-duelo { background: #34495e; color: white; border: none; padding: 12px; width: calc(100% + 20px); margin-left: -10px; border-radius: 0 0 10px 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 1em; margin-top: 5px; }
+.btn-selecionar-duelo.novo-btn { background: #27ae60; }
+.btn-selecionar-duelo:active { opacity: 0.9; }
+
+/* --- MODAL TROCA (PREFEITURA CHEIA) --- */
+.btn-trocar-mini { margin-top: 8px; background: #c0392b; color: white; border: none; padding: 4px 10px; font-size: 0.75em; border-radius: 4px; width: 100%; text-transform: uppercase; font-weight: bold; transition: background 0.2s; }
+.btn-trocar-mini:hover { background: #e74c3c; }
+.novo-candidato-container { display: flex; justify-content: center; margin-bottom: 20px; padding: 15px; background: rgba(52, 152, 219, 0.1); border-radius: 10px; border: 1px solid rgba(52, 152, 219, 0.3); }
+.grid-atuais { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+
+/* --- RESPONSIVIDADE --- */
+@media (max-width: 600px) {
+    .painel-unificado { flex-direction: column; }
+    .coluna-aleatoria { width: 100%; flex: none; flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .btn-aleatorio { width: 100%; min-height: 60px; flex: none; }
+    .divisor-vertical { display: none; }
+    .coluna-especifica { width: 100%; }
+    .coluna-aleatoria h4 { text-align: center; }
+}
+
+@media (max-width: 768px) {
+    .modal-largo { width: 90% !important; max-width: none !important; max-height: 95vh; padding: 10px !important; margin-top: 10px; }
+    .duelo-container { flex-direction: column; align-items: stretch !important; gap: 10px; }
+    .vs-separador { font-size: 1em; padding: 5px 10px; margin: 5px auto; }
+    .duelo-container .card-destaque { width: 95% !important; max-width: none !important; padding: 8px !important; margin-bottom: 5px; }
+    .duelo-container .avatar-destaque { width: 70px !important; height: 90px !important; border-width: 2px !important; margin-bottom: 5px; }
+    .duelo-container .card-destaque h3 { font-size: 1.1em; margin: 2px 0 5px 0; }
+    .duelo-container .card-destaque p, .duelo-container .card-destaque .info-linha, .duelo-container .card-destaque .info-especial { font-size: 0.85em; margin: 2px 0; line-height: 1.2; }
+    .duelo-container .card-topo { padding: 2px 5px; margin: -8px -8px 5px -8px; }
+    .duelo-container .tier-badge-lg { font-size: 0.9em; padding: 2px 6px; }
+    .btn-manter, .btn-trocar { padding: 8px 15px; font-size: 0.9em; margin-top: 1px; }
+}
+
+@media (max-width: 500px) {
+    .duelo-container { flex-direction: column; }
+    .vs-badge { position: relative; left: auto; top: auto; transform: none; margin: 10px 0; }
+    .modal-largo { max-height: 90vh; overflow-y: auto; }
+}
+
+@media screen and (max-height: 500px) {
+    .modal-largo { width: 96% !important; max-width: 700px !important; max-height: 70vh !important; overflow-y: auto !important; padding: 10px !important; display: block !important; position: relative !important; margin: 10px auto !important; }
+    .duelo-container { flex-direction: row !important; align-items: stretch !important; gap: 8px !important; margin-top: 5px !important; }
+    .vs-badge { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; font-size: 0.8em !important; padding: 4px !important; z-index: 10; margin: 0 !important; }
+    .lado-duelo { gap: 2px !important; }
+    .card-destaque { margin: 2px 0 !important; padding: 4px !important; }
+    .badge-duelo { font-size: 0.65em !important; padding: 2px !important; }
+    .avatar-destaque { width: 40px !important; height: 50px !important; margin: 2px auto !important; border-width: 1px !important; border-radius: 6px !important; }
+    h3 { font-size: 0.9em !important; margin: 1px 0 !important; }
+    p, .info-linha { font-size: 0.7em !important; line-height: 1.1 !important; margin: 0 !important; padding: 0 !important; }
+    .card-topo { padding: 1px 4px !important; min-height: 15px !important; }
+    .tier-badge-lg { font-size: 1em !important; }
+    .btn-manter, .btn-trocar { padding: 6px 2px !important; font-size: 0.75em !important; margin-top: 2px !important; height: auto !important; }
+}
+/* --- TOOLTIP FLUTUANTE (MINI BALÃO) --- */
+.stat-container {
+    position: relative;     /* Necessário para o balão flutuar perto daqui */
+    display: inline-block;
+    cursor: help;
+    border-bottom: 1px dotted #7f8c8d; /* Sublinhado discreto para indicar clique */
+}
+
+.balao-flutuante {
+    position: absolute;
+    bottom: 125%;           /* Fica logo acima do texto */
+    left: 50%;
+    transform: translateX(-50%); /* Centraliza perfeitamente */
+    
+    background: #2c3e50;    /* Fundo escuro */
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    white-space: nowrap;    /* Não quebra linha */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 100;           /* Garante que fique em cima de tudo */
+    border: 1px solid #f1c40f; /* Bordinha dourada */
+    text-align: center;
+    line-height: 1.4;
+}
+
+/* A setinha (triângulo) embaixo do balão */
+.balao-flutuante::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #2c3e50 transparent transparent transparent;
+}
+
+/* --- CATÁLOGO DE PROFISSÕES (VERSÃO COMPACTA) --- */
+.grid-catalogo {
+    display: grid;
+    /* Reduzi drasticamente a largura mínima da coluna */
+    grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+    gap: 4px; /* Itens mais colados */
+    padding: 5px;
+}
+
+.item-catalogo {
+    background: #465a69;
+    border: 1px solid #576d7d;
+    border-radius: 4px; /* Borda menos arredondada */
+    padding: 4px 2px;   /* Quase sem enchimento interno */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    min-height: 50px; /* Altura fixa pequena */
+}
+
+.item-catalogo:hover {
+    background: #506575;
+    transform: translateY(-2px);
+    border-color: #3498db;
+    z-index: 5; /* Fica por cima dos vizinhos ao passar mouse */
+}
+
+.prof-nome-catalogo {
+    font-size: 0.55em; /* Fonte bem pequena */
+    color: #ecf0f1;
+    margin-top: 2px;
+    font-weight: normal; /* Tirei o negrito pra não borrar */
+    text-align: center;
+    line-height: 1;
+    white-space: nowrap; /* Tenta não quebrar linha */
+    overflow: hidden;
+    text-overflow: ellipsis; /* ... se o nome for gigante */
+    width: 100%;
+}
+
+.icone-prof-catalogo {
+    width: 26px;  /* Ícone pequeno */
+    height: 26px;
+    object-fit: contain;
+    display: block;
+}
+
+.icon-wrapper {
+    position: relative;
+    line-height: 0; /* Remove espaços fantasmas */
+}
+
+/* --- ESTADO BLOQUEADO --- */
+.item-catalogo.bloqueado {
+    background: #2c3e50;
+    border-color: #34495e;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.item-catalogo.bloqueado .icone-prof-catalogo {
+    filter: grayscale(100%) brightness(0.6);
+}
+
+.item-catalogo.bloqueado .prof-nome-catalogo {
+    color: #7f8c8d;
+}
+
+.lock-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1em; /* Cadeado menor */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    z-index: 2;
+}
+
+/* Ajuste no modal de detalhes */
+.aviso-travado {
+    color: #e67e22;
+    font-weight: bold;
+    font-size: 0.9em;
+    background: #fff3e0;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ffe0b2;
+}
+.header-taverna { 
+    background: #2c3e50; 
+    color: white; 
+    padding: 15px; 
+    border-radius: 8px; 
+    margin-bottom: 10px; /* Reduzido de 15px para 10px */
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.titulo-nivel h2 { 
+    margin: 0; 
+    font-size: 1.4em; 
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge-nivel { background: #f39c12; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+/* Ajuste dos Status (Comum/Elite) para ficar fora do header mas bonito */
+.status-recrutamento-container {
+    background: #34495e; /* Azul acinzentado (combina com o painel de baixo) */
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* Sombra suave para dar profundidade */
+    border: 1px solid rgba(255, 255, 255, 0.05); /* Borda sutil para acabamento */
+    display: flex;
+    justify-content: center;
+}
+.status-recrutamento {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    width: 100%;
+    max-width: 600px;
+    
+    /* --- REMOVENDO A LINHA ANTIGA --- */
+    border-top: none;  /* Remove a linha cinza */
+    margin-top: 0;     /* Remove o espaçamento antigo */
+    padding-top: 0;    /* Remove o enchimento antigo */
+}
+/* --- NOVO BOTÃO HELP (AO LADO DO ALEATÓRIO) --- */
+.titulo-area-aleatorio {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    width: 100%;
+}

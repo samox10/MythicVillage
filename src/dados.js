@@ -1,0 +1,55 @@
+// TABELA DE MINERIOS
+export const tabelaMinerais = [
+  { id: 'pedra',      nome: 'Pedra',      nivel: 1,  producaoBase: 60 },  // 1/seg
+  { id: 'cobre',      nome: 'Cobre',      nivel: 2,  producaoBase: 40 }, 
+  { id: 'ferro',      nome: 'Ferro',      nivel: 4,  producaoBase: 30 }, 
+  { id: 'prata',      nome: 'Prata',      nivel: 6,  producaoBase: 20 }, 
+  { id: 'ouro_min',   nome: 'Ouro (Min)', nivel: 8,  producaoBase: 15 }, 
+  { id: 'obsidiana',  nome: 'Obsidiana',  nivel: 10, producaoBase: 10 }, 
+  { id: 'titanio',    nome: 'Titânio',    nivel: 12, producaoBase: 8 }, 
+  { id: 'diamante',   nome: 'Diamante',   nivel: 14, producaoBase: 5 }, 
+  { id: 'mithril',    nome: 'Mithril',    nivel: 16, producaoBase: 3 }, 
+  { id: 'aetherium',  nome: 'Aetherium',  nivel: 18, producaoBase: 1 }
+];
+
+// TABELA DE ITENS CRAFTÁVEIS
+
+export const tabelaItens = [
+  // --- ARMAS ---
+  
+  { 
+    id: 'espada_cobre', nome: 'Espada de Cobre', 
+    img: '/assets/craft/espada_cobre.png', 
+    tipo: 'arma',
+    custo: { madeira: 10, cobre: 5 }, 
+    tempo: 10, 
+    reqNivel: 1,
+    stats: { ataque: 500, precisao: 50, danocritico: 100, chancecritico: 15} 
+  },
+  { 
+    id: 'espada_ferro', nome: 'Espada de Ferro', tipo: 'arma', 
+    img: '/assets/craft/espada_ferro.png', 
+    custo: { madeira: 20, ferro: 10 }, tempo: 30, reqNivel: 2,
+    stats: { ataque: 12, precisao: 3 }
+  },
+  
+  // --- ARMADURAS ---
+  { 
+    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
+    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
+    img: '/assets/craft/armadura_couro.png',
+    stats: { defesa: 3, agilidade: 5 }
+  },
+  { 
+    id: 'armadura_ferro', nome: 'Armadura de Ferro', tipo: 'armadura', 
+    custo: { ferro: 15, couro: 5 }, tempo: 60, reqNivel: 2,
+    stats: { defesa: 10, evasao: -2 }
+  },
+  
+  // --- MUNIÇÃO ---
+  { 
+    id: 'flecha_pedra', nome: 'Flechas de Pedra (x100)', tipo: 'municao', 
+    custo: { madeira: 100, pedra: 100 }, tempo: 20, qtd: 100, reqNivel: 1,
+    stats: { ataque: 2 }
+  }
+];

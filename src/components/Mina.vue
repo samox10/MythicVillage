@@ -200,7 +200,7 @@ const getDiferencaPrefeito = (func) => {
 
                 <div v-if="candidatosMineracao.length === 0" class="sem-candidatos">
                     <p>Nenhum minerador disponível.</p>
-                    <small>Contrate mais na Taverna ou libere de outros slots.</small>
+                    <small>Contrate mais na Guilda dos Trabalhadores ou libere de outros slots.</small>
                 </div>
 
                 <div v-for="func in candidatosMineracao" :key="func.id" 
@@ -223,7 +223,7 @@ const getDiferencaPrefeito = (func) => {
                             Base: {{ getPctBase(func) }}%
                             
                             <span v-if="getDiferencaPrefeito(func) > 0" class="buff-raca">
-                                + {{ getDiferencaPrefeito(func) }}% (Prefeito)
+                                + {{ getDiferencaPrefeito(func) }}% (Lorde)
                             </span>
                         </div>
                          <div v-if="func.diasEmGreve > 0" class="tag-greve-lista">

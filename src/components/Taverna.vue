@@ -146,23 +146,37 @@
 
   const nomeProfissao = (func) => {
       const mapa = {
-          'minerador': { m: 'Minerador', f: 'Mineradora' },
-          'lenhador':  { m: 'Lenhador',  f: 'Lenhadora' },
-          'cacador':   { m: 'Caçador',   f: 'Caçadora' },
-          'cientista': { m: 'Cientista', f: 'Cientista' },
-          'ferreiro':  { m: 'Ferreiro',  f: 'Ferreira' },
-          'comandante':{ m: 'Comandante', f: 'Comandante' },
-          'gerente':   { m: 'Gerente',    f: 'Gerente' },
-          'medico':    { m: 'Médico',     f: 'Médica' },
-          'prefeito':  { m: 'Prefeito',   f: 'Prefeita' },
-          'bancario':  { m: 'Bancário',   f: 'Bancária' },
-          'saqueador': { m: 'Saqueador',  f: 'Saqueadora' },
-          'batedor':   { m: 'Batedor',    f: 'Batedora' }
-      };
+            // Mantidos (Sem alteração solicitada)
+            'minerador': { m: 'Minerador', f: 'Mineradora' },
+            'lenhador':  { m: 'Lenhador',  f: 'Lenhadora' },
+            'cacador':   { m: 'Caçador',   f: 'Caçadora' },
+            'ferreiro':  { m: 'Ferreiro',  f: 'Ferreira' },
+            'comandante':{ m: 'Comandante', f: 'Comandante' },
+            'saqueador': { m: 'Saqueador',  f: 'Saqueadora' },
+            'batedor':   { m: 'Batedor',    f: 'Batedora' },
+
+            // ALTERADOS (Novas Nomenclaturas Isekai/Fantasia)
+            'cientista': { m: 'Acadêmico',   f: 'Acadêmica' },     // Antes: Cientista
+            'gerente':   { m: 'Administrador', f: 'Administradora' }, // Antes: Gerente
+            'medico':    { m: 'Curandeiro',  f: 'Curandeira' },    // Antes: Médico
+            'prefeito':  { m: 'Lorde',       f: 'Lady' },          // Antes: Prefeito
+            'bancario':  { m: 'Tesoureiro',  f: 'Tesoureira' }     // Antes: Bancário
+        };
       const p = func.profissao.toLowerCase();
       if (!mapa[p]) return p.charAt(0).toUpperCase() + p.slice(1);
       return func.sexo === 'feminino' ? mapa[p].f : mapa[p].m;
   };
+  const getNomeImagem = (idOriginal) => {
+    const mapa = {
+        'gerente': 'administrador',
+        'prefeito': 'lorde',
+        'bancario': 'tesoureiro',
+        'medico': 'curandeiro',
+        'cientista': 'academico'
+    };
+    // Se estiver no mapa, retorna o novo nome. Se não, usa o ID original (ex: minerador)
+    return mapa[idOriginal] || idOriginal;
+};
 
   const iconesAtributos = {
       ataque: '⚔️', defesa: '🛡️', velocidade: '👟', xp: '📚', sorte: '🍀'
@@ -255,17 +269,18 @@
       { id: 'minerador', nome: 'Minerador', req: 1, desc: 'Trabalha na Mina extraindo recursos.', stat: 'Bônus de Produção (Minérios).' },
       { id: 'lenhador', nome: 'Lenhador', req: 1, desc: 'Trabalha na Floresta cortando madeira.', stat: 'Bônus de Produção (Madeira).' },
       { id: 'cacador', nome: 'Caçador', req: 1, desc: 'Obtém comida e couro na Floresta.', stat: 'Bônus de Produção (Comida/Couro).' },
-      { id: 'cientista', nome: 'Cientista', req: 1, desc: 'Gera pontos de ciência no Laboratório.', stat: 'Bônus de Produção (Ciência).' },
+      { id: 'cientista', nome: 'Acadêmico', req: 1, desc: 'Gera pontos de estudo na Academia.', stat: 'Bônus de Produção (Estudo).' },
       { id: 'comandante', nome: 'Comandante', req: 1, desc: 'Lidera exércitos (Futuro). Possui atributos de combate.', stat: 'Atributos de Batalha (Ataque/Defesa).' },
       { id: 'batedor', nome: 'Batedor', req: 1, desc: 'Explorador ágil.', stat: 'Percepção: Aumenta chance de encontrar itens raros em explorações.' },
       { id: 'saqueador', nome: 'Saqueador', req: 1, desc: 'Especialista em pilhagem.', stat: 'Pilhagem: Aumenta a quantidade de recursos roubados.' },
       
       // --- ELITE (Níveis Variados) ---
-      { id: 'bancario', nome: 'Bancário', req: 2, desc: 'Gera juros sobre o seu ouro total.', stat: 'Finanças: % de ouro gerado por hora.' },
+      
+      { id: 'bancario', nome: 'Tesoureiro', req: 2, desc: 'Gera juros sobre o seu ouro total.', stat: 'Finanças: % de ouro gerado por hora.' },
       { id: 'ferreiro', nome: 'Ferreiro', req: 3, desc: 'Reduz o tempo de fabricação de itens.', stat: 'Produtividade: % de redução no tempo de craft.' },
-      { id: 'prefeito', nome: 'Prefeito', req: 4, desc: 'Reduz custos de construções e buffa a própria raça.', stat: 'Gestão: % de desconto em construções + Buff Racial.' },
-      { id: 'medico', nome: 'Médico', req: 5, desc: 'Cura feridos mais rápido (Futuro).', stat: 'Medicina: % de velocidade na recuperação.' },
-      { id: 'gerente', nome: 'Gerente', req: 6, desc: 'Influencia o Sindicato para atrair melhores candidatos.', stat: 'Influência: Aumenta a sorte no recrutamento e fusão.' }
+      { id: 'prefeito', nome: 'Lorde', req: 4, desc: 'Reduz custos de construções e buffa a própria raça.', stat: 'Gestão: % de desconto em construções + Buff Racial.' },
+      { id: 'medico', nome: 'Curandeiro', req: 5, desc: 'Cura feridos mais rápido.', stat: 'Medicina: % de velocidade na recuperação.' },
+      { id: 'gerente', nome: 'Administrador', req: 6, desc: 'Influencia a Guilda dos Trabalhadores para atrair melhores candidatos.', stat: 'Influência: Aumenta a sorte no recrutamento e fusão.' }    
   ];
 
   // Função para abrir o modal
@@ -300,7 +315,7 @@
     
     <div class="header-taverna">
         <div class="titulo-nivel">
-            <h2>📜 Sindicato</h2>
+            <h2>📜 Guilda dos Trabalhadores</h2>
         </div>
         <div class="info-nivel">
             <span class="badge-nivel">Nível {{ jogo.taverna }}</span>
@@ -353,7 +368,7 @@
                         :title="jogo.taverna < prof.req ? `Desbloqueia no Nível ${prof.req}` : 'Clique para ver detalhes'"
                     >
                         <div class="icon-wrapper">
-                            <img :src="`/assets/ui/i_${prof.id}.png`" class="icone-prof-catalogo" alt="">
+                            <img :src="`/assets/ui/i_${getNomeImagem(prof.id)}.png`" class="icone-prof-catalogo" alt="">
                             <div v-if="jogo.taverna < prof.req" class="lock-overlay">🔒</div>
                         </div>
                         
@@ -380,7 +395,7 @@
                     <div class="card-topo" :style="{ backgroundColor: corTier(func.tier) }">
                         <span class="tier-badge">{{ func.tier }}</span>
                         <span class="card-nome">{{ func.nome }}</span>
-                        <img :src="`/assets/ui/i_${func.profissao}.png`" class="icone-topo-card">
+                        <img :src="`/assets/ui/i_${getNomeImagem(func.profissao)}.png`" class="icone-topo-card">
                         <span v-if="func.diasEmGreve > 0" class="tag-greve">GREVE ({{func.diasEmGreve}}/5)</span>
                     </div>
                     <div class="card-mid">
@@ -432,7 +447,7 @@
                     <div class="card-topo" :style="{ backgroundColor: corTier(func.tier) }">
                         <span class="tier-badge">{{ func.tier }}</span>
                         <span class="card-nome">{{ func.nome }}</span>
-                        <img :src="`/assets/ui/i_${func.profissao}.png`" class="icone-topo-card">
+                        <img :src="`/assets/ui/i_${getNomeImagem(func.profissao)}.png`" class="icone-topo-card">
                         <span v-if="func.diasEmGreve > 0" class="tag-greve">GREVE ({{func.diasEmGreve}}/5)</span>
                     </div>
                     <div class="card-mid">
@@ -441,7 +456,7 @@
                             <div class="info-linha"><strong>Prof:</strong> {{ nomeProfissao(func) }}</div>                            
                             <div class="info-linha"><strong>Raça:</strong> {{ formatarRaca(func.raca) }}</div>                            
                             <div class="info-linha"><strong>Sexo:</strong> {{ formatarSexo(func.sexo) }}</div>
-                            <div class="info-linha"><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ func.salario }}</div>
+                            <div class="info-linha"><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(func.salario) }}</div>
                             <!-- Inicio da Estatística da Aba Recrutamento -->
                             <div v-if="labelsEspeciais[func.profissao]" class="info-linha">
                                 <strong>{{ labelsEspeciais[func.profissao] }}: </strong> 
@@ -709,7 +724,7 @@
                 <p><strong>Profissão:</strong> {{ nomeProfissao(modalFusao.funcionario) }}</p>
                 <p><strong>Raça:</strong> {{ formatarRaca(modalFusao.funcionario.raca) }}</p>
                 <p><strong>Sexo:</strong> {{ formatarSexo(modalFusao.funcionario.sexo) }}</p>
-                <p><strong>Salário:</strong> {{ formatarNumero(modalFusao.funcionario.salario) }}</p>
+                <p><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(modalFusao.funcionario.salario) }}</p>
                 <!-- Inicio da Estatística Modal Fusão -->
                 <div v-if="labelsEspeciais[modalFusao.funcionario.profissao]" class="info-linha" style="justify-content:center; display:flex; margin-bottom: 15px;">
                     <strong>{{ labelsEspeciais[modalFusao.funcionario.profissao] }}:</strong>&nbsp;
@@ -942,7 +957,7 @@
                          <div class="card-topo" :style="{ backgroundColor: corTier(conflitoGerente.novo.tier) }">
                             <span class="tier-badge">{{ conflitoGerente.novo.tier }}</span>
                             <span class="card-nome">{{ conflitoGerente.novo.nome }}</span>
-                            <img :src="`/assets/ui/i_${conflitoGerente.novo.profissao}.png`" class="icone-topo-card">
+                            <img :src="`/assets/ui/i_${getNomeImagem(conflitoGerente.novo.profissao)}.png`" class="icone-topo-card">
                         </div>
                         <div class="card-mid">
                             <img v-if="conflitoGerente.novo.imagem" :src="`/assets/faces/${conflitoGerente.novo.raca}/${conflitoGerente.novo.imagem}.png`" class="avatar-func">
@@ -1102,7 +1117,7 @@
                     <div class="card-topo" style="padding: 4px;" :style="{ backgroundColor: corTier(func.tier) }">
                         <span class="tier-badge" style="font-size: 0.8em; width: 20px; height: 20px; line-height: 20px;">{{ func.tier }}</span>
                         <span class="card-nome" style="font-size: 0.9em;">{{ func.nome }}</span>
-                        <img :src="`/assets/ui/i_${func.profissao}.png`" class="icone-topo-card" style="width: 18px; height: 18px; right: 4px;">
+                        <img :src="`/assets/ui/i_${getNomeImagem(func.profissao)}.png`" class="icone-topo-card" style="width: 18px; height: 18px; right: 4px;">
                     </div>
                     
                     <div class="card-mid" style="padding: 5px;">
@@ -1154,7 +1169,7 @@
             <h3 style="margin-bottom: 5px;">{{ modalDetalheProf.nome }}</h3>
             
             <div style="margin: 15px 0;">
-                <img :src="`/assets/ui/i_${modalDetalheProf.id}.png`" style="width: 64px; height: 64px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));">
+                <img :src="`/assets/ui/i_${getNomeImagem(modalDetalheProf.id)}.png`" style="width: 64px; height: 64px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));">
             </div>
 
             <div v-if="jogo.taverna < modalDetalheProf.req" class="aviso-travado" style="margin-bottom: 15px;">

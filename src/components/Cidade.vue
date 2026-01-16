@@ -13,7 +13,7 @@
     <h3>Gestão da Vila</h3>
 
     <div class="construcao-card destaque">
-      <h4>🏛️ Prefeitura (Nv {{ jogo.prefeitura }})</h4>
+      <h4>🏰 Castelo (Nv {{ jogo.prefeitura }})</h4>
       <p>Limite de Prédios: {{ limites.casas }}</p>
       <button class="btn-upgrade" @click="acoes.evoluir('prefeitura')" 
         :disabled="jogo.construindo.tipo">
@@ -24,7 +24,7 @@
 
     <div class="grid-predios">
         <div class="construcao-card">
-        <h4>🏠 Casas ({{ jogo.casas }})</h4>
+        <h4>🏠 Alojamentos ({{ jogo.casas }})</h4>
         <button @click="acoes.construir('casa')" 
             :disabled="jogo.construindo.tipo || (jogo.casas + jogo.armazens) >= limites.casas">
             <span v-if="jogo.construindo.tipo === 'casa'">🔨...</span>
@@ -33,7 +33,7 @@
         </div>
 
         <div class="construcao-card">
-        <h4>📦 Armazém ({{ jogo.armazens }})</h4>
+        <h4>📦 Depósito ({{ jogo.armazens }})</h4>
         <button @click="acoes.construir('armazem')" 
             :disabled="jogo.construindo.tipo || (jogo.casas + jogo.armazens) >= limites.casas">
             <span v-if="jogo.construindo.tipo === 'armazem'">🔨...</span>
@@ -70,7 +70,7 @@
         </div>
 
         <div class="construcao-card">
-            <h4>⚗️ Laboratório ({{ jogo.laboratorio ? 'Ativo' : 'Não construído' }})</h4>
+            <h4>⚗️ Academia de Pesquisa ({{ jogo.laboratorio ? 'Ativo' : 'Não construído' }})</h4>
             <div v-if="jogo.laboratorio === 0">
                 <button @click="acoes.construir('laboratorio')" :disabled="jogo.construindo.tipo">
                     Construir (🌲{{ jogo.custoLaboratorio.madeira }} 🪨{{ jogo.custoLaboratorio.pedra }} <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ jogo.custoLaboratorio.ouro }})
@@ -81,7 +81,7 @@
             </div>
         </div>
         <div class="construcao-card">
-            <h4>📜 Sindicato (Nv {{ jogo.taverna }})</h4>
+            <h4>📜 Guilda dos Trabalhadores (Nv {{ jogo.taverna }})</h4>
             
             <div v-if="jogo.taverna === 0">
                 <p class="desc-predio">Libera recrutamento de funcionários.</p>

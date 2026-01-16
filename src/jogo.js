@@ -58,7 +58,7 @@ export const jogo = reactive({
     alocacaoMina: { ...alocacaoInicial }, // Guarda IDs: { pedra: ['id_joao', null], ... }
     bancoMinerios: { ...bancoInicial },   // Guarda frações de minério (ex: 0.45)
     itens: { ...itensIniciais },
-    desempregados: 0, lenhadores: 0, cacadores: 0, cientistas: 0, mineradores: 0, populacaoMax: 5,
+    desempregados: 0, lenhadores: 0, cacadores: 0, academicos: 0, mineradores: 0, populacaoMax: 5,
     prefeitura: 1, custoPrefeitura: { madeira: 100, pedra: 100, comida: 50 },
     casas: 0, custoCasa: { madeira: 50, pedra: 10 },
     armazens: 0, custoArmazem: { madeira: 150, pedra: 50 },
@@ -88,7 +88,7 @@ export const custoContratacao = computed(() => (jogo.taverna || 1) * 500);
 
 export const bonusSorteTotal = computed(() => {
     return jogo.funcionarios
-        .filter(f => f.profissao === 'gerente' && f.diasEmGreve === 0)
+        .filter(f => f.profissao === 'administrador' && f.diasEmGreve === 0)
         .reduce((acc, curr) => {
             const base = curr.poderEspecial || curr.poderGerencia || 0;
             
@@ -172,7 +172,7 @@ function processarOffline(segundosOffline) {
 // --- NOVA FUNÇÃO DE BUFF RACIAL DO PREFEITO ---
 export function obterBuffRaca(func) {
     // 1. Acha o prefeito (que não esteja em greve)
-    const prefeito = jogo.funcionarios.find(f => f.profissao === 'prefeito' && f.diasEmGreve === 0);
+    const prefeito = jogo.funcionarios.find(f => f.profissao === 'lorde' && f.diasEmGreve === 0);
     
     // 2. Validações básicas
     if (!prefeito) return 0; // Sem prefeito, sem buff
@@ -501,7 +501,7 @@ export const acoes = {
         else if (qtd === -1 && jogo.trabalhoMina[id] > 0) jogo.trabalhoMina[id]--;
     },
     gerenciarTrabalho(prof, qtd) {
-        const mapa = { lenhador: 'lenhadores', minerador: 'mineradores', cacador: 'cacadores', cientista: 'cientistas' };
+        const mapa = { lenhador: 'lenhadores', minerador: 'mineradores', cacador: 'cacadores', academico: 'academicos' };
         const p = mapa[prof];
         if (qtd === -1 && jogo[p] > 0) {
             if (prof === 'minerador' && (jogo.mineradores - mineradoresOcupados.value) <= 0) return mostrarAviso("Erro", "Mineradores trabalhando.");

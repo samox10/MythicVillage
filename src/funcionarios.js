@@ -5,7 +5,7 @@ export const ORDEM_TIERS = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS'];
 export const DADOS_TIERS = {
     'F': { bonus: [1.05, 1.10], salario: [10, 20] },
     'E': { bonus: [1.09, 1.20], salario: [21, 40] },
-    'D': { bonus: [1.18, 1.40], salario: [41, 80] },
+    'D': { bonus: [1.18, 1.40], salario: [4100, 8000] },
     'C': { bonus: [1.35, 1.70], salario: [81, 150] },
     'B': { bonus: [1.65, 2.20], salario: [151, 300] },
     'A': { bonus: [2.10, 3.00], salario: [301, 600] },
@@ -14,19 +14,19 @@ export const DADOS_TIERS = {
 };
 // --- CONFIGURAÇÃO DE ATRIBUTOS ESPECIAIS (BALANCEAMENTO NOVO) ---
 const STATS_ESPECIAIS = {
-    gerente: {
+    administrador: {
         F: [15, 30], E: [25, 45], D: [40, 70], C: [60, 95],
         B: [85, 125], A: [115, 160], S: [150, 195], SS: [185, 230]
     },
-    prefeito: {
+    lorde: {
         F: [1, 4], E: [3, 7], D: [6, 10], C: [9, 14],
         B: [13, 18], A: [17, 22], S: [20, 27], SS: [25, 35]
     },
-    bancario: {
+    tesoureiro: {
         F: [0.4, 0.9], E: [0.8, 1.5], D: [1.4, 2.2], C: [2.0, 3.0],
         B: [2.8, 4.0], A: [3.8, 5.2], S: [5.0, 6.5], SS: [6.0, 8.0]
     },
-    medico: {
+    mcurandeiro: {
         F: [3, 7], E: [6, 12], D: [10, 16], C: [14, 21],
         B: [19, 27], A: [25, 34], S: [32, 40], SS: [38, 45]
     },
@@ -226,17 +226,17 @@ export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = n
     const dados = DADOS_TIERS[tier];
 
     // Lista de trabalhadores comuns (Vão para as Casas)
-    const profissoesComuns = ['minerador', 'lenhador', 'cacador', 'cientista', 'comandante', 'saqueador', 'batedor'];
+    const profissoesComuns = ['minerador', 'lenhador', 'cacador', 'academico', 'comandante', 'saqueador', 'batedor'];
 
     // --- CONFIGURAÇÃO DOS ESPECIAIS ---
     // Regra 1: Nível da Taverna necessário
     // Regra 2: Tier Mínimo necessário (Bancário E+, Ferreiro D+, etc)
     const configEspeciais = [
-        { id: 'bancario', minNivel: 2, minTier: 'E' },
-        { id: 'ferreiro', minNivel: 3, minTier: 'D' },
-        { id: 'prefeito', minNivel: 4, minTier: 'C' },
-        { id: 'medico',   minNivel: 5, minTier: 'B' },
-        { id: 'gerente',  minNivel: 6, minTier: 'A' }
+        { id: 'tesoureiro', minNivel: 2, minTier: 'E' }, // bancario -> tesoureiro
+        { id: 'ferreiro',   minNivel: 3, minTier: 'D' }, // Mantido
+        { id: 'lorde',      minNivel: 4, minTier: 'C' }, // prefeito -> lorde
+        { id: 'curandeiro', minNivel: 5, minTier: 'B' }, // medico -> curandeiro
+        { id: 'administrador', minNivel: 6, minTier: 'A' } // gerente -> administrador
     ];
 
     let listaSorteio = [...profissoesComuns];
@@ -267,7 +267,7 @@ export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = n
     const sulfixoSexo = (sexo === 'masculino') ? 'm' : 'f';
 
     // 2. Lista de profissões que possuem imagem exclusiva na pasta
-    const cargosComImagemPropria = ['bancario', 'ferreiro', 'gerente', 'medico', 'prefeito'];
+    const cargosComImagemPropria = ['tesoureiro', 'ferreiro', 'administrador', 'curandeiro', 'lorde'];
 
     let imagemNome = '';
 
@@ -317,12 +317,11 @@ export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = n
 
         // Define as descrições automáticas
         switch (profissaoFinal) {
-            case 'gerente': descricaoPassiva = "Aumenta chance de Tiers raros."; break;
-            case 'prefeito': descricaoPassiva = `Reduz custo de construções em ${statPrincipal}%.`; break;
-            case 'bancario': descricaoPassiva = `Rende ${statPrincipal}% do ouro atual por hora.`; break;
-            case 'medico': descricaoPassiva = `Reduz tempo de feridos em ${statPrincipal}%.`; break;
+            case 'administrador': descricaoPassiva = "Aumenta chance de Tiers raros."; break;
+            case 'lorde': descricaoPassiva = `Reduz custo de construções em ${statPrincipal}%.`; break;
+            case 'tesoureiro': descricaoPassiva = `Rende ${statPrincipal}% do ouro atual por hora.`; break;
+            case 'curandeiro': descricaoPassiva = `Reduz tempo de feridos em ${statPrincipal}%.`; break;
             case 'ferreiro': descricaoPassiva = `Acelera produção na Ferraria em ${statPrincipal}%.`; break;
-            // Saqueador e Batedor não têm descrição passiva no card, apenas o stat, então não precisa de case aqui.
         }
     }
     else if (profissaoFinal === 'comandante') {
@@ -451,7 +450,7 @@ export const processarFusao = (tierAtual, nivelTaverna, profissaoFixa, racaFixa,
     else if (rand < (chances.downgrade + chances.manter)) novoTier = tierAtual;
     else novoTier = ORDEM_TIERS[idx + 1];
 
-    const proibidosNaFusao = ['gerente', 'prefeito', 'bancario', 'medico', 'ferreiro'];
+    const proibidosNaFusao = ['administrador', 'lorde', 'tesoureiro', 'curandeiro', 'ferreiro'];
     
     // Gera o novo funcionário passando a racaFixa também
     // Nota: Passamos 'null' no sexoFixo para continuar aleatório

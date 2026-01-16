@@ -152,8 +152,36 @@ function finalizarConstrucao() {
 }
 function finalizarCraft() {
     const receita = tabelaItens.find(i => i.id === jogo.craftando.item);
-    if (receita) jogo.itens[receita.id] += ((receita.qtd || 1) * (jogo.craftando.qtdLote || 1));
-    jogo.craftando.item = null; jogo.craftando.qtdLote = 1;
+    if (receita) {
+        const qtdTentativas = (jogo.craftando.qtdLote || 1);
+        const chanceFalha = jogo.craftando.chanceFalha || 0;
+        
+        let sucessos = 0;
+        let falhas = 0;
+
+        // Loop de verificação unidade por unidade
+        for (let i = 0; i < qtdTentativas; i++) {
+            if (Math.random() > chanceFalha) {
+                sucessos++;
+            } else {
+                falhas++;
+            }
+        }
+
+        const qtdRecebida = sucessos * (receita.qtd || 1);
+        if (qtdRecebida > 0) {
+            jogo.itens[receita.id] += qtdRecebida;
+        }
+
+        // Feedback visual do resultado
+        if (falhas > 0) {
+            mostrarAviso("Produção Finalizada", `Sucesso: ${sucessos} | Quebrados: ${falhas} ⚠️`, 'aviso');
+        } else {
+            // Se for apenas 1 item e deu certo, aviso mais simples (ou nenhum se preferir silêncio)
+            // mostrarAviso("Produção Concluída", `Você forjou ${qtdRecebida}x ${receita.nome}.`, 'sucesso');
+        }
+    }
+    jogo.craftando = { item: null, qtdLote: 1, tempoRestante: 0, tempoTotal: 0 };
 }
 function processarOffline(segundosOffline) {
     if (segundosOffline <= 0) return;
@@ -456,13 +484,34 @@ export const acoes = {
             });
 
             // --- BÔNUS DE FERREIRO (REDUÇÃO DE TEMPO) ---
-            const ferreiros = jogo.funcionarios.filter(f => f.profissao === 'ferreiro' && f.diasEmGreve === 0);
-            const totalReducao = ferreiros.reduce((acc, f) => acc + (f.poderEspecial || 0), 0);
-            const fator = Math.max(0.1, 1 - (totalReducao / 100)); // Limite de 90% redução (sobra 10% do tempo)
+            const ferreiro = jogo.funcionarios.find(f => f.profissao === 'ferreiro' && f.diasEmGreve === 0);
+            // Base: 15% de chance de falha para qualquer item (Pode ser ajustado futuramente por item)
+            const chanceFalhaBase = 0.15;
+            let redutorTempo = 0;
+            let redutorFalha = 0;
+            if (ferreiro) {
+                // Reaproveita a função de buff racial exportada anteriormente
+                const buffRaca = 1 + (obterBuffRaca(ferreiro) / 100);
+                const poderReal = (ferreiro.poderEspecial || 0) * buffRaca;
 
-            const tempoFinal = Math.ceil(item.tempo * qtd * fator);
+                // Redução de Tempo (Ex: 20 poder = 20% menos tempo)
+                redutorTempo = Math.min(0.9, poderReal / 100); 
+                
+                // Redução de Falha (Ex: 20 poder = 20% menos falhas)
+                // Se a chance é 15%, e o ferreiro tem 50 de poder: 15% * (1 - 0.5) = 7.5% chance final
+                redutorFalha = Math.min(1.0, poderReal / 100);
+            }
 
-            jogo.craftando = { item: item.id, qtdLote: qtd, tempoRestante: tempoFinal, tempoTotal: tempoFinal };
+            const tempoFinal = Math.ceil(item.tempo * qtd * (1 - redutorTempo));
+            const chanceFalhaFinal = Math.max(0, chanceFalhaBase * (1 - redutorFalha));
+
+            jogo.craftando = { 
+                item: item.id, 
+                qtdLote: qtd, 
+                tempoRestante: tempoFinal, 
+                tempoTotal: tempoFinal,
+                chanceFalha: chanceFalhaFinal 
+            };
         } else alert("Faltam recursos.");
     },
     cancelarCraft() {

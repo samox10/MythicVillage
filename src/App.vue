@@ -34,7 +34,7 @@ body {
   import Ferraria from './components/Ferraria.vue';
   import Inventario from './components/Inventario.vue';
   import Modal from './components/Modal.vue';
-  import Teste from './components/Teste.vue';
+  import Layout from './components/layout.vue';
 
   // --- ESTADO DA NAVEGAÇÃO ---
   const categoriaAtual = ref('cidade'); 
@@ -201,9 +201,9 @@ body {
       <div class="nav-item">
         <button 
           class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'teste' }" 
-          @click="navegarDireto('teste', 'inicio')"
-          title="Teste">
+          :class="{ ativo: categoriaAtual === 'layout' }" 
+          @click="navegarDireto('layout', 'inicio')"
+          title="Layout">
           🧭
         </button>
       </div>

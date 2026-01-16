@@ -809,55 +809,67 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 /* LINHA 1: TOPO */
 .linha-topo-card {
     display: flex;
-    justify-content: space-between;
-    align-items: center; /* Centraliza verticalmente nome e custos */
+    justify-content: space-between; /* ESQUERDA <-> DIREITA */
+    align-items: center;
     margin-bottom: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     padding-bottom: 5px;
-    gap: 10px; /* Espaço mínimo entre nome e custos */
+    gap: 10px;
+    width: 100%; /* OBRIGATÓRIO: Garante que a linha vá até o fim */
 }
+
 .nome-item-topo {
     margin: 0;
     font-size: 0.9em;
     color: #f39c12;
     text-transform: uppercase;
     letter-spacing: 1px;
-    white-space: nowrap; /* Impede que o nome quebre em duas linhas */
-    flex-shrink: 0; /* Impede que o nome seja esmagado pelos custos */
+    white-space: nowrap;
+    
+    flex-shrink: 1; 
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    min-width: 0;
+    
+    /* ADICIONE ISSO PARA GARANTIR: */
+    text-align: left; 
 }
+
 .lista-custos-mini { 
     display: flex; 
-    flex-wrap: nowrap; /* OBRIGATÓRIO: Impede quebrar linha */
-    justify-content: flex-end; /* Alinha à direita */
+    flex-wrap: nowrap;
+    justify-content: flex-end;
     align-items: center;
     gap: 4px; 
     
-    /* Se tiver muitos recursos, permite rolar pro lado em vez de quebrar */
-    overflow-x: auto; 
-    max-width: 100%; 
+    /* CORREÇÃO AQUI: */
+    flex-shrink: 0; /* Impede que a lista de custos seja esmagada */
+    max-width: 70%; /* Limita a lista para não sumir com o nome do item */
     
-    /* Esconde a barra de rolagem (estética) */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none;  /* IE/Edge */
+    overflow-x: auto; /* Permite rolar pro lado se tiver muitos custos */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 .lista-custos-mini::-webkit-scrollbar {
     display: none;
 }
+
 .custo-item-mini {
     display: flex; align-items: center; gap: 3px;
     background: #111; padding: 2px 6px; border-radius: 3px;
     font-size: 0.75em; color: #aaa; border: 1px solid #333;
-    flex-shrink: 0; /* Garante que o item de custo não amasse */
+    flex-shrink: 0; /* Garante que cada bloquinho de custo mantenha o tamanho */
+    white-space: nowrap;
 }
 .custo-item-mini.vermelho { color: #e74c3c; border-color: #e74c3c; }
+
 .icon-custo-micro { 
-    width: 14px; 
-    height: 14px;
-    min-width: 14px; /* OBRIGATÓRIO: Impede o navegador de esmagar o ícone para 0px */
+    width: 16px; 
+    height: 16px;
+    min-width: 16px; /* Força bruta para o ícone nunca ter largura 0 */
     object-fit: contain; 
-    flex-shrink: 0; 
     display: block;
-    background-color: rgba(0,0,0,0.2); /* Fundo escuro sutil para ver se a imagem quebrou */
+    background-color: rgba(0,0,0,0.2);
     border-radius: 50%;
 }
 
@@ -961,15 +973,34 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 .controles-finais {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
+    align-items: center; /* MUDANÇA: Centraliza o tempo sobre os botões */
+    justify-content: center;
+    gap: 6px; /* Um pouco mais de espaço entre o tempo e os botões */
+    min-width: 130px; /* Garante que tenha espaço para não quebrar */
 }
+
 .grupo-botoes-acao {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 8px; /* Espaço entre o input numérico e o martelo */
+    justify-content: center;
+    width: 100%;
 }
-.tempo-estimado { font-size: 0.7em; color: #f39c12; margin-right: 2px; }
+.tempo-estimado {
+    font-size: 0.75em;
+    font-weight: bold;
+    color: #ecf0f1; /* Texto claro */
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo escuro transparente */
+    padding: 3px 10px; /* Espaçamento interno (vira uma pílula) */
+    border-radius: 12px; /* Bordas redondas */
+    border: 1px solid #444; /* Borda sutil */
+    
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sombrainha para destacar */
+}
 
 /* INPUT E BOTOES */
 .input-group-moderno {
@@ -998,7 +1029,9 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 }
 /* REMOVER SETAS DO INPUT (FIREFOX) */
 .input-group-moderno input[type=number] {
+  appearance: textfield;
   -moz-appearance: textfield;
+  -webkit-appearance: none;
 }
 
 .btn-mini {
@@ -1008,45 +1041,19 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 }
 .btn-mini:hover { background: #455a64; }
 
-.btn-forjar-redondo {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: none;
-    background: linear-gradient(135deg, #e67e22, #d35400);
-    color: white;
-    font-size: 1.1em;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 10px rgba(230, 126, 34, 0.4);
-    transition: all 0.2s;
-}
-.btn-forjar-redondo:hover:not(:disabled) { transform: scale(1.1); }
-.btn-forjar-redondo:active:not(:disabled) { transform: scale(0.95); }
-.btn-forjar-redondo:disabled { background: #555; cursor: not-allowed; opacity: 0.5; box-shadow: none; }
-
 /* Mobile */
 @media(max-width: 768px) {
     .linha-corpo-card { flex-wrap: wrap; }
     .coluna-meio { min-width: 100%; order: 3; } /* Joga a desc pra baixo em mobile */
 }
-
-/* Custos */
-.lista-custos-mini { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
-.custo-item-mini {
-    display: flex; align-items: center; gap: 3px;
-    background: #111; padding: 2px 6px; border-radius: 3px;
-    font-size: 0.75em; color: #aaa; border: 1px solid #333;
-}
-.custo-item-mini.vermelho { color: #e74c3c; border-color: #e74c3c; }
-.icon-custo-micro { width: 12px; height: 12px; }
-
 /* Controles */
 .controles-finais {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 4px;
+    flex-direction: column;
+    align-items: center; /* Centraliza o tempo em cima dos botões */
+    justify-content: center;
+    gap: 6px; /* Espaço entre a etiqueta de tempo e os botões */
+    min-width: 140px; /* Garante espaço para não quebrar */
 }
 .input-group-moderno {
     display: flex;
@@ -1069,34 +1076,63 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 
 /* O BOTÃO REDONDO */
 .btn-forjar-redondo {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%; /* Perfeitamente redondo */
+    width: auto; /* Largura automática para caber o texto */
+    height: 40px;
+    padding: 0 20px; /* Espaço nas laterais */
+    background: #27ae60; /* Verde Esmeralda */
     border: none;
-    background: linear-gradient(135deg, #e67e22, #d35400);
+    border-radius: 4px; /* Cantos levemente arredondados */
     color: white;
-    font-size: 1.2em;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(230, 126, 34, 0.4);
-    transition: all 0.2s;
+    gap: 8px; /* Espaço entre ícone e texto */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: background 0.2s;
 }
+
+/* Adiciona a palavra "FORJAR" via CSS se quiser manter o ícone */
+.btn-forjar-redondo::after {
+    content: "FORJAR";
+}
+
 .btn-forjar-redondo:hover:not(:disabled) {
-    transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 6px 15px rgba(230, 126, 34, 0.6);
+    background: #2ecc71; /* Verde mais claro */
+    transform: translateY(-2px);
 }
-.btn-forjar-redondo:active:not(:disabled) {
-    transform: scale(0.95);
+
+.btn-forjar-redondo:active {
+    transform: translateY(0);
 }
+
 .btn-forjar-redondo:disabled {
-    background: #555;
-    cursor: not-allowed;
+    background: #34495e;
+    color: #7f8c8d;
+    cursor: default;
     box-shadow: none;
-    opacity: 0.5;
 }
-.tempo-estimado { font-size: 0.75em; color: #f39c12; margin-top: -2px; }
+.tempo-estimado {
+    font-size: 0.75em;
+    font-weight: bold;
+    color: #ffd700; /* Texto Dourado */
+    background: rgba(0, 0, 0, 0.7); /* Fundo escuro */
+    padding: 4px 12px;
+    border-radius: 12px; /* Borda redonda (Pílula) */
+    border: 1px solid #555;
+    
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Espaço entre o ícone da ampulheta e o texto */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* Sombra suave */
+    
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+}
 
 /* Responsividade Mobile */
 @media(max-width: 768px) {

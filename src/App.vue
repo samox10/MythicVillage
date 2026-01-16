@@ -34,7 +34,6 @@ body {
   import Ferraria from './components/Ferraria.vue';
   import Inventario from './components/Inventario.vue';
   import Modal from './components/Modal.vue';
-  import Layout from './components/layout.vue';
 
   // --- ESTADO DA NAVEGAÇÃO ---
   const categoriaAtual = ref('cidade'); 
@@ -151,12 +150,11 @@ body {
       
       <div class="nav-item">
         <button 
-          class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'cidade' }" 
-          @click="navegarDireto('cidade', 'visao_geral')"
-          title="Cidade">
-          🏛️
-        </button>
+  class="nav-btn" 
+  :class="{ ativo: categoriaAtual === 'cidade' }" 
+  @click="navegarDireto('cidade', 'visao_geral')"
+  title="Castelo & Vila"> 🏛️
+</button>
       </div>
 
       <div class="nav-item">
@@ -170,13 +168,13 @@ body {
         </button>
 
         <Transition name="fade-slide">
-          <div v-if="menuAberto === 'producao'" class="dropdown-menu">
-            <button @click="selecionarOpcao('producao', 'mina')">⛏️ Mina</button>
-            <button @click="selecionarOpcao('producao', 'ferraria')">⚔️ Ferraria</button>
-            <button @click="selecionarOpcao('producao', 'laboratorio')">⚗️ Lab</button>
-          </div>
-        </Transition>
+      <div v-if="menuAberto === 'producao'" class="dropdown-menu">
+        <button @click="selecionarOpcao('producao', 'mina')">⛏️ Mina</button>
+        <button @click="selecionarOpcao('producao', 'ferraria')">⚔️ Ferraria</button>
+        <button @click="selecionarOpcao('producao', 'laboratorio')">⚗️ Academia</button>
       </div>
+    </Transition>
+</div>
 
       <div class="nav-item">
         <button 
@@ -189,34 +187,13 @@ body {
       </div>
 
       <div class="nav-item">
-        <button 
-          class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'taverna' }" 
-          @click="navegarDireto('taverna', 'geral')"
-          title="Sindicato">
-          📜
-        </button>
-      </div>
-
-      <div class="nav-item">
-        <button 
-          class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'layout' }" 
-          @click="navegarDireto('layout', 'inicio')"
-          title="Layout">
-          🧭
-        </button>
-      </div>
-
-      <div class="nav-item">
-        <button 
-          class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'teste3' }" 
-          @click="navegarDireto('teste3', 'geral')"
-          title="Sindicato">
-          🗺️
-        </button>
-      </div>
+<button 
+  class="nav-btn" 
+  :class="{ ativo: categoriaAtual === 'taverna' }" 
+  @click="navegarDireto('taverna', 'geral')"
+  title="Guilda dos Trabalhadores"> 📜
+</button>
+</div>
 
     </div>
 
@@ -229,7 +206,6 @@ body {
       
       <Taverna v-if="abaAtual === 'geral' && categoriaAtual === 'taverna'" />
       <Inventario v-if="abaAtual === 'itens' && categoriaAtual === 'inventario'" />
-      <Teste v-if="categoriaAtual === 'teste'" />
     </div>
 
     <Modal />

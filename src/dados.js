@@ -21,10 +21,10 @@ export const tabelaItens = [
     id: 'espada_cobre', nome: 'Espada de Cobre', 
     img: '/assets/craft/espada_cobre.png', 
     tipo: 'arma',
-    custo: { madeira: 10, cobre: 5 }, 
+    custo: { madeira: 10, cobre: 5, obsidiana: 1 }, 
     tempo: 10, 
     reqNivel: 1,
-    stats: { ataque: 500, precisao: 50, danocritico: 100, chancecritico: 15} 
+    stats: { ataque: 500, defesa: 1, precisao: 1, agilidade: 1 , danocritico: 50, chancecritico: 2, vida: 10, magia: 5 } 
   },
   { 
     id: 'espada_ferro', nome: 'Espada de Ferro', tipo: 'arma', 

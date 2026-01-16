@@ -486,7 +486,7 @@ export const acoes = {
             // --- BÔNUS DE FERREIRO (REDUÇÃO DE TEMPO) ---
             const ferreiro = jogo.funcionarios.find(f => f.profissao === 'ferreiro' && f.diasEmGreve === 0);
             // Base: 15% de chance de falha para qualquer item (Pode ser ajustado futuramente por item)
-            const chanceFalhaBase = 0.15;
+            const chanceFalhaBase = 0.0;
             let redutorTempo = 0;
             let redutorFalha = 0;
             if (ferreiro) {

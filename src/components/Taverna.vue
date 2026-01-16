@@ -155,12 +155,12 @@
             'saqueador': { m: 'Saqueador',  f: 'Saqueadora' },
             'batedor':   { m: 'Batedor',    f: 'Batedora' },
 
-            // ALTERADOS (Novas Nomenclaturas Isekai/Fantasia)
-            'cientista': { m: 'Acadêmico',   f: 'Acadêmica' },     // Antes: Cientista
-            'gerente':   { m: 'Administrador', f: 'Administradora' }, // Antes: Gerente
-            'medico':    { m: 'Curandeiro',  f: 'Curandeira' },    // Antes: Médico
-            'prefeito':  { m: 'Lorde',       f: 'Lady' },          // Antes: Prefeito
-            'bancario':  { m: 'Tesoureiro',  f: 'Tesoureira' }     // Antes: Bancário
+            // ALTERADOS (Chaves atualizadas para bater com os novos IDs)
+            'academico':     { m: 'Acadêmico',   f: 'Acadêmica' },
+            'administrador': { m: 'Administrador', f: 'Administradora' },
+            'curandeiro':    { m: 'Curandeiro',  f: 'Curandeira' },
+            'lorde':         { m: 'Lorde',       f: 'Lady' },
+            'tesoureiro':    { m: 'Tesoureiro',  f: 'Tesoureira' }
         };
       const p = func.profissao.toLowerCase();
       if (!mapa[p]) return p.charAt(0).toUpperCase() + p.slice(1);
@@ -290,12 +290,12 @@
 
   // Dicionário para traduzir a profissão no nome do Stat
   const labelsEspeciais = {
-      gerente: 'Influência',
+      administrador: 'Influência', // Alterado de 'gerente'
       batedor: 'Percepção',
-      medico: 'Medicina',
+      curandeiro: 'Medicina',      // Alterado de 'medico'
       ferreiro: 'Produtividade',
-      prefeito: 'Gestão',
-      bancario: 'Finanças',
+      lorde: 'Gestão',             // Alterado de 'prefeito'
+      tesoureiro: 'Finanças',      // Alterado de 'bancario'
       saqueador: 'Pilhagem'
   };
 

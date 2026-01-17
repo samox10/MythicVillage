@@ -246,7 +246,7 @@ const getDiferencaPrefeito = (func) => {
     display: flex; justify-content: space-between; align-items: center;
     flex-wrap: wrap; gap: 10px;
 }
-.titulo-nivel h2 { margin: 0; font-size: 1.4em; }
+.titulo-nivel h2 { margin: 0; font-size: 1.1em; }
 .badge-nivel { background: #f39c12; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
 .btn-upgrade { 
     background: #27ae60; border: none; padding: 8px 15px; 

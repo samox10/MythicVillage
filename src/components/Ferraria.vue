@@ -140,8 +140,17 @@ const getTempoCraft = (item, qtd) => {
     const redutor = statsFerreiro.value ? (statsFerreiro.value.tempo / 100) : 0;
     const final = Math.ceil(tempoBase * (1 - redutor));
     
+    // Se for menos de 1 minuto, mostra segundos (ex: 45s)
     if (final < 60) return `${final}s`;
-    return `${Math.floor(final/60)}m ${final%60}s`;
+
+    // Se for menos de 1 hora, mostra minutos e segundos (ex: 59m 30s)
+    if (final < 3600) return `${Math.floor(final/60)}m ${final%60}s`;
+
+    // Se for 1 hora ou mais, mostra horas e minutos (ex: 1h03min)
+    const h = Math.floor(final / 3600);
+    const m = Math.floor((final % 3600) / 60);
+    // O 'padStart' garante que o 3 vire '03' para ficar bonito
+    return `${h}h${String(m).padStart(2, '0')}min`;
 };
 
 // Chance de sucesso (para exibir na lista)
@@ -152,12 +161,24 @@ const getChanceSucesso = () => {
     return (100 - falhaFinal).toFixed(1);
 };
 
-// Formatação mm:ss para a fila
+// Formatação mm:ss (e agora hh:mm) para a fila
 const formatarTempoFila = (s) => {
-    if (s < 60) return `${Math.ceil(s)}s`;
-    const m = Math.floor(s / 60);
-    const rest = Math.ceil(s % 60);
-    return `${m}m ${rest}s`;
+    // Arredonda para cima para não mostrar "0s" quando ainda falta 0.5s
+    const final = Math.ceil(s);
+
+    if (final < 60) return `${final}s`;
+    
+    // Se for menos de 1 hora
+    if (final < 3600) {
+        const m = Math.floor(final / 60);
+        const rest = final % 60;
+        return `${m}m ${rest}s`;
+    }
+
+    // Se for 1 hora ou mais
+    const h = Math.floor(final / 3600);
+    const m = Math.floor((final % 3600) / 60);
+    return `${h}h${String(m).padStart(2, '0')}min`;
 };
 
 // Cores de Tier (mesma da Taverna)
@@ -167,12 +188,12 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 <template>
   <div class="ferraria-container">
     
-    <div class="header-taverna" style="border-color: #e67e22;">
+    <div class="header-taverna">
         <div class="titulo-nivel">
             <h2>⚒️ Ferraria</h2>
         </div>
         <div class="info-nivel">
-            <span class="badge-nivel" style="background: #d35400;">Nv {{ jogo.ferraria }}</span>
+            <span class="badge-nivel">Nível {{ jogo.ferraria }}</span>
         </div>
     </div>
 
@@ -256,8 +277,10 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 
                     <div class="lista-custos-mini">
                         <div v-for="(qtd, rec) in item.custo" :key="rec" 
-                             class="custo-item-mini"
-                             :class="{ 'vermelho': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(item.id)) }">
+     class="custo-item-mini"
+     :class="{ 'vermelho': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(item.id)) }"
+     style="cursor: help;"
+     @click.stop="abrirTooltip($event, rec.charAt(0).toUpperCase() + rec.slice(1).toLowerCase())">
                             <img :src="`/assets/recursos/min_${rec}.png`" 
                                  @error="$event.target.src = '/assets/recursos/res_' + rec + '.png'; $event.target.onerror = () => { $event.target.src = '/assets/ui/icone_' + rec + '.png' }"
                                  class="icon-custo-micro">
@@ -295,23 +318,26 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
                     </div>
 
                     <div class="controles-finais">
-                         <div class="tempo-estimado">⏳ {{ getTempoCraft(item, getQtd(item.id)) }}</div>
+                        
+                        <div class="linha-topo-controles" style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                             
+                             <div class="tempo-estimado">⏳ {{ getTempoCraft(item, getQtd(item.id)) }}</div>
 
-                        <div class="grupo-botoes-acao">
-                            <div class="input-group-moderno">
+                             <div class="input-group-moderno">
                                 <button class="btn-mini" @click="setQtd(item.id, getQtd(item.id) - 1)">-</button>
                                 <input type="number" 
                                        :value="getQtd(item.id)" 
                                        @input="e => setQtd(item.id, e.target.value, getMaxCraft(item))">
                                 <button class="btn-mini" @click="setQtd(item.id, getQtd(item.id) + 1, getMaxCraft(item))">+</button>
                             </div>
-                            
+                        </div>
+
+                        <div class="grupo-botoes-acao" style="width: 100%;">
                             <button class="btn-forjar-redondo" 
+                                    style="width: 100%; justify-content: center;"
                                     :disabled="!!jogo.craftando.item || getQtd(item.id) > getMaxCraft(item) || getQtd(item.id) < 1"
                                     @click="fabricarItemDaLista(item)"
-                                    title="FORJAR">
-                                🔨
-                            </button>
+                                    title="FORJAR">🔨</button>
                         </div>
                     </div>
 

@@ -517,7 +517,7 @@ td:first-child { text-align: left; }
 }
 .titulo-nivel h2 { 
     margin: 0; 
-    font-size: 1.4em; 
+    font-size: 1.1em; 
     display: flex;
     align-items: center;
     gap: 8px;

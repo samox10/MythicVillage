@@ -24,13 +24,14 @@ export const tabelaItens = [
     custo: { madeira: 10, cobre: 5, obsidiana: 1 }, 
     tempo: 10, 
     reqNivel: 1,
-    stats: { ataque: 500, defesa: 1, precisao: 1, agilidade: 1 , danocritico: 50, chancecritico: 2, vida: 10, magia: 5 } 
+    stats: { ataque: 8, critico: 2, danoCritico: 50, penetracao: 2, magia: 1
+     } 
   },
   { 
     id: 'espada_ferro', nome: 'Espada de Ferro', tipo: 'arma', 
     img: '/assets/craft/espada_ferro.png', 
     custo: { madeira: 20, ferro: 10 }, tempo: 30, reqNivel: 2,
-    stats: { ataque: 12, precisao: 3 }
+    stats: { ataque: 12, precisao: 3, danoCritico: 80, critico: 3  }
   },
   
   // --- ARMADURAS ---
@@ -38,7 +39,8 @@ export const tabelaItens = [
     id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
     custo: { couro: 10 }, tempo: 20, reqNivel: 1,
     img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, agilidade: 5 }
+    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
+      danoCritico: 10, magia: 1, defesaMagica: 2,}
   },
   { 
     id: 'armadura_ferro', nome: 'Armadura de Ferro', tipo: 'armadura', 

@@ -7,18 +7,28 @@ const qtdsPorItem = ref({});
 const filtroTipo = ref('todos');
 const filtroStat = ref('todos');
 const filtroNivel = ref('todos'); // Apenas visual por enquanto
+// --- Adicione isso logo abaixo das outras variáveis 'ref' ou 'const' ---
+const itemSelecionado = ref(null); // Guarda qual item estamos vendo no modal
+const formatarNumero = (n) => n ? Number(n).toLocaleString('pt-BR') : '0';
+const abrirForja = (item) => {
+    itemSelecionado.value = item; // Abre o modal com este item
+};
 
+const fecharForja = () => {
+    itemSelecionado.value = null; // Fecha o modal
+};
 // Mapeia a chave do 'dados.js' para o arquivo de imagem e o nome legível
 const mapaAtributos = {
-    ataque: { img: 'icone_ataque.png', nome: 'Ataque Físico' },
-    defesa: { img: 'icone_defesafisica.png', nome: 'Defesa Física' },
-    precisao: { img: 'icone_precisao.png', nome: 'Precisão' },
-    agilidade: { img: 'icone_evasao.png', nome: 'Evasão' }, // Usei evasao pois não vi agilidade na sua lista
-    danocritico: { img: 'icone_danocritico.png', nome: 'Dano Crítico' },
-    chancecritico: { img: 'icone_precisao.png', nome: 'Chance Crítica' }, // Usei precisao provisorio
-    vida: { img: 'icone_vida.png', nome: 'Vida Máxima' },
-    magia: { img: 'icone_mana.png', nome: 'Mana Máxima' }
-    // Adicione outros se necessário, seguindo o padrão.
+    ataque: { nome: "Ataque", img: "icone_ataque.png" },
+    defesa: { nome: "Defesa", img: "icone_defesafisica.png" },
+    vida: { nome: "Vida", img: "icone_vida.png" },
+    precisao: { nome: "Precisão", img: "icone_precisao.png" },
+    evasao: { nome: "Evasão", img: "icone_evasao.png" },
+    critico: { nome: "Crítico", img: "icone_chancecritico.png" },
+    danoCritico: { nome: "Dano Crít.", img: "icone_danocritico.png" },
+    magia: { nome: "Magia", img: "icone_danomagico.png" },
+    defesaMagica: { nome: "Def. Mágica", img: "icone_defesamagica.png" },
+    penetracao: { nome: "Penetração", img: "icone_penetracao.png" }
 };
 // --- CONTROLE DO TOOLTIP ---
 const tooltipData = reactive({
@@ -122,13 +132,14 @@ const getMaxCraft = (item) => {
 };
 
 const fabricarItemDaLista = (item) => {
-    const qtd = getQtd(item.id);
-    const max = getMaxCraft(item);
-    
-    if (qtd > 0 && qtd <= max) {
-        acoes.fabricarItem(item, qtd);
-        // Opcional: Resetar quantidade após craftar
-        // qtdsPorItem.value[item.id] = 1; 
+    const quantidade = getQtd(item.id); // Pega a quantidade que você digitou
+    if (quantidade > 0) {
+        // Tenta usar a função global de fabricar
+        if (typeof acoes !== 'undefined' && acoes.fabricarItem) {
+            acoes.fabricarItem(item, quantidade);
+        } else {
+            console.error("Erro: Sistema de craft não encontrado (acoes.fabricarItem)");
+        }
     }
 };
 
@@ -199,28 +210,83 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 
     <div class="painel-controle-ferraria">
         
-        <div class="lado-esquerdo-ferreiro">
-            <div v-if="ferreiroAtivo" class="card-funcionario ferreiro-ativo" :style="{ borderColor: corTier(ferreiroAtivo.tier) }">
+        <div v-if="ferreiroAtivo" class="card-funcionario ferreiro-ativo" :style="{ borderColor: corTier(ferreiroAtivo.tier) }">
+                
                 <div class="card-topo" :style="{ backgroundColor: corTier(ferreiroAtivo.tier) }">
-                    <span class="tier-badge">{{ ferreiroAtivo.tier }}</span>
-                    <span class="card-nome">{{ ferreiroAtivo.nome }}</span>
+                    <div class="topo-esquerda">
+                        <span class="tier-badge">{{ ferreiroAtivo.tier }}</span>
+                        <span class="card-nome">{{ ferreiroAtivo.nome }}</span>
+                    </div>
+                    <img src="/assets/ui/i_ferreiro.png" class="icon-prof-topo" title="Ferreiro">
                 </div>
+
                 <div class="card-mid">
-                    <img :src="`/assets/faces/${ferreiroAtivo.raca}/${ferreiroAtivo.imagem}.png`" class="avatar-func">
-                    <div class="stats-ferreiro">
-                        <div class="stat-row">
-                            <span class="label">Velocidade:</span>
-                            <span class="valor verde">+{{ statsFerreiro.tempo }}%</span>
+                    <div class="avatar-box">
+                         <img :src="`/assets/faces/${ferreiroAtivo.raca}/${ferreiroAtivo.imagem}.png`" class="avatar-func">
+                    </div>
+
+                    <div class="tabela-dados-func">
+                        <div class="linha-dado">
+                            <span class="dado-label">Profissão:</span>
+                            <span class="dado-valor">Ferreiro</span>
                         </div>
-                        <div class="stat-desc">"Mestre da Forja!"</div>
+                        <div class="linha-dado">
+                            <span class="dado-label">Raça:</span>
+                            <span class="dado-valor capitalize">{{ ferreiroAtivo.raca }}</span>
+                        </div>
+                        <div class="linha-dado">
+                            <span class="dado-label">Sexo:</span>
+                            <span class="dado-valor">{{ ferreiroAtivo.sexo === 'm' ? 'Masculino' : 'Feminino' }}</span>
+                        </div>
+                        <div class="linha-dado">
+                            <span class="dado-label">Salário:</span>
+                            <span class="dado-valor">
+                                {{ formatarNumero(ferreiroAtivo.salario) }} 
+                                <img src="/assets/ui/icone_goldC.png" class="tiny-coin">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rodape-card">
+                    <div class="info-produtividade">
+                        Aumento de produtividade em <span class="verde">{{ statsFerreiro.tempo }}%</span>
+                    </div>
+                    <div class="frase-efeito">
+                        "{{ ferreiroAtivo.frase || 'Pronto para forjar!' }}"
+                    </div>
+                </div>
+            </div>
+            <div v-else class="card-funcionario vazio-ferreiro-card">
+                
+                <div class="card-topo vazio-topo">
+                    <div class="topo-esquerda">
+                        <span class="tier-badge vazio-badge">-</span>
+                        <span class="card-nome">Vaga Aberta</span>
+                    </div>
+                    <img src="/assets/ui/i_ferreiro.png" class="icon-prof-topo grayscale" title="Necessário Ferreiro">
+                </div>
+
+                <div class="card-mid">
+                    <div class="avatar-box vazio-avatar-box">
+                         <img src="/assets/ui/icone_morador.png" class="avatar-vazio">
+                    </div>
+
+                    <div class="tabela-dados-func vazio-dados">
+                        <div class="texto-central-vazio">
+                            <span class="titulo-vazio">Sem Ferreiro</span>
+                            <span class="subtitulo-vazio">ESTAMOS CONTRATANDO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rodape-card vazio-rodape">
+                    <div class="frase-efeito">
+                        "A forja está fria..."
                     </div>
                 </div>
             </div>
             
-            <div v-else class="vazio-ferreiro-mini">
-                🚫 SEM FERREIRO
-            </div>
-        </div>
 
         <div class="linha-divisoria"></div>
 
@@ -263,87 +329,114 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 
     <div class="lista-receitas-container">
         
-        <div class="header-lista">
-            <span class="col-info">ITEM & ESTATÍSTICAS</span>
-            <span class="col-custo">CUSTO (UNIDADE)</span>
-            <span class="col-acao">PRODUÇÃO</span>
-        </div>
+        <div class="header-lista"></div>
 
         <div class="lista-receitas-scroll">
-            <div v-for="item in itensFiltrados" :key="item.id" class="card-receita-moderno">
+            
+            <div v-for="item in itensFiltrados" :key="item.id" class="card-capa-simples">
                 
-                <div class="linha-topo-card">
-                    <h4 class="nome-item-topo">{{ item.nome }}</h4>
+                <div class="capa-header">
+                    <h4>{{ item.nome }}</h4>
+                    <span class="badge-qtd" v-if="jogo.itens[item.id] > 0">Possui: {{ jogo.itens[item.id] }}</span>
+                </div>
 
-                    <div class="lista-custos-mini">
-                        <div v-for="(qtd, rec) in item.custo" :key="rec" 
-     class="custo-item-mini"
-     :class="{ 'vermelho': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(item.id)) }"
-     style="cursor: help;"
-     @click.stop="abrirTooltip($event, rec.charAt(0).toUpperCase() + rec.slice(1).toLowerCase())">
-                            <img :src="`/assets/recursos/min_${rec}.png`" 
-                                 @error="$event.target.src = '/assets/recursos/res_' + rec + '.png'; $event.target.onerror = () => { $event.target.src = '/assets/ui/icone_' + rec + '.png' }"
-                                 class="icon-custo-micro">
-                            <span>{{ qtd * getQtd(item.id) }}</span>
-                        </div>
+                <div class="capa-corpo">
+                    <div class="capa-img-box">
+                        <img :src="item.img" class="capa-icon">
+                    </div>
+                    
+                    <div class="capa-stats">
+                        <template v-if="item.stats">
+                            <template v-for="(valor, nomeStat) in item.stats" :key="nomeStat">
+                                <div class="mini-stat-row" v-if="mapaAtributos[nomeStat]">
+                                    <img :src="`/assets/ui/${mapaAtributos[nomeStat].img}`">
+                                    <span class="nome-stat-lista">{{ mapaAtributos[nomeStat].nome }}:</span>
+                                    <span class="valor-stat-lista">{{ valor }}</span>
+                                </div>
+                            </template>
+                        </template>
+                        <div v-else class="desc-simples">{{ item.desc }}</div>
                     </div>
                 </div>
 
-                <div class="linha-corpo-card">
+                <button class="btn-abrir-modal" @click="abrirForja(item)">
+                    EXAMINAR & FORJAR
+                </button>
+            </div>
+
+        </div> 
+
+        <div v-if="itemSelecionado" class="modal-overlay" @click.self="fecharForja">
+                <div class="modal-content-forja">
                     
-                    <div class="img-wrapper-moderno">
-                        <img :src="item.img" class="icon-receita-grande">
-                        <span class="qtd-badge">{{ jogo.itens[item.id] || 0 }}</span>
+                    <button class="btn-fechar-modal" @click="fecharForja">✖</button>
+
+                    <h3 class="modal-titulo">{{ itemSelecionado.nome }}</h3>
+
+                    <div class="modal-img-area">
+                        <img :src="itemSelecionado.img" class="modal-icon-big">
+                        <span class="modal-badge-tipo">{{ itemSelecionado.tipo || 'Item' }}</span>
                     </div>
 
-                    <div class="coluna-meio">
-                         <div class="area-stats-grid">
-                            <template v-if="item.stats">
-                                <template v-for="(valor, nomeStat) in item.stats" :key="nomeStat">
-                                    <div v-if="mapaAtributos[nomeStat]" 
-                                         class="stat-row-detalhado">
-                                        
-                                        <img :src="`/assets/ui/${mapaAtributos[nomeStat].img}`" class="icon-stat-micro">
-                                        
-                                        <span class="nome-stat-texto">{{ mapaAtributos[nomeStat].nome }}:</span>
-                                        
-                                        <span class="valor-stat-destaque">{{ valor }}</span>
+                    <div class="modal-stats-area">
+                        <template v-if="itemSelecionado.stats">
+                            <template v-for="(valor, nomeStat) in itemSelecionado.stats" :key="nomeStat">
+                                <div class="modal-stat-row" v-if="mapaAtributos[nomeStat]">
+                                    <div class="stat-left">
+                                        <img :src="`/assets/ui/${mapaAtributos[nomeStat].img}`">
+                                        <span>{{ mapaAtributos[nomeStat].nome }}</span>
                                     </div>
-                                </template>
+                                    <span class="stat-right">{{ valor }}</span>
+                                </div>
                             </template>
-                            <div v-else class="sem-stats">Item Cosmético</div>
+                        </template>
+                        <div v-else class="modal-desc-text">
+                            {{ itemSelecionado.desc }}
                         </div>
-                        
-                        <div class="desc-moderna">{{ item.desc }}</div>
                     </div>
 
-                    <div class="controles-finais">
-                        
-                        <div class="linha-topo-controles" style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                             
-                             <div class="tempo-estimado">⏳ {{ getTempoCraft(item, getQtd(item.id)) }}</div>
-
-                             <div class="input-group-moderno">
-                                <button class="btn-mini" @click="setQtd(item.id, getQtd(item.id) - 1)">-</button>
-                                <input type="number" 
-                                       :value="getQtd(item.id)" 
-                                       @input="e => setQtd(item.id, e.target.value, getMaxCraft(item))">
-                                <button class="btn-mini" @click="setQtd(item.id, getQtd(item.id) + 1, getMaxCraft(item))">+</button>
+                    <div class="modal-recursos-box">
+                        <div class="label-section">RECURSOS NECESSÁRIOS:</div>
+                        <div class="modal-lista-custos">
+                            <div v-for="(qtd, rec) in itemSelecionado.custo" :key="rec" 
+                                 class="modal-pill-custo"
+                                 :class="{ 'falta': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(itemSelecionado.id)) }">
+                                <img :src="`/assets/recursos/min_${rec}.png`" 
+                                     @error="$event.target.src = '/assets/recursos/res_' + rec + '.png'"
+                                     class="icon-custo-modal">
+                                <div class="custo-texto">
+                                    <span class="custo-nome">{{ rec }}</span>
+                                    <span class="custo-val">
+                                        <span :class="{'text-red': (jogo.minerios[rec]||jogo[rec]||0) < (qtd * getQtd(itemSelecionado.id))}">
+                                            {{ (jogo.minerios[rec]||jogo[rec]||0) }}
+                                        </span>
+                                        / {{ qtd * getQtd(itemSelecionado.id) }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="grupo-botoes-acao" style="width: 100%;">
-                            <button class="btn-forjar-redondo" 
-                                    style="width: 100%; justify-content: center;"
-                                    :disabled="!!jogo.craftando.item || getQtd(item.id) > getMaxCraft(item) || getQtd(item.id) < 1"
-                                    @click="fabricarItemDaLista(item)"
-                                    title="FORJAR">🔨</button>
+                    <div class="modal-controles-box">
+                        <div class="modal-timer">
+                            ⏳ {{ getTempoCraft(itemSelecionado, getQtd(itemSelecionado.id)) }}
+                        </div>
+
+                        <div class="modal-input-group">
+                            <button @click="setQtd(itemSelecionado.id, getQtd(itemSelecionado.id) - 1)">-</button>
+                            <input type="number" :value="getQtd(itemSelecionado.id)" readonly>
+                            <button @click="setQtd(itemSelecionado.id, getQtd(itemSelecionado.id) + 1, getMaxCraft(itemSelecionado))">+</button>
                         </div>
                     </div>
+
+                    <button class="btn-forjar-final"
+                            :disabled="!!jogo.craftando.item || getQtd(itemSelecionado.id) > getMaxCraft(itemSelecionado) || getQtd(itemSelecionado.id) < 1"
+                            @click="fabricarItemDaLista(itemSelecionado); fecharForja()">
+                        🔨 FORJAR AGORA
+                    </button>
 
                 </div>
             </div>
-        </div>
     </div>
 
     <div v-if="jogo.craftando.item" class="fila-producao">
@@ -370,9 +463,9 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
     </div>
 
   <div v-if="tooltipData.visivel" 
-         id="tooltip-flutuante"
-         class="tooltip-custom"
-         :style="{ top: tooltipData.y + 'px', left: tooltipData.x + 'px' }">
+          id="tooltip-flutuante"
+          class="tooltip-custom"
+          :style="{ top: tooltipData.y + 'px', left: tooltipData.x + 'px' }">
         {{ tooltipData.texto }}
     </div>
 
@@ -382,789 +475,379 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 <style scoped>
 @import '../css/taverna.css';
 
+/* Container Geral */
 .ferraria-container {
-    padding: 10px;
-    color: #ecf0f1;
-    max-width: 1000px;
-    margin: 0 auto;
+    padding: 10px; color: #2c3e50; max-width: 1000px; margin: 0 auto;
 }
 
-/* SEÇÃO DO FERREIRO */
+/* --- PAINEL DE CONTROLE (Topo) --- */
 .painel-controle-ferraria {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid #34495e;
-    border-radius: 8px;
-    margin: 15px 0;
-    padding: 10px;
-    gap: 15px;
-    height: 180px; /* Altura fixa para alinhar */
+    display: flex; align-items: center; justify-content: space-between;
+    background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 8px;
+    margin: 15px 0; padding: 10px; gap: 15px; height: 180px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.lado-esquerdo-ferreiro { flex: 1; display: flex; justify-content: center; height: 100%; }
+.ferreiro-ativo .card-mid { flex: 1; display: flex; align-items: center; padding: 5px; background: #fff; }
+.vazio-ferreiro-mini { border: 2px dashed #999; width: 100%; display: flex; align-items: center; justify-content: center; color: #777; font-weight: bold; }
+.linha-divisoria { width: 2px; height: 90%; background: #bdc3c7; opacity: 0.6; }
+.lado-direito-filtros { flex: 1; display: flex; flex-direction: column; gap: 5px; padding: 5px; }
+.titulo-filtros { color: #d35400; font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px; }
+.grupo-select { display: flex; justify-content: space-between; background: #fff; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+
+/* Lista Container */
+.lista-receitas-container {
+    background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 8px;
+    display: flex; flex-direction: column; height: 600px;
+}
+.header-lista { display: none; }
+.lista-receitas-scroll { 
+    overflow-y: auto; 
+    flex: 1; 
+    padding: 10px; 
+    background: #e3e6ea;
+    
+    /* --- MÁGICA DAS 2 COLUNAS --- */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Cria 2 colunas de tamanho igual */
+    gap: 15px; /* Espaço entre os itens (lado e baixo) */
+    align-content: start; /* Garante que os itens fiquem no topo */
 }
 
-/* ESQUERDA */
-.lado-esquerdo-ferreiro {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    height: 100%;
+
+/* ==================================================
+   1. ESTILO DO CARD SIMPLIFICADO (Na Lista)
+   ================================================== */
+.card-capa-simples {
+    background: #fff;
+    border: 1px solid #bdc3c7; 
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px;
+    /* margin-bottom: 15px;  <-- REMOVIDO para não duplicar espaço */
+    height: fit-content; /* Garante que o card tenha o tamanho do conteúdo */
 }
+
+.capa-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #ecf0f1; padding-bottom: 5px;
+}
+.capa-header h4 { margin: 0; color: #2c3e50; text-transform: uppercase; font-weight: 800; }
+.badge-qtd { font-size: 0.75em; background: #2c3e50; color: white; padding: 2px 6px; border-radius: 4px; }
+
+.capa-corpo {
+    display: flex; align-items: center; gap: 15px;
+}
+.capa-img-box {
+    width: 60px; height: 60px; background: #f8f9fa; border: 1px solid #dee2e6;
+    border-radius: 8px; padding: 5px; flex-shrink: 0;
+}
+.capa-icon { width: 100%; height: 100%; object-fit: contain; }
+
+/* AJUSTE AQUI: Mudado para 2 colunas para caber o nome do status */
+.capa-stats {
+    flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;
+}
+.mini-stat-row {
+    display: flex; align-items: center; gap: 4px; background: #fdfdfd;
+    border: 1px solid #ecf0f1; padding: 3px 6px; border-radius: 4px;
+    font-size: 0.85em; color: #555;
+    white-space: nowrap; /* Não quebrar linha */
+}
+.mini-stat-row img { width: 14px; height: 14px; opacity: 0.8; }
+.nome-stat-lista { color: #7f8c8d; font-weight: 600; font-size: 0.9em; margin-right: 2px; }
+.valor-stat-lista { color: #2c3e50; font-weight: 800; }
+
+.desc-simples { font-size: 0.8em; color: #7f8c8d; font-style: italic; }
+
+.btn-abrir-modal {
+    width: 100%; padding: 10px;
+    background: #3498db; color: white; border: none; border-radius: 6px;
+    font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+    transition: background 0.2s;
+}
+.btn-abrir-modal:hover { background: #2980b9; }
+
+
+/* ==================================================
+   2. ESTILO DO MODAL (Janela Flutuante)
+   ================================================== */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 9999;
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px;
+}
+
+.modal-content-forja {
+    background: #fff;
+    width: 100%; max-width: 400px;
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    display: flex; flex-direction: column; gap: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    animation: modalPop 0.3s ease-out;
+    max-height: 90vh; overflow-y: auto;
+}
+
+@keyframes modalPop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.btn-fechar-modal {
+    position: absolute; top: 10px; right: 10px;
+    background: transparent; border: none; font-size: 1.5em; color: #95a5a6; cursor: pointer;
+}
+
+.modal-titulo {
+    text-align: center; color: #e67e22; text-transform: uppercase; margin: 0;
+    border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;
+}
+
+.modal-img-area {
+    position: relative;
+    display: flex; justify-content: center; background: #ecf0f1;
+    border-radius: 8px; padding: 15px; border: 1px solid #bdc3c7;
+    margin-bottom: 10px;
+}
+.modal-badge-tipo {
+    position: absolute; top: 5px; right: 5px;
+    background: rgba(0,0,0,0.1); font-size: 0.7em; padding: 2px 6px; border-radius: 4px;
+    color: #7f8c8d; text-transform: uppercase; font-weight: bold;
+}
+.modal-stats-area {
+    background: #fff;
+    border: 1px solid #bdc3c7;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.modal-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.modal-stat-row:nth-child(odd) { background: #f8f9fa; }
+.stat-left { display: flex; align-items: center; gap: 8px; color: #555; }
+.stat-left img { width: 16px; height: 16px; opacity: 0.8; }
+.stat-right { font-weight: bold; color: #2c3e50; }
+
+.modal-desc-text {
+    font-style: italic; color: #7f8c8d; text-align: center; padding: 10px; font-size: 0.9em;
+}
+.text-red { color: #e74c3c; }
+.modal-icon-big { width: 80px; height: 80px; object-fit: contain; }
+
+.modal-recursos-box {
+    background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px;
+}
+.label-section { font-size: 0.75em; font-weight: bold; color: #7f8c8d; margin-bottom: 8px; }
+
+.modal-lista-custos {
+    display: flex; flex-direction: column; gap: 8px;
+}
+.modal-pill-custo {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #dee2e6;
+}
+.modal-pill-custo.falta { border-color: #e74c3c; background: #fadbd8; }
+
+.icon-custo-modal { width: 24px; height: 24px; }
+.custo-texto { display: flex; justify-content: space-between; flex: 1; font-size: 0.9em; font-weight: bold; color: #2c3e50; }
+.custo-nome { text-transform: capitalize; }
+
+.modal-controles-box {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #ecf0f1; padding: 10px; border-radius: 8px;
+}
+.modal-timer { font-weight: bold; color: #7f8c8d; }
+
+.modal-input-group {
+    display: flex; background: #fff; border-radius: 6px; border: 1px solid #bdc3c7;
+}
+.modal-input-group button { width: 35px; height: 35px; border: none; background: transparent; font-weight: bold; cursor: pointer; }
+.modal-input-group input { width: 50px; text-align: center; border: none; font-weight: bold; }
+
+.btn-forjar-final {
+    width: 100%; padding: 15px;
+    background: #27ae60; color: white; border: none; border-radius: 8px;
+    font-size: 1.1em; font-weight: bold; letter-spacing: 1px; cursor: pointer;
+    box-shadow: 0 4px 0 #219150; transition: transform 0.1s;
+}
+.btn-forjar-final:active { transform: translateY(4px); box-shadow: none; }
+.btn-forjar-final:disabled { background: #bdc3c7; box-shadow: none; cursor: not-allowed; }
+
+/* ==================================================
+   RESPONSIVIDADE (MOBILE)
+   ================================================== */
+@media(max-width: 768px) {
+    .painel-controle-ferraria { flex-direction: column; height: auto; }
+    
+    .capa-corpo { flex-direction: column; align-items: stretch; }
+    .capa-img-box { width: 100%; height: 100px; display: flex; justify-content: center; }
+    .capa-icon { width: auto; height: 100%; }
+    
+    .capa-stats { grid-template-columns: repeat(2, 1fr); }
+    .lista-receitas-scroll {
+        grid-template-columns: 1fr; /* No celular, volta para 1 coluna */
+    }
+}
+
+/* Classes legadas */
+.stats-ferreiro { flex: 1; }
+.fila-producao { margin-top: 20px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+.barra-progresso-container { height: 20px; background: #eee; border-radius: 10px; position: relative; overflow: hidden; margin: 10px 0; }
+.barra-progresso-fill { height: 100%; background: orange; transition: width 1s linear; }
+.texto-progresso { position: absolute; width: 100%; text-align: center; font-size: 0.8em; font-weight: bold; top: 2px; }
+/* --- ESTILO ATUALIZADO DO CARD DE FUNCIONÁRIO --- */
+
+
+.topo-detalhe-nome {
+    display: flex; align-items: center; gap: 6px;
+}
+.icon-prof-topo {
+    width: 20px; height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+/* Efeito Zebrado (Opcional, deixa mais legível) */
+.linha-dado:nth-child(odd) { background-color: #ffffff; }
+/* Frase Rodapé */
+.frase-rodape {
+    margin-top: auto; /* Empurra para o fundo */
+    padding: 4px;
+    text-align: center;
+    font-style: italic;
+    color: #a4b0be;
+    font-size: 0.85em;
+    border-top: 1px solid #f1f2f6;
+    background: #fff;
+}
+/* Container Principal do Card */
 .ferreiro-ativo {
     width: 100%;
-    height: 100%;
-    background: #2c3e50;
-    border-width: 2px;
-    border-style: solid;
-    display: flex;
-    flex-direction: column;
-    font-size: 0.85em; /* Reduzi um pouco para caber */
+    max-width: 220px; /* Largura consideravelmente menor (Carta) */
+    margin: 0 auto;   /* Centraliza no espaço disponível */
+    background: #ffffff;
+    border-width: 2px; border-style: solid;
+    border-radius: 8px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
-.ferreiro-ativo .card-mid {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px;
+
+/* Topo */
+.card-topo {
+    padding: 4px 8px; color: #fff; font-weight: bold;
+    display: flex; justify-content: space-between; align-items: center;
+    height: 28px; font-size: 0.9em;
 }
-.vazio-ferreiro-mini {
-    border: 2px dashed #555;
-    color: #777;
+.topo-esquerda { display: flex; align-items: center; gap: 6px; }
+.tier-badge { background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+.icon-prof-topo { width: 22px; height: 22px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.5)); }
+
+/* Meio (Avatar + Tabela) */
+.card-mid { flex: 1; display: flex; align-items: stretch; background: #fff; }
+
+.avatar-box {
+    width: 75px; display: flex; align-items: center; justify-content: center;
+    background: #f1f2f6; border-right: 1px solid #dfe4ea;
+}
+.avatar-func { width: 65px; height: 65px; border-radius: 4px; border: 1px solid #ced6e0; background: #fff; }
+
+.tabela-dados-func { flex: 1; display: flex; flex-direction: column; font-size: 0.75em; }
+
+.linha-dado {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 3px 6px; border-bottom: 1px solid #f1f2f6; color: #2f3542;
+}
+.linha-dado:nth-child(even) { background-color: #f8f9fa; }
+
+.dado-label { color: #747d8c; font-weight: 600; }
+.dado-valor { font-weight: bold; color: #2f3542; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.capitalize { text-transform: capitalize; }
+.tiny-coin { width: 11px; height: 11px; }
+
+/* Rodapé Novo */
+.rodape-card {
+    background: #fff;
+    border-top: 1px solid #f1f2f6;
+    padding: 6px 4px;
+    text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.info-produtividade {
+    font-size: 0.75em; color: #2c3e50; font-weight: 600;
+}
+.verde { color: #27ae60; }
+
+.frase-efeito {
+    font-size: 0.7em; font-style: italic; color: #a4b0be;
+}
+/* --- ESTILO DO CARD VAZIO (SLOT) --- */
+
+.vazio-ferreiro-card {
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    font-weight: bold;
+    max-width: 220px; /* Mesma largura do card ativo */
+    margin: 0 auto;
+    background: #f8f9fa; /* Fundo bem claro */
+    border: 2px dashed #bdc3c7; /* Borda tracejada (padrão de slot vazio) */
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: none; /* Sem sombra profunda para parecer "fundo" */
+    height: 100%; /* Ocupa a mesma altura */
+    min-height: 140px; /* Garante altura mínima visual */
 }
 
-/* MEIO */
-.linha-divisoria {
-    width: 2px;
-    height: 90%;
-    background: linear-gradient(to bottom, transparent, #e67e22, transparent);
-    opacity: 0.7;
-}
-
-/* DIREITA */
-.lado-direito-filtros {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    height: 100%;
-    padding: 5px;
-}
-.titulo-filtros {
-    margin: 0 0 5px 0;
-    font-size: 0.9em;
-    color: #f39c12;
-    text-transform: uppercase;
-    text-align: left;
-    border-bottom: 1px solid #555;
-    padding-bottom: 3px;
-}
-.grupo-select {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255,255,255,0.05);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-.grupo-select label {
-    font-size: 0.8em;
-    color: #bdc3c7;
-}
-.grupo-select select {
-    background: #111;
+/* Topo Desativado */
+.vazio-topo {
+    background-color: #95a5a6; /* Cinza Concreto */
     color: #ecf0f1;
-    border: 1px solid #555;
-    padding: 3px;
-    border-radius: 3px;
-    font-size: 0.85em;
-    width: 120px;
+}
+.vazio-badge { background: rgba(0,0,0,0.1); }
+.grayscale { filter: grayscale(100%) opacity(0.6); }
+
+/* Avatar Vazio */
+.vazio-avatar-box {
+    width: 75px; 
+    display: flex; align-items: center; justify-content: center;
+    background: #ecf0f1;
+    border-right: 1px dashed #bdc3c7;
+}
+.avatar-vazio {
+    width: 40px; height: 40px;
+    opacity: 0.3; /* Bem transparente */
+    filter: grayscale(100%);
 }
 
-/* Mobile: Em telas pequenas, empilha tudo */
-@media(max-width: 768px) {
-    .painel-controle-ferraria {
-        flex-direction: column;
-        height: auto;
-    }
-    .linha-divisoria {
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(to right, transparent, #e67e22, transparent);
-        margin: 10px 0;
-    }
-    .ferreiro-ativo { min-height: 140px; }
-}
-.ferreiro-ativo .card-mid {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-}
-.ferreiro-ativo .avatar-func {
-    width: 80px;
-    height: 80px;
-    border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-}
-.stats-ferreiro { flex: 1; }
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 0.95em;
-    border-bottom: 1px dashed rgba(255,255,255,0.1);
-}
-.valor.verde { color: #2ecc71; font-weight: bold; }
-.valor.ouro { color: #f1c40f; font-weight: bold; }
-.stat-desc {
-    margin-top: 8px;
-    font-style: italic;
-    font-size: 0.8em;
-    color: #95a5a6;
-    text-align: center;
-}
-.vazio-ferreiro {
-    border: 2px dashed #7f8c8d;
-    padding: 20px;
-    text-align: center;
-    border-radius: 8px;
-    width: 100%;
-    color: #7f8c8d;
-    background: rgba(0,0,0,0.2);
-}
-
-/* LISTA VERTICAL */
-.lista-receitas-container {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid #34495e;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    height: 600px; /* Altura fixa com scroll interno */
-}
-
-.header-lista {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1.2fr;
-    background: rgba(0,0,0,0.5);
-    padding: 12px 15px;
-    font-size: 0.85em;
-    font-weight: bold;
-    color: #95a5a6;
-    border-bottom: 1px solid #34495e;
-    text-transform: uppercase;
-}
-
-.lista-receitas-scroll {
-    overflow-y: auto;
-    flex: 1;
+/* Dados/Mensagem Central */
+.vazio-dados {
+    display: flex; align-items: center; justify-content: center;
     padding: 10px;
-}
-
-/* CARD DA LINHA */
-
-.img-wrapper {
-    position: relative;
-    width: 54px;
-    height: 54px;
-    background: rgba(0,0,0,0.4);
-    border-radius: 6px;
-    border: 1px solid #444;
-    padding: 2px;
-}
-.icon-receita { width: 100%; height: 100%; object-fit: contain; }
-.qtd-possuida {
-    position: absolute;
-    bottom: -18px; left: 0;
-    width: 100%;
     text-align: center;
-    font-size: 0.7em;
+}
+.texto-central-vazio {
+    display: flex; flex-direction: column; gap: 4px;
+}
+.titulo-vazio {
+    font-weight: 800; color: #7f8c8d; text-transform: uppercase; font-size: 0.9em;
+}
+.subtitulo-vazio {
+    font-size: 0.75em; color: #95a5a6;
+}
+
+/* Rodapé Vazio */
+.vazio-rodape {
+    background: #ecf0f1;
+    border-top: 1px dashed #bdc3c7;
     color: #95a5a6;
-    white-space: nowrap;
-}
-.textos-receita h4 { margin: 0 0 6px 0; color: #ecf0f1; font-size: 1.1em; letter-spacing: 0.5px; }
-
-/* BADGES */
-.stats-badges { display: flex; gap: 6px; align-items: center; }
-.badge-stat {
-    font-size: 0.8em;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: bold;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.2);
-}
-.badge-tipo { font-size: 0.75em; background: #34495e; padding: 2px 5px; border-radius: 3px; color: #bdc3c7; font-weight: bold; }
-.desc-simples { font-size: 0.85em; color: #7f8c8d; font-style: italic; margin-top: 4px; }
-
-.custo-pill {
-    background: #111;
-    border: 1px solid #333;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.custo-pill.falta-recurso { border-color: #e74c3c; color: #e74c3c; }
-.icon-micro { width: 16px; height: 16px; }
-.subtotal { font-size: 0.8em; color: #7f8c8d; margin-left: 2px; }
-
-.controle-qtd { display: flex; align-items: center; gap: 4px; width: 100%; justify-content: flex-end; }
-.controle-qtd input {
-    width: 50px;
-    background: #000;
-    border: 1px solid #444;
-    color: #fff;
-    text-align: center;
-    padding: 4px;
-    font-weight: bold;
-    border-radius: 3px;
-}
-.btn-qtd-mini {
-    background: #34495e; border: none; color: #fff;
-    width: 24px; height: 24px; cursor: pointer; border-radius: 3px;
-    font-weight: bold;
-}
-.btn-qtd-mini:hover { background: #455a64; }
-.btn-max-mini {
-    background: #e67e22; border: none; color: #fff;
-    font-size: 0.75em; padding: 4px 8px; cursor: pointer; border-radius: 3px;
-    margin-left: 4px; font-weight: bold;
-}
-.btn-max-mini:hover { background: #d35400; }
-
-.info-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-}
-.info-tempo { font-size: 0.85em; color: #f39c12; }
-.info-chance { font-size: 0.8em; color: #7f8c8d; }
-.info-chance.chance-alta { color: #2ecc71; }
-
-.btn-craft-lista {
-    background: linear-gradient(to bottom, #27ae60, #219150);
-    border: none;
-    color: white;
-    padding: 8px 0;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.95em;
-    box-shadow: 0 3px 0 #145a32;
-    width: 100%;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-.btn-craft-lista:hover { filter: brightness(1.1); }
-.btn-craft-lista:active { transform: translateY(2px); box-shadow: none; }
-.btn-craft-lista:disabled {
-    background: #555;
-    box-shadow: none;
-    cursor: not-allowed;
-    opacity: 0.7;
-    transform: none;
-}
-
-/* FILA DE PRODUÇÃO */
-.fila-producao {
-    margin-top: 20px;
-    background: #2c3e50;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #34495e;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
-}
-.fila-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.fila-header h4 { margin: 0; color: #e67e22; }
-.fila-detalhes-texto { font-size: 0.9em; color: #bdc3c7; }
-
-.barra-progresso-container {
-    height: 24px;
-    background: #000;
-    border-radius: 12px;
-    position: relative;
-    overflow: hidden;
-    margin: 10px 0;
-    border: 1px solid #34495e;
-}
-.barra-progresso-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #e67e22, #d35400);
-    transition: width 1s linear;
-}
-.texto-progresso {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    text-align: center;
-    font-size: 0.85em;
-    line-height: 24px;
-    text-shadow: 0 0 3px #000;
-    font-weight: bold;
-}
-.botoes-fila { display: flex; gap: 10px; justify-content: flex-end; }
-.botoes-fila button { padding: 6px 12px; border: none; cursor: pointer; border-radius: 4px; font-size: 0.85em; color: #fff; font-weight: bold; }
-.btn-cancelar { background: #c0392b; box-shadow: 0 3px 0 #922b21; }
-.btn-cancelar:active { transform: translateY(2px); box-shadow: none; }
-.btn-acelerar { background: #f1c40f; color: #000 !important; box-shadow: 0 3px 0 #d4ac0d; }
-.btn-acelerar:active { transform: translateY(2px); box-shadow: none; }
-
-/* Responsividade Mobile */
-@media(max-width: 768px) {
-    .header-lista { display: none; }
-    .card-receita-row {
-        grid-template-columns: 1fr;
-        gap: 15px;
-        padding: 15px;
-    }
-    .receita-acao { align-items: stretch; flex-direction: column; width: 100%; gap: 10px; border-top: 1px solid #333; padding-top: 10px; }
-    .controle-qtd { justify-content: space-between; }
-    .info-meta { flex-direction: row; justify-content: space-between; align-items: center; }
-}
-/* Container do ícone + valor */
-.stat-item-img {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(255,255,255,0.05); /* Cor neutra de fundo */
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #444;
-    cursor: pointer; /* Mãozinho para indicar clique */
-    transition: background 0.2s;
-}
-.stat-item-img:hover {
-    background: rgba(255,255,255,0.15); /* Realce ao passar o mouse */
-}
-
-/* A imagem do ícone */
-.icone-atributo-mini {
-    height: 1.1em; /* Tamanho relativo à fonte para ficar alinhado */
-    width: auto;
-    margin-right: 4px;
-    vertical-align: middle;
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
-}
-
-/* O texto do valor */
-.valor-atributo {
-    font-weight: bold;
-    color: #ecf0f1; font-size: 0.9em;
-}
-
-/* A caixinha do Tooltip Flutuante */
-.tooltip-custom {
-    position: fixed; /* Fica fixo na tela nas coordenadas X/Y */
-    z-index: 9999; /* Fica por cima de tudo */
-    background: #2c3e50;
-    color: #ecf0f1;
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid #34495e;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-    font-size: 0.85em;
-    pointer-events: none; /* O mouse ignora o tooltip, para não atrapalhar o clique de fechar */
-    white-space: nowrap;
-}
-
-
-.img-wrapper-moderno {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    background: rgba(0,0,0,0.5);
-    border-radius: 8px;
-    border: 1px solid #555;
-    padding: 4px;
-    flex-shrink: 0;
-}
-.icon-receita-grande { width: 100%; height: 100%; object-fit: contain; }
-.qtd-badge {
-    position: absolute; top: -5px; left: -5px;
-    background: #34495e; color: #fff;
-    font-size: 0.7em; padding: 2px 5px; border-radius: 4px;
-    border: 1px solid #7f8c8d;
-}
-.textos-identidade { display: flex; flex-direction: column; gap: 2px; }
-.titulo-row { display: flex; align-items: center; gap: 8px; }
-.titulo-row h4 { margin: 0; color: #ecf0f1; font-size: 1em; }
-.tag-tipo { font-size: 0.65em; background: #000; padding: 2px 4px; border-radius: 3px; color: #95a5a6; }
-.desc-moderna { font-size: 0.8em; color: #7f8c8d; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-
-/* 2. ÁREA DE STATS (Meio - O Grid Mágico) */
-.stat-box-moderno {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: #2c3e50;
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 1px solid #34495e;
-    cursor: help;
-    transition: background 0.2s;
-}
-.stat-box-moderno:hover { background: #34495e; border-color: #95a5a6; }
-.icon-stat-micro { width: 14px; height: 14px; }
-.valor-stat-moderno { font-size: 0.85em; font-weight: bold; color: #bdc3c7; }
-.sem-stats { font-size: 0.8em; color: #555; width: 100%; text-align: center; }
-
-.card-receita-moderno {
-    display: flex;
-    flex-direction: column; /* Agora é uma coluna (Topo em cima do corpo) */
-    background: linear-gradient(90deg, #1e272e 0%, #252f38 100%);
-    margin-bottom: 12px;
-    border: 1px solid #34495e;
-    border-radius: 10px;
-    padding: 8px 12px;
-    position: relative;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: all 0.2s;
-}
-.card-receita-moderno:hover {
-    border-color: #f39c12;
-    transform: translateY(-2px);
-}
-
-/* LINHA 1: TOPO */
-.linha-topo-card {
-    display: flex;
-    justify-content: space-between; /* ESQUERDA <-> DIREITA */
-    align-items: center;
-    margin-bottom: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 5px;
-    gap: 10px;
-    width: 100%; /* OBRIGATÓRIO: Garante que a linha vá até o fim */
-}
-
-.nome-item-topo {
-    margin: 0;
-    font-size: 0.9em;
-    color: #f39c12;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    white-space: nowrap;
-    
-    flex-shrink: 1; 
-    overflow: hidden;
-    text-overflow: ellipsis; 
-    min-width: 0;
-    
-    /* ADICIONE ISSO PARA GARANTIR: */
-    text-align: left; 
-}
-
-.lista-custos-mini { 
-    display: flex; 
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 4px; 
-    
-    /* CORREÇÃO AQUI: */
-    flex-shrink: 0; /* Impede que a lista de custos seja esmagada */
-    max-width: 70%; /* Limita a lista para não sumir com o nome do item */
-    
-    overflow-x: auto; /* Permite rolar pro lado se tiver muitos custos */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.lista-custos-mini::-webkit-scrollbar {
-    display: none;
-}
-
-.custo-item-mini {
-    display: flex; align-items: center; gap: 3px;
-    background: #111; padding: 2px 6px; border-radius: 3px;
-    font-size: 0.75em; color: #aaa; border: 1px solid #333;
-    flex-shrink: 0; /* Garante que cada bloquinho de custo mantenha o tamanho */
-    white-space: nowrap;
-}
-.custo-item-mini.vermelho { color: #e74c3c; border-color: #e74c3c; }
-
-.icon-custo-micro { 
-    width: 16px; 
-    height: 16px;
-    min-width: 16px; /* Força bruta para o ícone nunca ter largura 0 */
-    object-fit: contain; 
-    display: block;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 50%;
-}
-
-
-/* LINHA 2: CORPO */
-.linha-corpo-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* FOTO */
-.img-wrapper-moderno {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    background: rgba(0,0,0,0.5);
-    border-radius: 8px;
-    border: 1px solid #555;
-    padding: 4px;
-    flex-shrink: 0;
-}
-.icon-receita-grande { width: 100%; height: 100%; object-fit: contain; }
-.qtd-badge {
-    position: absolute; top: -5px; left: -5px;
-    background: #34495e; color: #fff;
-    font-size: 0.7em; padding: 2px 5px; border-radius: 4px;
-    border: 1px solid #7f8c8d;
-}
-
-/* MEIO (STATS + DESC) */
-.coluna-meio {
-    flex: 1; /* Ocupa o espaço que sobrar */
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.icon-stat-micro { width: 14px; height: 14px; }
-.coluna-meio {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px; /* Espaço entre stats e descrição */
-    padding: 0 10px; /* Um pouco de respiro nas laterais */
-}
-
-.area-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* MUDANÇA: 3 Colunas iguais */
-    gap: 2px 8px; /* Gap menor para caber melhor em 3 colunas */
-    background: rgba(0,0,0,0.2);
-    padding: 6px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
-.stat-row-detalhado {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.8em; /* Fonte pequena para caber */
-    color: #bdc3c7;
-}
-
-.icon-stat-micro { 
-    width: 14px; 
-    height: 14px; 
-    opacity: 0.9;
-}
-
-.nome-stat-texto {
-    color: #95a5a6;
-    white-space: nowrap; /* Não quebra linha no nome */
-}
-
-.valor-stat-destaque {
-    color: #ecf0f1;
-    font-weight: bold;
-    margin-left: 4px; /* MUDANÇA: Apenas um espacinho, sem jogar pra direita absoluta */
-}
-
-.sem-stats { 
-    grid-column: span 2; /* Ocupa as 2 colunas se não tiver nada */
-    text-align: center; 
-    font-size: 0.8em; 
-    color: #555; 
-    padding: 5px;
-}
-
-/* Mobile: Em celular muito estreito, vira 1 coluna só */
-@media(max-width: 500px) {
-    .area-stats-grid { grid-template-columns: 1fr; }
-}
-.desc-moderna { 
-    font-size: 0.75em; color: #666; font-style: italic; 
-    display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
-    -webkit-box-orient: vertical; overflow: hidden; 
-}
-
-/* DIREITA (CONTROLES) */
-.controles-finais {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* MUDANÇA: Centraliza o tempo sobre os botões */
-    justify-content: center;
-    gap: 6px; /* Um pouco mais de espaço entre o tempo e os botões */
-    min-width: 130px; /* Garante que tenha espaço para não quebrar */
-}
-
-.grupo-botoes-acao {
-    display: flex;
-    align-items: center;
-    gap: 8px; /* Espaço entre o input numérico e o martelo */
-    justify-content: center;
-    width: 100%;
-}
-.tempo-estimado {
-    font-size: 0.75em;
-    font-weight: bold;
-    color: #ecf0f1; /* Texto claro */
-    background-color: rgba(0, 0, 0, 0.6); /* Fundo escuro transparente */
-    padding: 3px 10px; /* Espaçamento interno (vira uma pílula) */
-    border-radius: 12px; /* Bordas redondas */
-    border: 1px solid #444; /* Borda sutil */
-    
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sombrainha para destacar */
-}
-
-/* INPUT E BOTOES */
-.input-group-moderno {
-    display: flex;
-    align-items: center;
-    background: #000;
-    border-radius: 20px;
-    border: 1px solid #444;
-    overflow: hidden;
-}
-.input-group-moderno input {
-    width: 70px; /* AUMENTADO PARA 60px (cabe 6 digitos) */
-    background: transparent; 
-    border: none;
-    color: white; 
-    text-align: center; 
-    font-weight: bold; 
-    font-size: 0.9em;
-}
-
-/* REMOVER SETAS DO INPUT (CHROME/SAFARI/EDGE) */
-.input-group-moderno input::-webkit-outer-spin-button,
-.input-group-moderno input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-/* REMOVER SETAS DO INPUT (FIREFOX) */
-.input-group-moderno input[type=number] {
-  appearance: textfield;
-  -moz-appearance: textfield;
-  -webkit-appearance: none;
-}
-
-.btn-mini {
-    background: #34495e; border: none; color: #fff;
-    width: 24px; height: 24px; cursor: pointer;
-    font-weight: bold;
-}
-.btn-mini:hover { background: #455a64; }
-
-/* Mobile */
-@media(max-width: 768px) {
-    .linha-corpo-card { flex-wrap: wrap; }
-    .coluna-meio { min-width: 100%; order: 3; } /* Joga a desc pra baixo em mobile */
-}
-/* Controles */
-.controles-finais {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Centraliza o tempo em cima dos botões */
-    justify-content: center;
-    gap: 6px; /* Espaço entre a etiqueta de tempo e os botões */
-    min-width: 140px; /* Garante espaço para não quebrar */
-}
-.input-group-moderno {
-    display: flex;
-    align-items: center;
-    background: #000;
-    border-radius: 20px; /* Arredondado */
-    border: 1px solid #444;
-    overflow: hidden;
-}
-.input-group-moderno input {
-    width: 35px; background: transparent; border: none;
-    color: white; text-align: center; font-weight: bold; font-size: 0.9em;
-}
-.btn-mini {
-    background: #34495e; border: none; color: #fff;
-    width: 24px; height: 24px; cursor: pointer;
-    font-weight: bold;
-}
-.btn-mini:hover { background: #455a64; }
-
-/* O BOTÃO REDONDO */
-.btn-forjar-redondo {
-    width: auto; /* Largura automática para caber o texto */
-    height: 40px;
-    padding: 0 20px; /* Espaço nas laterais */
-    background: #27ae60; /* Verde Esmeralda */
-    border: none;
-    border-radius: 4px; /* Cantos levemente arredondados */
-    color: white;
-    font-weight: bold;
-    font-size: 0.9em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* Espaço entre ícone e texto */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: background 0.2s;
-}
-
-/* Adiciona a palavra "FORJAR" via CSS se quiser manter o ícone */
-.btn-forjar-redondo::after {
-    content: "FORJAR";
-}
-
-.btn-forjar-redondo:hover:not(:disabled) {
-    background: #2ecc71; /* Verde mais claro */
-    transform: translateY(-2px);
-}
-
-.btn-forjar-redondo:active {
-    transform: translateY(0);
-}
-
-.btn-forjar-redondo:disabled {
-    background: #34495e;
-    color: #7f8c8d;
-    cursor: default;
-    box-shadow: none;
-}
-.tempo-estimado {
-    font-size: 0.75em;
-    font-weight: bold;
-    color: #ffd700; /* Texto Dourado */
-    background: rgba(0, 0, 0, 0.7); /* Fundo escuro */
-    padding: 4px 12px;
-    border-radius: 12px; /* Borda redonda (Pílula) */
-    border: 1px solid #555;
-    
-    display: flex;
-    align-items: center;
-    gap: 6px; /* Espaço entre o ícone da ampulheta e o texto */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* Sombra suave */
-    
-    white-space: nowrap;
-    letter-spacing: 0.5px;
-}
-
-/* Responsividade Mobile */
-@media(max-width: 768px) {
-    .card-receita-moderno { flex-direction: column; align-items: stretch; gap: 10px; }
-    .area-identidade, .area-stats-grid, .area-acao-moderna { width: 100%; border: none; padding: 0; }
-    .area-acao-moderna { flex-direction: row; justify-content: space-between; align-items: center; border-top: 1px solid #333; padding-top: 8px; }
-    .titulo-row { flex-grow: 1; }
 }
 </style>

@@ -24,273 +24,44 @@ export const tabelaItens = [
     custo: { madeira: 10, cobre: 5, obsidiana: 1 }, 
     tempo: 10, 
     reqNivel: 1,
+    nivelItem: 5,
     stats: { ataque: 8, critico: 2, danoCritico: 50, penetracao: 2, magia: 1
      } 
   },
   { 
-    id: 'espada_ferro', nome: 'Espada de Ferro', tipo: 'arma', 
+    id: 'espada_ferro', nome: 'Espada da Ruína Celestial', tipo: 'arma', 
     img: '/assets/craft/espada_ferro.png', 
-    custo: { madeira: 20, ferro: 10 }, tempo: 30, reqNivel: 2,
+    custo: { madeira: 20, ferro: 10 }, tempo: 30, 
+    reqNivel: 2,
+    nivelItem: 5,
     stats: { ataque: 12, precisao: 3, danoCritico: 80, critico: 3  }
   },
   
   // --- ARMADURAS ---
   { 
     id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
+    custo: { couro: 10 }, tempo: 20, 
+    reqNivel: 1,
+    nivelItem: 5,
     img: '/assets/craft/armadura_couro.png',
     stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
       danoCritico: 10, magia: 1, defesaMagica: 2,}
   },
   { 
     id: 'armadura_ferro', nome: 'Armadura de Ferro', tipo: 'armadura', 
-    custo: { ferro: 15, couro: 5 }, tempo: 60, reqNivel: 2,
+    custo: { ferro: 15, couro: 5 }, tempo: 60, 
+    reqNivel: 2,
+    nivelItem: 5,
     stats: { defesa: 10, evasao: -2 }
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 11', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 12', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 13', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 14', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 15', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro 16', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
-  },
-  { 
-    id: 'armadura_couro', nome: 'Armadura de Couro', tipo: 'armadura', 
-    custo: { couro: 10 }, tempo: 20, reqNivel: 1,
-    img: '/assets/craft/armadura_couro.png',
-    stats: { defesa: 3, evasao: 2, vida: 10, ataque: 1, critico: 1, 
-      danoCritico: 10, magia: 1, defesaMagica: 2,}
   },
 
   
   // --- MUNIÇÃO ---
   { 
     id: 'flecha_pedra', nome: 'Flechas de Pedra (x100)', tipo: 'municao', 
-    custo: { madeira: 100, pedra: 100 }, tempo: 20, qtd: 100, reqNivel: 1,
+    custo: { madeira: 100, pedra: 100 }, tempo: 20, qtd: 100, 
+    reqNivel: 1,
+    nivelItem: 102,
     stats: { ataque: 2 }
   }
 ];

@@ -74,19 +74,28 @@ const fecharTooltipFora = (e) => {
         fecharTooltip();
     }
 };
-// --- LÓGICA DE FILTRO ---
+// --- LÓGICA DE FILTRO E ORDENAÇÃO ---
 const itensFiltrados = computed(() => {
-    return dadosItens.filter(item => {
-        // 1. Filtro de Tipo
+    // 1. Primeiro filtramos (mantém a lógica original)
+    const listaFiltrada = dadosItens.filter(item => {
+        // Filtro de Tipo
         if (filtroTipo.value !== 'todos' && item.tipo !== filtroTipo.value) return false;
         
-        // 2. Filtro de Atributo (Stat)
+        // Filtro de Atributo (Stat)
         if (filtroStat.value !== 'todos') {
-            // Verifica se o item tem esse status (ex: se tem 'ataque')
             if (!item.stats || !item.stats[filtroStat.value]) return false;
         }
-
         return true;
+    });
+
+    // 2. Agora ordenamos: Nível maior fica em cima (decrescente)
+    return listaFiltrada.sort((a, b) => {
+        // Mudamos de 'reqNivel' para 'nivelItem'
+        const nivelA = a.nivelItem || 0; 
+        const nivelB = b.nivelItem || 0;
+        
+        // Ordenação decrescente (Maior -> Menor)
+        return nivelB - nivelA;
     });
 });
 
@@ -328,7 +337,7 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
             </fieldset>
 
             <fieldset class="input-rpg">
-                <legend>Nível Requerido</legend>
+                <legend>Nível do Item</legend>
                 <select v-model="filtroNivel">
                     <option value="todos">Todos</option>
                     <option value="5">Nível 5+</option>
@@ -373,6 +382,7 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
                 
                 <div class="capa-header">
                     <h4>{{ item.nome }}</h4>
+                    <span class="badge-nivel-lista">{{ item.nivelItem || 1 }}</span>
                     </div>
 
                 <div class="capa-corpo">
@@ -582,10 +592,26 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 }
 
 .capa-header {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 1px solid #ecf0f1; padding-bottom: 5px;
+    display: flex; 
+    justify-content: space-between; /* Empurra um p/ cada ponta */
+    align-items: center;
+    border-bottom: 1px solid #ecf0f1; 
+    padding-bottom: 5px;
+    gap: 10px; /* Cria um espaço mínimo de respiro entre o nome e o nível */
 }
-.capa-header h4 { margin: 0; color: #2c3e50; text-transform: uppercase; font-weight: 800; }
+.capa-header h4 { 
+    margin: 0; 
+    color: #2c3e50; 
+    text-transform: uppercase; 
+    font-weight: 800;
+    
+    /* --- NOVAS LINHAS --- */
+    text-align: left; /* Garante que o texto comece na esquerda */
+    flex: 1;          /* Ocupa TODO o espaço livre no meio */
+    white-space: nowrap; /* (Opcional) Impede que o nome quebre em duas linhas */
+    overflow: hidden;    /* (Opcional) Se o nome for gigante, corta o final */
+    text-overflow: ellipsis; /* (Opcional) Põe "..." se cortar o nome */
+}
 
 .capa-corpo {
     display: flex; align-items: center; gap: 15px;
@@ -636,13 +662,13 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 }
 .mini-stat-row {
     display: flex; align-items: center; gap: 4px; background: #fdfdfd;
-    border: 1px solid #ecf0f1; padding: 3px 6px; border-radius: 4px;
-    font-size: 0.85em; color: #555;
+    border: 1px solid #ecf0f1; padding: 3px 6px; border-radius: 6px;
+    font-size: 0.80em; color: #555;
     white-space: nowrap; /* Não quebrar linha */
 }
 .mini-stat-row img { width: 14px; height: 14px; opacity: 0.8; }
 .nome-stat-lista { color: #7f8c8d; font-weight: 600; font-size: 0.9em; margin-right: 2px; }
-.valor-stat-lista { color: #2c3e50; font-weight: 800; }
+.valor-stat-lista { color: #2c3e50; font-weight: 700; }
 
 .desc-simples { font-size: 0.8em; color: #7f8c8d; font-style: italic; }
 
@@ -1211,5 +1237,26 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
         min-width: 100%;
         margin-top: 5px;
     }
+}
+.badge-nivel-lista {
+    /* --- ESTRUTURA --- */
+    min-width: 50px;
+    text-align: center;
+    flex-shrink: 0;
+    
+    /* Mantém a linha divisória que criamos antes */
+    border-left: 1px solid #ecf0f1; 
+    padding-left: 8px;
+    
+    /* --- VISUAL DA CAIXA --- */
+    color: #2b3e4f;             /* Laranja Queimado (Cor de Nível) */
+    background-color: #ecf0f1;  /* Fundo Laranja BEM clarinho */
+    
+    font-size: 0.75em;
+    font-weight: bold;
+    text-transform: uppercase;
+    
+    border-radius: 12px;        /* Bem redondo (formato pílula) */
+    padding: 4px 8px;           /* Espaçamento interno */
 }
 </style>

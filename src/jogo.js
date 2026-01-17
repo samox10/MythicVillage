@@ -516,21 +516,51 @@ export const acoes = {
     },
     cancelarCraft() {
         if (!jogo.craftando.item) return;
-        pedirConfirmacao("Cancelar?", "Perde 10% dos recursos.", () => {
+        
+        // Texto explicativo mais claro
+        pedirConfirmacao("Cancelar Produção?", "Você receberá os itens já prontos. Os pendentes serão cancelados e você recupera apenas 90% dos recursos deles.", () => {
             const receita = tabelaItens.find(i => i.id === jogo.craftando.item);
+            
             if (receita) {
-                const pendentes = Math.ceil(jogo.craftando.tempoRestante / receita.tempo);
-                const pendentesReais = Math.min(pendentes, jogo.craftando.qtdLote);
-                const feitos = jogo.craftando.qtdLote - pendentesReais;
-                if (feitos > 0) jogo.itens[receita.id] += (feitos * (receita.qtd || 1));
-                if (pendentesReais > 0) {
+                // 1. Calcula o tempo que já passou desde o início
+                const tempoDecorrido = jogo.craftando.tempoTotal - jogo.craftando.tempoRestante;
+
+                // 2. Calcula quanto tempo leva CADA item especificamente neste lote
+                // (Isso considera automaticamente o buff do ferreiro que foi aplicado no início)
+                const tempoPorItemReal = jogo.craftando.tempoTotal / jogo.craftando.qtdLote;
+
+                // 3. Quantos itens cabem no tempo que passou? (Arredonda para baixo)
+                // Ex: Passou 22s, item leva 5s. 22/5 = 4.4 -> 4 itens feitos.
+                const feitos = Math.floor(tempoDecorrido / tempoPorItemReal);
+
+                // 4. O restante são os itens que não deram tempo de terminar
+                const pendentes = Math.max(0, jogo.craftando.qtdLote - feitos);
+
+                // A. Entrega os itens que foram finalizados honestamente
+                if (feitos > 0) {
+                    jogo.itens[receita.id] += (feitos * (receita.qtd || 1));
+                }
+
+                // B. Devolve 90% dos recursos APENAS dos itens pendentes
+                if (pendentes > 0) {
                     Object.keys(receita.custo).forEach(k => {
-                        const dev = Math.floor((receita.custo[k] * pendentesReais) * 0.9);
-                        if (jogo.minerios[k] !== undefined) jogo.minerios[k] += dev; else jogo[k] += dev;
+                        // Custo Unitário * Qtd Pendente * 0.9
+                        const dev = Math.floor((receita.custo[k] * pendentes) * 0.9);
+                        
+                        // Devolve para o lugar certo (Minérios ou Recursos básicos)
+                        if (jogo.minerios[k] !== undefined) {
+                            jogo.minerios[k] += dev; 
+                        } else {
+                            jogo[k] += dev;
+                        }
                     });
                 }
+
+                // C. Reseta a forja
                 jogo.craftando = { item: null, qtdLote: 1, tempoRestante: 0, tempoTotal: 0 };
-                mostrarAviso("Cancelado", "Recursos devolvidos (parcialmente).");
+                
+                // Feedback visual
+                mostrarAviso("Cancelado", `Finalizados: ${feitos} | Cancelados: ${pendentes} (90% estornado).`, 'aviso');
             }
         });
     },

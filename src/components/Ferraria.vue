@@ -8,6 +8,17 @@ const filtroStat = ref('todos');
 const filtroNivel = ref('todos'); // Apenas visual por enquanto
 // --- Adicione isso logo abaixo das outras variáveis 'ref' ou 'const' ---
 const itemSelecionado = ref(null); // Guarda qual item estamos vendo no modal
+// Adicione isso junto com as outras variáveis 'ref'
+const slotFocado = ref(null); // Guarda qual slot está mostrando os detalhes (0, 1 ou 2)
+
+// Função para abrir/fechar o balão ao clicar no quadrado
+const toggleSlot = (index) => {
+    if (slotFocado.value === index) {
+        slotFocado.value = null; // Se já ta aberto, fecha
+    } else {
+        slotFocado.value = index; // Abre o novo
+    }
+};
 const formatarNumero = (n) => n ? Number(n).toLocaleString('pt-BR') : '0';
 const qtdModal = ref(1); // Variável simples para controlar o input
 
@@ -63,8 +74,12 @@ const abrirTooltip = (event, nomeAtributo) => {
 };
 
 const fecharTooltip = () => {
+    // 1. Fecha o tooltip de Atributos (se estiver aberto)
     tooltipData.visivel = false;
     window.removeEventListener('click', fecharTooltipFora);
+
+    // 2. Fecha o tooltip da Fila de Produção (se estiver aberto)
+    slotFocado.value = null; 
 };
 
 // Fecha se clicar em qualquer lugar que não seja o tooltip
@@ -76,7 +91,7 @@ const fecharTooltipFora = (e) => {
 };
 // --- LÓGICA DE FILTRO E ORDENAÇÃO ---
 const itensFiltrados = computed(() => {
-    // 1. Primeiro filtramos (mantém a lógica original)
+    // 1. Primeiro filtramos
     const listaFiltrada = dadosItens.filter(item => {
         // Filtro de Tipo
         if (filtroTipo.value !== 'todos' && item.tipo !== filtroTipo.value) return false;
@@ -85,16 +100,21 @@ const itensFiltrados = computed(() => {
         if (filtroStat.value !== 'todos') {
             if (!item.stats || !item.stats[filtroStat.value]) return false;
         }
+
+        // --- Filtro de Nível ---
+        if (filtroNivel.value !== 'todos') {
+            const nivelMinimo = parseInt(filtroNivel.value);
+            // Se o item for menor que o filtro, esconde ele
+            if ((item.nivelItem || 1) < nivelMinimo) return false;
+        }
+
         return true;
     });
 
     // 2. Agora ordenamos: Nível maior fica em cima (decrescente)
     return listaFiltrada.sort((a, b) => {
-        // Mudamos de 'reqNivel' para 'nivelItem'
         const nivelA = a.nivelItem || 0; 
         const nivelB = b.nivelItem || 0;
-        
-        // Ordenação decrescente (Maior -> Menor)
         return nivelB - nivelA;
     });
 });
@@ -348,29 +368,60 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
             </fieldset>
         </div>
     </div>
-    <div v-if="jogo.craftando.item" class="fila-producao-compacta">
+    <div class="fila-quadrados-container">
         
-        <div class="lado-info">
-            <span class="icone-fogo">🔥</span>
-            <div class="texto-info">
-                <span class="titulo-fila">Forjando <strong>{{ jogo.craftando.qtdLote }}x</strong> itens</span>
-                <span class="tempo-fila">{{ formatarTempoFila(jogo.craftando.tempoRestante) }} restantes</span>
-            </div>
-        </div>
+        <div v-if="slotFocado !== null" class="mobile-overlay-backdrop" @click="fecharTooltip"></div>
 
-        <div class="lado-barra">
-            <div class="barra-fundo-compacta">
-                <div class="barra-fill-compacta" 
-                    :style="{ width: (100 - (jogo.craftando.tempoRestante / jogo.craftando.tempoTotal * 100)) + '%' }">
+        <div v-if="slotFocado !== null && jogo.craftando[slotFocado]" class="tooltip-progresso" @click.stop>
+            
+            <button class="btn-fechar-absoluto" @click.stop="fecharTooltip">✖</button>
+
+            <div class="tooltip-seta" :style="{ left: (slotFocado === 0 ? '16%' : (slotFocado === 1 ? '50%' : '84%')) }"></div>
+
+            <div class="tooltip-header">
+                <span>{{ (dadosItens.find(i => i.id === jogo.craftando[slotFocado].item) || {}).nome }}</span>
+                <small>{{ formatarTempoFila(jogo.craftando[slotFocado].tempoRestante) }}</small>
+            </div>
+            
+            <div class="barra-fundo-tooltip">
+                <div class="barra-fill-tooltip" 
+                     :style="{ width: (100 - (jogo.craftando[slotFocado].tempoRestante / jogo.craftando[slotFocado].tempoTotal * 100)) + '%' }">
                 </div>
             </div>
-        </div>
-        
-        <div class="lado-botoes">
-            <button class="btn-mini-acao cancelar" @click="acoes.cancelarCraft" title="Cancelar (Perde 10% dos recursos)">✖</button>
-            <button class="btn-mini-acao acelerar" @click="acoes.acelerarCraft" title="Acelerar com Ouro">⚡</button>
+
+            <div class="tooltip-acoes">
+                <button class="btn-tooltip cancelar" 
+                        @click.stop="acoes.cancelarCraft(slotFocado); fecharTooltip()">
+                    Cancelar
+                </button>
+                
+                <button class="btn-tooltip acelerar" 
+                        @click.stop="acoes.acelerarCraft(slotFocado); fecharTooltip()">
+                    Acelerar
+                </button>
+            </div>
         </div>
 
+
+        <div v-for="index in 3" :key="index" class="slot-wrapper-quadrado">
+            
+            <div v-if="jogo.craftando[index - 1]" 
+                 class="quadrado-slot item-ativo"
+                 @click.stop="toggleSlot(index - 1)">
+                
+                <img :src="(dadosItens.find(i => i.id === jogo.craftando[index - 1].item) || {}).img" class="img-slot-pulsante">
+            </div>
+
+            <div v-else-if="(index - 1) === 0 || ((index - 1) === 1 && jogo.ferraria >= 3) || ((index - 1) === 2 && jogo.ferraria >= 7)" 
+                 class="quadrado-slot vazio"
+                 @click="fecharTooltip"> <span class="icone-inativo">⚒️</span>
+            </div>
+
+            <div v-else class="quadrado-slot bloqueado" @click="fecharTooltip">
+                <span class="icone-inativo">🔒</span>
+            </div>
+
+        </div>
     </div>
     <div class="lista-receitas-container">
         
@@ -378,7 +429,10 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 
         <div class="lista-receitas-scroll">
             
-            <div v-for="item in itensFiltrados" :key="item.id" class="card-capa-simples">
+            <div v-for="item in itensFiltrados" 
+     :key="item.id" 
+     class="card-capa-simples"
+     :class="{ 'sem-recursos': getMaxCraft(item) === 0 }">
                 
                 <div class="capa-header">
                     <h4>{{ item.nome }}</h4>
@@ -470,7 +524,9 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
                         ⏳ {{ getTempoCraft(itemSelecionado, qtdModal) }}
                     </div>
 
+                    
                     <div class="modal-input-group">
+                        <button class="btn-max" @click="qtdModal = Math.max(1, getMaxCraft(itemSelecionado))" title="Máximo possível">MAX</button>
                         <button @click="qtdModal > 1 ? qtdModal-- : null">-</button>
                         
                         <input 
@@ -486,7 +542,7 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
                 </div>
 
                 <button class="btn-forjar-final"
-                        :disabled="!!jogo.craftando.item || qtdModal < 1 || qtdModal > getMaxCraft(itemSelecionado)"
+                        :disabled="jogo.craftando.length >= (jogo.ferraria >= 7 ? 3 : (jogo.ferraria >= 3 ? 2 : 1)) || qtdModal < 1 || qtdModal > getMaxCraft(itemSelecionado)"
                         @click="fabricarItemDaLista(itemSelecionado); fecharForja()">
                     🔨 FORJAR AGORA
                 </button>
@@ -715,8 +771,15 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 @media(max-width: 480px) {
     /* 1. Remove o padding do fundo escuro no celular para não atrapalhar o cálculo */
     .modal-overlay {
-        padding: 0 !important;
-    }
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex; align-items: center; justify-content: center;
+    
+    /* MUDOU AQUI: De 1000 para 20000 (Para vencer o 9999 da Ferraria) */
+    z-index: 20000; 
+    
+    backdrop-filter: blur(2px);
+}
 
     /* 2. Força o modal a ficar centralizado e com tamanho correto */
     .modal-content-forja {
@@ -834,7 +897,9 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
     outline: none;
     
     /* Remove as setinhas padrão chatas do input number */
-    -moz-appearance: textfield;
+    appearance: textfield;
+    -webkit-appearance: textfield; /* Safari / Chrome antigos */
+    -moz-appearance: textfield;     /* Firefox antigo */
 }
 
 /* Remove setinhas no Chrome/Safari/Edge */
@@ -1258,5 +1323,250 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
     
     border-radius: 12px;        /* Bem redondo (formato pílula) */
     padding: 4px 8px;           /* Espaçamento interno */
+}
+/* Adicione no final do <style scoped> */
+.sem-recursos {
+    opacity: 0.5;
+    filter: grayscale(100%);
+    transition: all 0.3s;
+}
+.sem-recursos:hover {
+    opacity: 1; /* Volta a cor se passar o mouse, para ver melhor */
+    filter: none;
+}
+.btn-max {
+    font-size: 0.7em !important; /* Letra menor */
+    background: #b80000df !important; /* Laranja */
+    color: #fff !important;
+    width: auto !important; /* Largura automática */
+    padding: 0 8px !important;
+    margin-right: 5px;
+    border-right: 1px solid #bdc3c7;
+}
+
+
+
+/* Container para organizar os 3 slots */
+
+/* --- ESTILO FORJA FRIA (Idea Nova) --- */
+
+/* A barra base (fina e discreta) */
+
+
+/* Container que centraliza os 3 quadrados */
+.fila-quadrados-container {
+    display: flex;
+    justify-content: center; /* Centraliza na Horizontal (Esquerda/Direita) */
+    align-items: center;     /* Centraliza na Vertical (Cima/Baixo) - O CORRETOR DO PROBLEMA */
+    gap: 40px; 
+    margin-bottom: 20px; 
+    padding-top: 2px;
+    position: relative;
+    min-height: 20px; /* Garante altura suficiente para alinhar */
+}
+
+/* O Quadrado Base */
+.quadrado-slot {
+    width: 60px;
+    height: 60px;
+    margin: 0; /* Adicione isso para garantir que não haja empurrões invisíveis */
+    background: #ecf0f1;
+    border: 2px solid #bdc3c7;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    position: relative;
+    transition: transform 0.2s;
+}
+
+/* Ícones Cinza Apagado (Vazio e Bloqueado) */
+.icone-inativo {
+    font-size: 1.8em;
+    filter: grayscale(100%);
+    opacity: 0.3; /* Bem apagado como pediu */
+}
+
+/* --- ITEM ATIVO (CRAFTANDO) --- */
+.quadrado-slot.item-ativo {
+    background: #fff;
+    border-color: #e67e22;
+    cursor: pointer;
+    /* Animação de "Respiração" na borda/sombra */
+    animation: bordaPulsante 2s infinite ease-in-out;
+}
+
+.quadrado-slot.item-ativo:hover {
+    transform: scale(1.05);
+}
+
+.img-slot-pulsante {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    /* Animação de Luz na Imagem */
+    animation: luzInterna 2s infinite ease-in-out;
+}
+
+/* --- TOOLTIP (O BALÃO QUE ABRE) --- */
+.tooltip-progresso {
+    position: absolute;
+    bottom: 75px; /* Fica acima do quadrado */
+    left: 50%;
+    transform: translateX(-50%); /* Centraliza com o quadrado */
+    
+    width: 200px;
+    background: #2c3e50;
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: slideUp 0.2s ease-out;
+}
+
+/* Setinha do balão */
+.tooltip-seta {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    margin-left: -6px;
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #2c3e50;
+}
+
+.tooltip-header {
+    display: flex; justify-content: space-between; align-items: center; font-size: 0.8em; font-weight: bold;
+}
+.barra-fundo-tooltip {
+    width: 100%; height: 6px; background: #34495e; border-radius: 3px;
+}
+.barra-fill-tooltip {
+    height: 100%; background: #e67e22; border-radius: 3px; transition: width 1s linear;
+}
+.tooltip-acoes {
+    display: flex; gap: 5px; margin-top: 5px;
+}
+.btn-tooltip {
+    flex: 1; border: none; padding: 4px; border-radius: 4px; font-size: 0.75em; font-weight: bold; cursor: pointer;
+}
+.btn-tooltip.cancelar { background: #c0392b; color: white; }
+.btn-tooltip.acelerar { background: #f1c40f; color: #2c3e50; }
+
+/* --- ANIMAÇÕES SUTIS --- */
+@keyframes luzInterna {
+    0% { filter: drop-shadow(0 0 0px rgba(230, 126, 34, 0)); opacity: 0.9; }
+    50% { filter: drop-shadow(0 0 8px rgba(230, 126, 34, 0.6)); opacity: 1; }
+    100% { filter: drop-shadow(0 0 0px rgba(230, 126, 34, 0)); opacity: 0.9; }
+}
+
+@keyframes bordaPulsante {
+    0% { box-shadow: 0 0 0 rgba(230, 126, 34, 0); }
+    50% { box-shadow: 0 0 10px rgba(230, 126, 34, 0.3); } /* Brilho laranja muito leve */
+    100% { box-shadow: 0 0 0 rgba(230, 126, 34, 0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+/* =========================================================
+   AJUSTES PARA CELULAR (Mobile)
+   Isso só é ativado se a tela for menor que 600px
+   ========================================================= */
+/* Botão de Fechar (X) - Invisível no PC, Visível no Mobile */
+.btn-fechar-absoluto {
+    display: none; /* Escondido por padrão */
+}
+.mobile-overlay-backdrop {
+    display: none; /* Escondido por padrão */
+}
+
+/* =========================================================
+   AJUSTES PARA CELULAR (Mobile) - VERSÃO CORRIGIDA
+   ========================================================= */
+@media (max-width: 600px) {
+
+    /* 1. Cortina Escura de Fundo */
+    .mobile-overlay-backdrop {
+        display: block;
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.8);
+        z-index: 9998;
+        backdrop-filter: blur(2px);
+    }
+
+    /* 2. A Janela Centralizada (COM FORÇA TOTAL) */
+    .tooltip-progresso {
+        /* Muda de Absolute (PC) para Fixed (Celular) */
+        position: fixed !important; 
+        
+        /* Zera o posicionamento antigo do PC */
+        margin: 0 !important;
+        
+        /* Força o Centro da Tela */
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        
+        /* Tamanho e Visual */
+        width: 80vw !important;
+        max-width: 320px !important;
+        background: #2c3e50;
+        z-index: 9999;
+        padding: 25px 20px;
+        border: 2px solid #34495e;
+        box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        
+        /* Garante que os botões caibam */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 3. Botão Fechar (X) - Fica Grande */
+    .btn-fechar-absoluto {
+        display: block;
+        position: absolute;
+        top: -15px;
+        right: -10px;
+        background: #c0392b;
+        color: white;
+        border: 3px solid #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 1.2em;
+        cursor: pointer;
+        z-index: 10000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    /* 4. Botões de Ação (Cancelar/Acelerar) */
+    .tooltip-acoes {
+        display: flex;
+        flex-direction: column; /* Um embaixo do outro */
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .btn-tooltip {
+        padding: 15px; /* Botão Gordinho para o dedo */
+        font-size: 1.1rem;
+        width: 100%;
+    }
+
+    /* Esconde a setinha no mobile pois a janela flutua no meio */
+    .tooltip-seta { display: none !important; }
+    
+    /* Aumenta letra do título */
+    .tooltip-header { font-size: 1.3rem; margin-bottom: 15px; text-align: center; }
 }
 </style>

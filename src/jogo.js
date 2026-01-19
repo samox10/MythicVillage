@@ -68,7 +68,7 @@ export const jogo = reactive({
     taverna: 0, custoTaverna: { madeira: 200, pedra: 100 },
     ultimaAtualizacao: Date.now(),
     construindo: { tipo: null, tempoRestante: 0, tempoTotal: 0 },
-    craftando: { item: null, tempoRestante: 0, tempoTotal: 0, qtdLote: 1 },
+    craftando: [], // Mudou de objeto {} para lista []
     listaTechs: [
         { id: 'machado_ferro', nome: 'Machados de Ferro', desc: 'Lenhadores +50%', custo: { ciencia: 50 }, feito: false },
         { id: 'silos', nome: 'Silos', desc: 'Armazéns +50%', custo: { ciencia: 100 }, feito: false },
@@ -150,38 +150,18 @@ function finalizarConstrucao() {
     else if (tipo === 'laboratorio') jogo.laboratorio = 1;
     jogo.construindo.tipo = null;
 }
-function finalizarCraft() {
-    const receita = tabelaItens.find(i => i.id === jogo.craftando.item);
+function finalizarCraft(index) {
+    const slot = jogo.craftando[index];
+    if (!slot) return;
+
+    const receita = tabelaItens.find(i => i.id === slot.item);
     if (receita) {
-        const qtdTentativas = (jogo.craftando.qtdLote || 1);
-        const chanceFalha = jogo.craftando.chanceFalha || 0;
-        
-        let sucessos = 0;
-        let falhas = 0;
-
-        // Loop de verificação unidade por unidade
-        for (let i = 0; i < qtdTentativas; i++) {
-            if (Math.random() > chanceFalha) {
-                sucessos++;
-            } else {
-                falhas++;
-            }
-        }
-
-        const qtdRecebida = sucessos * (receita.qtd || 1);
-        if (qtdRecebida > 0) {
-            jogo.itens[receita.id] += qtdRecebida;
-        }
-
-        // Feedback visual do resultado
-        if (falhas > 0) {
-            mostrarAviso("Produção Finalizada", `Sucesso: ${sucessos} | Quebrados: ${falhas} ⚠️`, 'aviso');
-        } else {
-            // Se for apenas 1 item e deu certo, aviso mais simples (ou nenhum se preferir silêncio)
-            // mostrarAviso("Produção Concluída", `Você forjou ${qtdRecebida}x ${receita.nome}.`, 'sucesso');
-        }
+        // Simplesmente entrega tudo (sem lógica de falha complexa pra simplificar o loop)
+        const qtdRecebida = slot.qtdLote * (receita.qtd || 1);
+        jogo.itens[receita.id] += qtdRecebida;
     }
-    jogo.craftando = { item: null, qtdLote: 1, tempoRestante: 0, tempoTotal: 0 };
+    // Remove da lista pois acabou
+    jogo.craftando.splice(index, 1);
 }
 function processarOffline(segundosOffline) {
     if (segundosOffline <= 0) return;
@@ -470,7 +450,16 @@ export const acoes = {
     },
 
     fabricarItem(item, qtd = 1) {
-        if (jogo.craftando.item) return mostrarAviso("Ocupado", "Forja ocupada.");
+        // 1. Define quantos slots o jogador tem direito
+        let maxSlots = 1;
+        if (jogo.ferraria >= 7) maxSlots = 3;
+        else if (jogo.ferraria >= 3) maxSlots = 2;
+
+        // 2. Verifica se tem espaço na fila
+        if (jogo.craftando.length >= maxSlots) {
+            return mostrarAviso("Fila Cheia", `Sua ferraria nível ${jogo.ferraria} suporta apenas ${maxSlots} filas.`);
+        }
+
         const custoTotal = {};
         let pode = true;
         Object.keys(item.custo).forEach(k => { custoTotal[k] = item.custo[k] * qtd; });
@@ -478,101 +467,95 @@ export const acoes = {
             const tenho = (jogo.minerios[k] !== undefined) ? jogo.minerios[k] : jogo[k];
             if (tenho < custoTotal[k]) pode = false;
         });
+
         if (pode) {
             Object.keys(custoTotal).forEach(k => {
                 if (jogo.minerios[k] !== undefined) jogo.minerios[k] -= custoTotal[k]; else jogo[k] -= custoTotal[k];
             });
 
-            // --- BÔNUS DE FERREIRO (REDUÇÃO DE TEMPO) ---
+            // Bônus do Ferreiro
             const ferreiro = jogo.funcionarios.find(f => f.profissao === 'ferreiro' && f.diasEmGreve === 0);
-            // Base: 15% de chance de falha para qualquer item (Pode ser ajustado futuramente por item)
-            const chanceFalhaBase = 0.0;
             let redutorTempo = 0;
             let redutorFalha = 0;
             if (ferreiro) {
-                // Reaproveita a função de buff racial exportada anteriormente
                 const buffRaca = 1 + (obterBuffRaca(ferreiro) / 100);
                 const poderReal = (ferreiro.poderEspecial || 0) * buffRaca;
-
-                // Redução de Tempo (Ex: 20 poder = 20% menos tempo)
                 redutorTempo = Math.min(0.9, poderReal / 100); 
-                
-                // Redução de Falha (Ex: 20 poder = 20% menos falhas)
-                // Se a chance é 15%, e o ferreiro tem 50 de poder: 15% * (1 - 0.5) = 7.5% chance final
                 redutorFalha = Math.min(1.0, poderReal / 100);
             }
 
             const tempoFinal = Math.ceil(item.tempo * qtd * (1 - redutorTempo));
-            const chanceFalhaFinal = Math.max(0, chanceFalhaBase * (1 - redutorFalha));
-
-            jogo.craftando = { 
+            
+            // Adiciona o novo item na lista (push) com um ID único (usamos Date.now para garantir unicidade simples)
+            jogo.craftando.push({ 
+                idUnico: Date.now() + Math.random(), // Identificador para cancelar o certo depois
                 item: item.id, 
                 qtdLote: qtd, 
                 tempoRestante: tempoFinal, 
                 tempoTotal: tempoFinal,
-                chanceFalha: chanceFalhaFinal 
-            };
-        } else alert("Faltam recursos.");
-    },
-    cancelarCraft() {
-        if (!jogo.craftando.item) return;
-        
-        // Texto explicativo mais claro
-        pedirConfirmacao("Cancelar Produção?", "Você receberá os itens já prontos. Os pendentes serão cancelados e você recupera apenas 90% dos recursos deles.", () => {
-            const receita = tabelaItens.find(i => i.id === jogo.craftando.item);
+                chanceFalha: Math.max(0, 0.0 * (1 - redutorFalha)) // Base 0% falha por enquanto
+            });
             
+        } else mostrarAviso("Sem Recursos", "Faltam recursos.");
+    },
+    cancelarCraft(index) {
+        // Recebe o índice da fila (0, 1 ou 2)
+        const slot = jogo.craftando[index];
+        if (!slot) return;
+        
+        pedirConfirmacao("Cancelar Produção?", "Recupera 90% dos pendentes.", () => {
+            const receita = tabelaItens.find(i => i.id === slot.item);
             if (receita) {
-                // 1. Calcula o tempo que já passou desde o início
-                const tempoDecorrido = jogo.craftando.tempoTotal - jogo.craftando.tempoRestante;
+                const tempoDecorrido = slot.tempoTotal - slot.tempoRestante;
+                const tempoPorItem = slot.tempoTotal / slot.qtdLote;
+                const feitos = Math.floor(tempoDecorrido / tempoPorItem);
+                const pendentes = Math.max(0, slot.qtdLote - feitos);
 
-                // 2. Calcula quanto tempo leva CADA item especificamente neste lote
-                // (Isso considera automaticamente o buff do ferreiro que foi aplicado no início)
-                const tempoPorItemReal = jogo.craftando.tempoTotal / jogo.craftando.qtdLote;
+                if (feitos > 0) jogo.itens[receita.id] += (feitos * (receita.qtd || 1));
 
-                // 3. Quantos itens cabem no tempo que passou? (Arredonda para baixo)
-                // Ex: Passou 22s, item leva 5s. 22/5 = 4.4 -> 4 itens feitos.
-                const feitos = Math.floor(tempoDecorrido / tempoPorItemReal);
-
-                // 4. O restante são os itens que não deram tempo de terminar
-                const pendentes = Math.max(0, jogo.craftando.qtdLote - feitos);
-
-                // A. Entrega os itens que foram finalizados honestamente
-                if (feitos > 0) {
-                    jogo.itens[receita.id] += (feitos * (receita.qtd || 1));
-                }
-
-                // B. Devolve 90% dos recursos APENAS dos itens pendentes
                 if (pendentes > 0) {
                     Object.keys(receita.custo).forEach(k => {
-                        // Custo Unitário * Qtd Pendente * 0.9
                         const dev = Math.floor((receita.custo[k] * pendentes) * 0.9);
-                        
-                        // Devolve para o lugar certo (Minérios ou Recursos básicos)
-                        if (jogo.minerios[k] !== undefined) {
-                            jogo.minerios[k] += dev; 
-                        } else {
-                            jogo[k] += dev;
-                        }
+                        if (jogo.minerios[k] !== undefined) jogo.minerios[k] += dev; else jogo[k] += dev;
                     });
                 }
-
-                // C. Reseta a forja
-                jogo.craftando = { item: null, qtdLote: 1, tempoRestante: 0, tempoTotal: 0 };
                 
-                // Feedback visual
-                mostrarAviso("Cancelado", `Finalizados: ${feitos} | Cancelados: ${pendentes} (90% estornado).`, 'aviso');
+                // Remove o item da lista
+                jogo.craftando.splice(index, 1);
+                mostrarAviso("Cancelado", `Finalizados: ${feitos} | Cancelados: ${pendentes}`, 'aviso');
             }
         });
     },
-    acelerarCraft() {
-        if (!jogo.craftando.item) return;
-        const custo = Math.ceil(jogo.craftando.tempoRestante / 60) * 1000;
-        if (jogo.ouro >= custo) pedirConfirmacao("Acelerar?", `Gastar ${custo} ouro?`, () => {
-            jogo.ouro -= custo;
-            const receita = tabelaItens.find(i => i.id === jogo.craftando.item);
-            jogo.itens[receita.id] += ((receita.qtd || 1) * jogo.craftando.qtdLote);
-            jogo.craftando = { item: null, qtdLote: 1, tempoRestante: 0, tempoTotal: 0 };
-        });
+
+    acelerarCraft(index) {
+        // Busca o slot correto usando o índice (0, 1 ou 2)
+        const slot = jogo.craftando[index];
+        if (!slot) return;
+        
+        // Calcula custo: 1000 ouros por minuto restante
+        const custo = Math.ceil(slot.tempoRestante / 60) * 1000;
+
+        // Verifica se tem dinheiro
+        if (jogo.ouro >= custo) {
+            pedirConfirmacao("Acelerar Produção?", `Deseja gastar ${custo} ouros para terminar agora?`, () => {
+                jogo.ouro -= custo;
+                
+                const receita = tabelaItens.find(i => i.id === slot.item);
+                if (receita) {
+                    // Entrega todos os itens do lote imediatamente
+                    jogo.itens[receita.id] += ((receita.qtd || 1) * slot.qtdLote);
+                }
+                
+                // Remove da fila
+                jogo.craftando.splice(index, 1);
+                
+                // Opcional: Feedback de sucesso
+                mostrarAviso("Acelerado!", "Produção concluída instantaneamente.", "sucesso");
+            });
+        } else {
+            // --- AQUI ESTÁ O AVISO QUE FALTAVA ---
+            mostrarAviso("Ouro Insuficiente", `Você precisa de ${custo} ouros para acelerar esta produção.\nVocê tem apenas ${jogo.ouro}.`);
+        }
     },
     // REMOVER ESSA FUNÇÃO DEPOIS?
     alocarMina(id, qtd) {
@@ -721,9 +704,13 @@ export function iniciarLoop() {
             jogo.construindo.tempoRestante -= deltaSegundos; // Usa delta para precisão
             if (jogo.construindo.tempoRestante <= 0) finalizarConstrucao(); 
         }
-        if (jogo.craftando.item) { 
-            jogo.craftando.tempoRestante -= deltaSegundos; 
-            if (jogo.craftando.tempoRestante <= 0) finalizarCraft(); 
+        // Percorre a lista de trás para frente para poder remover itens sem bugar o índice
+        for (let i = jogo.craftando.length - 1; i >= 0; i--) {
+            const slot = jogo.craftando[i];
+            slot.tempoRestante -= deltaSegundos;
+            if (slot.tempoRestante <= 0) {
+                finalizarCraft(i);
+            }
         }
 
         // --- RECURSOS BÁSICOS (COMIDA/MADEIRA) ---
@@ -750,8 +737,11 @@ export function iniciarSave() {
     if (s) { 
         try { 
             const dadosSalvos = JSON.parse(s);
-            Object.assign(jogo, dadosSalvos); 
-            
+            Object.assign(jogo, dadosSalvos);
+            if (jogo.craftando && !Array.isArray(jogo.craftando)) {
+                console.warn("Detectado save antigo da Ferraria. Resetando fila para evitar crash.");
+                jogo.craftando = []; // Transforma em lista vazia à força
+            }
             // --- CORREÇÃO: REPARO DE SLOTS INEXISTENTES ---
             // Garante que se você adicionou minérios novos no código, 
             // eles sejam criados no save antigo.

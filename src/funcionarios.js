@@ -61,7 +61,8 @@ const MATRIZ_CHANCES = {
         7: { F: 28, E: 24, D: 20, C: 16, B: 9, A: 3 },
         8: { F: 26, E: 24, D: 20, C: 18, B: 9, A: 3 },
         9: { F: 23, E: 22, D: 20, C: 20, B: 11, A: 3.96, S: 0.03, SS: 0.01 },
-        10: { F: 19.94, E: 20, D: 20, C: 20, B: 15, A: 5, S: 0.05, SS: 0.01 }
+        //10: { F: 19.94, E: 20, D: 20, C: 20, B: 15, A: 5, S: 0.05, SS: 0.01 }
+        10: { F: 0, E: 0, D: 0, C: 100, B: 0, A: 0, S: 0, SS: 0 }
     },
     elite: {
         2: { F: 30, E: 70 },
@@ -162,7 +163,10 @@ const RACAS = [
     'humano', 'draconiano', 'elfo', 'sombrineo', 'espectral', 
     'lobisomem', 'automato', 'serpentideo', 'corvido', 'tiefling'
 ];
-
+export const CLASSES_RPG = [
+    'Cavaleiro', 'Berserker', 'Ladino', 'Arqueiro', 
+    'Arquimago', 'Necromante', 'Templário', 'Assassino', 'Demonologista'
+];
 const randomRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomFloat = (min, max) => (Math.random() * (max - min) + min).toFixed(2);
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -222,11 +226,11 @@ const gerarBuffsComandante = (tier) => {
     return atributosGerados;
 };
 
-export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = null, racaFixa = null, sexoFixo = null, isPremium = false) => {
+export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = null, racaFixa = null, sexoFixo = null, isPremium = false, classeFixa = null) => {
     const dados = DADOS_TIERS[tier];
 
     // Lista de trabalhadores comuns (Vão para as Casas)
-    const profissoesComuns = ['minerador', 'lenhador', 'cacador', 'academico', 'comandante', 'saqueador', 'batedor'];
+    const profissoesComuns = ['minerador', 'lenhador', 'cacador', 'academico', 'aventureiro', 'saqueador', 'batedor'];
 
     // --- CONFIGURAÇÃO DOS ESPECIAIS ---
     // Regra 1: Nível da Taverna necessário
@@ -324,8 +328,20 @@ export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = n
             case 'ferreiro': descricaoPassiva = `Acelera produção na Ferraria em ${statPrincipal}%.`; break;
         }
     }
-    else if (profissaoFinal === 'comandante') {
-        buffsBatalha = gerarBuffsComandante(tier);
+    // Nova lógica para Aventureiros
+    let classeSorteada = null;
+    if (profissaoFinal === 'aventureiro') {
+        // Se veio uma classe fixa (da fusão), usa ela. Se não, sorteia.
+        if (classeFixa) {
+            classeSorteada = classeFixa;
+        } else {
+            // Caso não tenha CLASSES_RPG definido, defina ou importe aqui
+            // classeSorteada = pickRandom(CLASSES_RPG); 
+            // Como segurança, se não achar a lista, cria uma básica:
+            const listaClasses = ['Cavaleiro', 'Berserker', 'Ladino', 'Arqueiro', 'Arquimago', 'Necromante', 'Templário', 'Assassino', 'Demonologista'];
+            classeSorteada = pickRandom(listaClasses);
+        }
+        salarioFinal = Math.floor(salarioFinal * 1.5);
     }
 
     return {
@@ -336,14 +352,15 @@ export const criarObjetoFuncionario = (tier, nivelTaverna = 1, profissaoFixa = n
         profissao: profissaoFinal,
         tier: tier,
         salario: salarioFinal,
-        bonus: parseFloat(randomFloat(dados.bonus[0], dados.bonus[1])),
-        pago: true,
-        diasEmGreve: 0,
-        imagem: imagemNome,
-        atributos: buffsBatalha,
-        poderEspecial: statPrincipal,
-        desc: descricaoPassiva,
-        isEspecial: listaIdsEspeciais.includes(profissaoFinal)
+        bonus: parseFloat(randomFloat(dados.bonus[0], dados.bonus[1])), // Bônus de produção
+        pago: true, // Se já foi pago o salário do dia
+        diasEmGreve: 0, // Contador de dias em greve
+        imagem: imagemNome, // Nome do arquivo de imagem
+        classe: classeSorteada, // Apenas para aventureiros
+        atributos: buffsBatalha, // Apenas para comandantes (desativado por enquanto)
+        poderEspecial: statPrincipal, // Apenas para especiais
+        desc: descricaoPassiva, // Apenas para especiais
+        isEspecial: listaIdsEspeciais.includes(profissaoFinal) 
     };
 };
 
@@ -437,7 +454,7 @@ export const calcularChancesFusao = (tierAtual, nivelTaverna, bonusSorte = 0, te
     return prob;
 };
 // --- PROCESSAR FUSÃO ---
-export const processarFusao = (tierAtual, nivelTaverna, profissaoFixa, racaFixa, bonusSorte = 0, temSinergia = false) => {
+export const processarFusao = (tierAtual, nivelTaverna, profissaoFixa, racaFixa, bonusSorte = 0, temSinergia = false, classeFixa = null) => {
     // Agora passamos 'temSinergia' para o cálculo matemático
     const chances = calcularChancesFusao(tierAtual, nivelTaverna, bonusSorte, temSinergia);
     
@@ -454,11 +471,11 @@ export const processarFusao = (tierAtual, nivelTaverna, profissaoFixa, racaFixa,
     
     // Gera o novo funcionário passando a racaFixa também
     // Nota: Passamos 'null' no sexoFixo para continuar aleatório
-    let obj = criarObjetoFuncionario(novoTier, nivelTaverna, profissaoFixa, racaFixa, null);
+    let obj = criarObjetoFuncionario(novoTier, nivelTaverna, profissaoFixa, racaFixa, null, false, classeFixa);
     
     // Garante que não saia um especial na fusão
     while (proibidosNaFusao.includes(obj.profissao)) {
-        obj = criarObjetoFuncionario(novoTier, nivelTaverna, profissaoFixa, racaFixa, null);
+        obj = criarObjetoFuncionario(novoTier, nivelTaverna, profissaoFixa, racaFixa, null, false, classeFixa);
     }
     return obj;
 };

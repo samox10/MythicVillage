@@ -29,7 +29,6 @@ body {
   // Componentes
   import Cidade from './components/Cidade.vue';
   import Taverna from './components/Taverna.vue';
-  import Laboratorio from './components/Laboratorio.vue';
   import Mina from './components/Mina.vue';
   import Ferraria from './components/Ferraria.vue';
   import Inventario from './components/Inventario.vue';
@@ -171,7 +170,6 @@ body {
       <div v-if="menuAberto === 'producao'" class="dropdown-menu">
         <button @click="selecionarOpcao('producao', 'mina')">⛏️ Mina</button>
         <button @click="selecionarOpcao('producao', 'ferraria')">⚔️ Ferraria</button>
-        <button @click="selecionarOpcao('producao', 'laboratorio')">⚗️ Academia</button>
       </div>
     </Transition>
 </div>
@@ -202,7 +200,6 @@ body {
       
       <Mina v-if="abaAtual === 'mina' && categoriaAtual === 'producao'" />
       <Ferraria v-if="abaAtual === 'ferraria' && categoriaAtual === 'producao'" />
-      <Laboratorio v-if="abaAtual === 'laboratorio' && categoriaAtual === 'producao'" />
       
       <Taverna v-if="abaAtual === 'geral' && categoriaAtual === 'taverna'" />
       <Inventario v-if="abaAtual === 'itens' && categoriaAtual === 'inventario'" />

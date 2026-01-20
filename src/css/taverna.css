@@ -556,3 +556,28 @@ td:first-child { text-align: left; }
     margin-bottom: 5px;
     width: 100%;
 }
+.botoes-catalogo-mini {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+}
+
+.botoes-catalogo-mini button {
+    flex: 1;
+    padding: 5px;
+    font-size: 0.8em;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #7f8c8d;
+}
+
+.botoes-catalogo-mini button.ativo {
+    background: #3498db;
+    color: white;
+    border-color: #2980b9;
+    font-weight: bold;
+}

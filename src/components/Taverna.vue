@@ -26,6 +26,16 @@
           tooltipAberto.value = idUnico; // Abre este
       }
   };
+  // --- CONTROLE DE VISIBILIDADE DAS SEÇÕES ---
+  const secoesAbertas = ref({
+      elite: true,       // Começa aberto
+      aventureiros: true, // Começa aberto
+      comuns: true       // Começa aberto
+  });
+
+  const alternarSecao = (chave) => {
+      secoesAbertas.value[chave] = !secoesAbertas.value[chave];
+  };
 
   // Calcula os números apenas para mostrar no texto (Sem abrir modal)
   const getInfoTooltip = (func, tipo = 'padrao', chaveCmd = null, valorCmd = null) => {
@@ -154,8 +164,7 @@
             'comandante':{ m: 'Comandante', f: 'Comandante' },
             'saqueador': { m: 'Saqueador',  f: 'Saqueadora' },
             'batedor':   { m: 'Batedor',    f: 'Batedora' },
-
-            // ALTERADOS (Chaves atualizadas para bater com os novos IDs)
+            'aventureiro': { m: 'Aventureiro', f: 'Aventureira' },
             'academico':     { m: 'Acadêmico',   f: 'Acadêmica' },
             'administrador': { m: 'Administrador', f: 'Administradora' },
             'curandeiro':    { m: 'Curandeiro',  f: 'Curandeira' },
@@ -208,8 +217,16 @@
       return ordenarLista(elite);
   });
 
+  // --- LISTA DE AVENTUREIROS (NOVA) ---
+  const listaAventureiros = computed(() => {
+      const avents = jogo.funcionarios.filter(f => f.profissao === 'aventureiro');
+      return ordenarLista(avents);
+  });
+
+  // --- LISTA DE COMUNS (ALTERADA: Remove aventureiros daqui) ---
   const listaComuns = computed(() => {
-      const comuns = jogo.funcionarios.filter(f => !f.isEspecial);
+      // Pega quem NÃO é especial E TAMBÉM NÃO é aventureiro
+      const comuns = jogo.funcionarios.filter(f => !f.isEspecial && f.profissao !== 'aventureiro');
       return ordenarLista(comuns);
   });
 
@@ -282,6 +299,26 @@
       { id: 'medico', nome: 'Curandeiro', req: 5, desc: 'Cura feridos mais rápido.', stat: 'Medicina: % de velocidade na recuperação.' },
       { id: 'gerente', nome: 'Administrador', req: 6, desc: 'Influencia a Guilda dos Trabalhadores para atrair melhores candidatos.', stat: 'Influência: Aumenta a sorte no recrutamento e fusão.' }    
   ];
+  // --- CONTROLE DO CATÁLOGO ---
+  const abaCatalogo = ref('profissoes'); // Começa mostrando profissões
+
+  // Lista com as descrições das Classes de Aventureiro
+  const catalogoAventureiros = [
+      { id: 'cavaleiro', nome: 'Cavaleiro', req: 1, desc: 'Guerreiro de armadura pesada.', stat: 'Foco em Defesa e Vida.' },
+      { id: 'berserker', nome: 'Berserker', req: 1, desc: 'Lutador furioso.', stat: 'Muito Dano, pouca Defesa.' },
+      { id: 'ladino', nome: 'Ladino', req: 1, desc: 'Mestre da furtividade.', stat: 'Alta chance de Crítico.' },
+      { id: 'arqueiro', nome: 'Arqueiro', req: 1, desc: 'Ataca de longe.', stat: 'Alta Precisão.' },
+      { id: 'arquimago', nome: 'Arquimago', req: 1, desc: 'Mestre das arcanas.', stat: 'Dano Mágico em Área.' },
+      { id: 'necromante', nome: 'Necromante', req: 1, desc: 'Invoca mortos.', stat: 'Invoca servos para lutar.' },
+      { id: 'templario', nome: 'Templário', req: 1, desc: 'Guerreiro santo.', stat: 'Defesa e Cura leve.' },
+      { id: 'assassino', nome: 'Assassino', req: 1, desc: 'Elimina alvos únicos.', stat: 'Dano massivo em alvo único.' },
+      { id: 'demonologista', nome: 'Demonologista', req: 1, desc: 'Pactos sombrios.', stat: 'Dano alto com custo de Vida.' }
+  ];
+
+  // Computada que decide qual lista mostrar na tela
+  const listaCatalogoAtual = computed(() => {
+      return abaCatalogo.value === 'profissoes' ? catalogoProfissoes : catalogoAventureiros;
+  });
 
   // Função para abrir o modal
   const abrirDetalhesProfissao = (prof) => {
@@ -357,22 +394,34 @@
             
             <div class="divisor-vertical"></div>
             <div class="coluna-especifica">
-                <h4>Catálogo de Profissões</h4>
+                <div class="botoes-catalogo-mini">
+                    <button 
+                        :class="{ ativo: abaCatalogo === 'profissoes' }" 
+                        @click="abaCatalogo = 'profissoes'">
+                        Profissões
+                    </button>
+                    <button 
+                        :class="{ ativo: abaCatalogo === 'aventureiros' }" 
+                        @click="abaCatalogo = 'aventureiros'">
+                        Aventureiros
+                    </button>
+                </div>
+
                 <div class="grid-catalogo">
                     <div 
-                        v-for="prof in catalogoProfissoes" 
-                        :key="prof.id" 
+                        v-for="item in listaCatalogoAtual" 
+                        :key="item.id" 
                         class="item-catalogo" 
-                        :class="{ 'bloqueado': jogo.taverna < prof.req }"
-                        @click="abrirDetalhesProfissao(prof)"
-                        :title="jogo.taverna < prof.req ? `Desbloqueia no Nível ${prof.req}` : 'Clique para ver detalhes'"
+                        :class="{ 'bloqueado': jogo.taverna < item.req }"
+                        @click="abrirDetalhesProfissao(item)"
+                        :title="jogo.taverna < item.req ? `Desbloqueia no Nível ${item.req}` : 'Clique para ver detalhes'"
                     >
                         <div class="icon-wrapper">
-                            <img :src="`/assets/ui/i_${getNomeImagem(prof.id)}.png`" class="icone-prof-catalogo" alt="">
-                            <div v-if="jogo.taverna < prof.req" class="lock-overlay">🔒</div>
+                            <img :src="`/assets/ui/i_${getNomeImagem(item.id)}.png`" class="icone-prof-catalogo" alt="Icone">
+                            <div v-if="jogo.taverna < item.req" class="lock-overlay">🔒</div>
                         </div>
                         
-                        <div class="prof-nome-catalogo">{{ prof.nome }}</div>
+                        <div class="prof-nome-catalogo">{{ item.nome }}</div>
                     </div>
                 </div>
             </div>
@@ -386,8 +435,15 @@
         </div>
 
         <div v-if="listaElite.length > 0">
-            <h4 class="titulo-secao elite">👑 Elite da Vila ({{ listaElite.length }})</h4>
-            <div class="lista-funcionarios">
+            <h4 class="titulo-secao elite" 
+                @click="alternarSecao('elite')" 
+                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                
+                <span>👑 Elite da Vila ({{ listaElite.length }})</span>
+                <span>{{ secoesAbertas.elite ? '▼' : '◀' }}</span>
+            </h4>
+
+            <div v-show="secoesAbertas.elite" class="lista-funcionarios">
                 <div v-for="func in listaElite" :key="func.id" 
                      class="card-funcionario card-ouro"
                      :style="{ borderColor: corTier(func.tier) }">
@@ -432,87 +488,116 @@
                 </div>
             </div>
         </div>
+        <div v-if="listaAventureiros.length > 0">
+            <h4 class="titulo-secao" 
+                @click="alternarSecao('aventureiros')"
+                style="color: #e67e22; border-bottom: 2px solid #e67e22; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>⚔️ Aventureiros ({{ listaAventureiros.length }})</span>
+                <span>{{ secoesAbertas.aventureiros ? '▼' : '◀' }}</span>
+            </h4>
 
-        <div>
-            <h4 class="titulo-secao comum">🏠 Trabalhadores ({{ listaComuns.length }})</h4>
-            
-            <div v-if="listaComuns.length === 0" class="vazio">Nenhum trabalhador comum.</div>
-            
-            <div class="lista-funcionarios">
-                <div v-for="func in listaComuns" :key="func.id" 
-                     class="card-funcionario" 
-                     :class="{ emGreve: func.diasEmGreve > 0 }"
-                     :style="{ borderColor: func.diasEmGreve > 0 ? '#c0392b' : corTier(func.tier) }">
+            <div v-show="secoesAbertas.aventureiros" class="lista-funcionarios">
+                <div v-for="func in listaAventureiros" :key="func.id" 
+                     class="card-funcionario"
+                     style="background: #fff5e6;"
+                     :style="{ borderColor: corTier(func.tier) }">
                     
                     <div class="card-topo" :style="{ backgroundColor: corTier(func.tier) }">
                         <span class="tier-badge">{{ func.tier }}</span>
                         <span class="card-nome">{{ func.nome }}</span>
-                        <img :src="`/assets/ui/i_${getNomeImagem(func.profissao)}.png`" class="icone-topo-card">
-                        <span v-if="func.diasEmGreve > 0" class="tag-greve">GREVE ({{func.diasEmGreve}}/5)</span>
+                        <span class="icone-topo-card">⚔️</span>
                     </div>
                     <div class="card-mid">
                         <img v-if="func.imagem" :src="`/assets/faces/${func.raca}/${func.imagem}.png`" class="avatar-func">
+                        
                         <div class="card-corpo">
-                            <div class="info-linha"><strong>Prof:</strong> {{ nomeProfissao(func) }}</div>                            
-                            <div class="info-linha"><strong>Raça:</strong> {{ formatarRaca(func.raca) }}</div>                            
+                            <div class="info-linha"><strong>Prof:</strong> {{ nomeProfissao(func) }}</div>
+                            <div class="info-linha"><strong>Raça:</strong> {{ formatarRaca(func.raca) }}</div>
                             <div class="info-linha"><strong>Sexo:</strong> {{ formatarSexo(func.sexo) }}</div>
-                            <div class="info-linha"><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(func.salario) }}</div>
-                            <!-- Inicio da Estatística da Aba Recrutamento -->
-                            <div v-if="labelsEspeciais[func.profissao]" class="info-linha">
-                                <strong>{{ labelsEspeciais[func.profissao] }}: </strong> 
-                                
-                                <span class="stat-container" @click.stop="toggleTooltip(func.id + 'spec')">
-                                    <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-                                        {{ getStatReal(func) }}%
-                                    </span>
-                                    <div v-if="tooltipAberto === (func.id + 'spec') && obterBuffRaca(func) > 0" class="balao-flutuante">
-                                        Base: {{ getInfoTooltip(func).original }}%<br>
-                                        Bônus: +{{ getInfoTooltip(func).ganho }}%
-                                    </div>
-                                </span>
+                            <div class="info-linha">
+                                <strong>Salário: </strong><img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(func.salario) }}
                             </div>
-
-                            <div v-else-if="func.profissao === 'comandante' && func.atributos" 
-                                class="info-linha" 
-                                style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                                <strong>Buffs: </strong>
-                                <span v-for="(valor, chave) in func.atributos" :key="chave" 
-                                    class="stat-container"
-                                    @click.stop="toggleTooltip(func.id + chave)"
-                                    style="font-size: 0.9em;">
-                                    
-                                    <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-                                        {{ iconesAtributos[chave] }} {{ Math.floor(valor * (1 + (obterBuffRaca(func) / 100))) }}
-                                    </span>
-
-                                    <div v-if="tooltipAberto === (func.id + chave) && obterBuffRaca(func) > 0" class="balao-flutuante">
-                                        Base: {{ valor }}<br>
-                                        Bônus: +{{ getInfoTooltip(func, 'comandante', chave, valor).ganho }}
-                                    </div>
-                                </span>
+                            
+                            <div class="info-linha"><strong>Classe:</strong> 
+                                {{ func.classe || 'Classe Desconhecida' }}
                             </div>
-
-                            <div v-else class="info-linha">
-                                <strong>Bônus: </strong> 
-                                <span class="stat-container" @click.stop="toggleTooltip(func.id + 'prod')">
-                                    <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-                                        ✨ {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
-                                    </span>
-                                    <div v-if="tooltipAberto === (func.id + 'prod') && obterBuffRaca(func) > 0" class="balao-flutuante">
-                                        Base: {{ getInfoTooltip(func, 'producao').original }}%<br>
-                                        Bônus: +{{ getInfoTooltip(func, 'producao').ganho }}%
-                                    </div>
-                                </span>
-                            </div>
-                            <!-- Fim da Estatística da Aba Recrutamento -->
                             
                             <div v-if="func.diasEmGreve > 0" class="info-greve">
-                                <button class="btn-pagar" @click="acoes.pagarIndividual(func.id)">💸 Pagar</button>
+                                <button class="btn-pagar" @click="acoes.pagarIndividual(func.id)">Pagar</button>
                             </div>
                         </div>
                     </div>
                     <div class="card-rodape">
                         <button class="btn-demitir" @click="funcionarioParaDemitir = func">Demitir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h4 class="titulo-secao comum" 
+                @click="alternarSecao('comuns')"
+                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>🏠 Trabalhadores ({{ listaComuns.length }})</span>
+                <span>{{ secoesAbertas.comuns ? '▼' : '◀' }}</span>
+            </h4>
+            
+            <div v-show="secoesAbertas.comuns">
+                <div v-if="listaComuns.length === 0" class="vazio">Nenhum trabalhador comum.</div>
+                
+                <div class="lista-funcionarios">
+                    <div v-for="func in listaComuns" :key="func.id" 
+                        class="card-funcionario" 
+                        :class="{ emGreve: func.diasEmGreve > 0 }"
+                        :style="{ borderColor: func.diasEmGreve > 0 ? '#c0392b' : corTier(func.tier) }">
+                        
+                        <div class="card-topo" :style="{ backgroundColor: corTier(func.tier) }">
+                            <span class="tier-badge">{{ func.tier }}</span>
+                            <span class="card-nome">{{ func.nome }}</span>
+                            <img :src="`/assets/ui/i_${getNomeImagem(func.profissao)}.png`" class="icone-topo-card">
+                            <span v-if="func.diasEmGreve > 0" class="tag-greve">GREVE ({{func.diasEmGreve}}/5)</span>
+                        </div>
+                        <div class="card-mid">
+                            <img v-if="func.imagem" :src="`/assets/faces/${func.raca}/${func.imagem}.png`" class="avatar-func">
+                            <div class="card-corpo">
+                                <div class="info-linha"><strong>Prof:</strong> {{ nomeProfissao(func) }}</div>                            
+                                <div class="info-linha"><strong>Raça:</strong> {{ formatarRaca(func.raca) }}</div>                            
+                                <div class="info-linha"><strong>Sexo:</strong> {{ formatarSexo(func.sexo) }}</div>
+                                <div class="info-linha"><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(func.salario) }}</div>
+                                
+                                <div v-if="labelsEspeciais[func.profissao]" class="info-linha">
+                                    <strong>{{ labelsEspeciais[func.profissao] }}: </strong> 
+                                    <span class="stat-container" @click.stop="toggleTooltip(func.id + 'spec')">
+                                        <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
+                                            {{ getStatReal(func) }}%
+                                        </span>
+                                        <div v-if="tooltipAberto === (func.id + 'spec') && obterBuffRaca(func) > 0" class="balao-flutuante">
+                                            Base: {{ getInfoTooltip(func).original }}%<br>
+                                            Bônus: +{{ getInfoTooltip(func).ganho }}%
+                                        </div>
+                                    </span>
+                                </div>
+                                <div v-else class="info-linha">
+                                    <strong>Bônus: </strong> 
+                                    <span class="stat-container" @click.stop="toggleTooltip(func.id + 'prod')">
+                                        <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
+                                            ✨ {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
+                                        </span>
+                                        <div v-if="tooltipAberto === (func.id + 'prod') && obterBuffRaca(func) > 0" class="balao-flutuante">
+                                            Base: {{ getInfoTooltip(func, 'producao').original }}%<br>
+                                            Bônus: +{{ getInfoTooltip(func, 'producao').ganho }}%
+                                        </div>
+                                    </span>
+                                </div>
+                                
+                                <div v-if="func.diasEmGreve > 0" class="info-greve">
+                                    <button class="btn-pagar" @click="acoes.pagarIndividual(func.id)">💸 Pagar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-rodape">
+                            <button class="btn-demitir" @click="funcionarioParaDemitir = func">Demitir</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -583,7 +668,7 @@
                         <div class="info-linha"><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(func.salario) }}</div>
                         <!-- Inicio da Estatística Aba de Fusão -->
                         <div v-if="labelsEspeciais[func.profissao]" class="info-linha" style="margin-bottom: 15px;">
-                            <strong>{{ labelsEspeciais[func.profissao] }}:</strong> 
+                            <strong>{{ labelsEspeciais[func.profissao] }}: </strong> 
                             
                             <span class="stat-container" @click.stop="toggleTooltip(func.id + 'fusao')">
                                 <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
@@ -596,31 +681,15 @@
                             </span>
                         </div>
 
-                        <div v-else-if="func.profissao === 'comandante' && func.atributos" 
-                            class="info-linha" 
-                            style="display: flex; align-items: center; justify-content: flex-start; gap: 4px; flex-wrap: wrap; margin-bottom: 15px;">
-                            <strong>Buffs:</strong>
-                            <span v-for="(valor, chave) in func.atributos" :key="chave" 
-                                class="stat-container"
-                                @click.stop="toggleTooltip(func.id + chave + 'fusao')"
-                                style="font-size: 0.9em;">
-                                
-                                <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-                                    {{ iconesAtributos[chave] }} {{ Math.floor(valor * (1 + (obterBuffRaca(func) / 100))) }}
-                                </span>
-
-                                <div v-if="tooltipAberto === (func.id + chave + 'fusao') && obterBuffRaca(func) > 0" class="balao-flutuante">
-                                    Base: {{ valor }}<br>
-                                    Bônus: +{{ getInfoTooltip(func, 'comandante', chave, valor).ganho }}
-                                </div>
-                            </span>
+                        <div v-else-if="func.profissao === 'aventureiro'" class="info-linha" style="margin-bottom: 15px;">
+                             <strong>Classe:</strong> {{ func.classe || 'Desconhecida' }}
                         </div>
 
                         <div v-else class="info-linha" style="margin-bottom: 15px;">
-                            <strong>Bônus:</strong> 
+                            <strong>Bônus: </strong> 
                             <span class="stat-container" @click.stop="toggleTooltip(func.id + 'fusao_prod')">
                                 <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-                                    ✨ {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
+                                    {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
                                 </span>
                                 <div v-if="tooltipAberto === (func.id + 'fusao_prod') && obterBuffRaca(func) > 0" class="balao-flutuante">
                                     Base: {{ getInfoTooltip(func, 'producao').original }}%<br>
@@ -761,10 +830,10 @@
                 </div>
 
                 <p v-else style="display: flex; justify-content: center; gap: 5px;">
-                    <strong>Bônus:</strong> 
+                    <strong>Bônus: </strong> 
                     <span class="stat-container" @click.stop="toggleTooltip('resultado_prod')">
                         <span :style="{ color: obterBuffRaca(modalFusao.funcionario) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(modalFusao.funcionario) > 0 ? 'bold' : 'normal' }">
-                            ✨ {{ Math.floor(((modalFusao.funcionario.bonus * (1 + (obterBuffRaca(modalFusao.funcionario) / 100))) - 1) * 100) }}%
+                            {{ Math.floor(((modalFusao.funcionario.bonus * (1 + (obterBuffRaca(modalFusao.funcionario) / 100))) - 1) * 100) }}%
                         </span>
                         <div v-if="tooltipAberto === 'resultado_prod' && obterBuffRaca(modalFusao.funcionario) > 0" class="balao-flutuante">
                             Base: {{ getInfoTooltip(modalFusao.funcionario, 'producao').original }}%<br>
@@ -827,7 +896,6 @@
                         <span :style="{ color: obterBuffRaca(novoFuncionarioModal) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(novoFuncionarioModal) > 0 ? 'bold' : 'normal' }">
                             {{ iconesAtributos[chave] }} {{ Math.floor(valor * (1 + (obterBuffRaca(novoFuncionarioModal) / 100))) }}
                         </span>
-
                         <div v-if="tooltipAberto === ('novo_func_' + chave) && obterBuffRaca(novoFuncionarioModal) > 0" class="balao-flutuante">
                             Base: {{ valor }}<br>
                             Bônus: +{{ getInfoTooltip(novoFuncionarioModal, 'comandante', chave, valor).ganho }}
@@ -836,10 +904,10 @@
                 </div>
 
                 <p v-else style="display: flex; justify-content: center; gap: 5px;">
-                    <strong>Bônus:</strong> 
+                    <strong>Bônus: </strong> 
                     <span class="stat-container" @click.stop="toggleTooltip('novo_func_prod')">
                         <span :style="{ color: obterBuffRaca(novoFuncionarioModal) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(novoFuncionarioModal) > 0 ? 'bold' : 'normal' }">
-                            ✨ {{ Math.floor(((novoFuncionarioModal.bonus * (1 + (obterBuffRaca(novoFuncionarioModal) / 100))) - 1) * 100) }}%
+                            {{ Math.floor(((novoFuncionarioModal.bonus * (1 + (obterBuffRaca(novoFuncionarioModal) / 100))) - 1) * 100) }}%
                         </span>
                         <div v-if="tooltipAberto === 'novo_func_prod' && obterBuffRaca(novoFuncionarioModal) > 0" class="balao-flutuante">
                             Base: {{ getInfoTooltip(novoFuncionarioModal, 'producao').original }}%<br>
@@ -1084,10 +1152,10 @@
     </span>
 </div>
 <div v-else class="info-linha">
-    <strong>Bônus:</strong> 
+    <strong>Bônus: </strong> 
     <span class="stat-container" @click.stop="toggleTooltip('troca_novo_prod')">
         <span :style="{ color: obterBuffRaca(modalTrocaLista.novo) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(modalTrocaLista.novo) > 0 ? 'bold' : 'normal' }">
-            ✨ {{ Math.floor(((modalTrocaLista.novo.bonus * (1 + (obterBuffRaca(modalTrocaLista.novo) / 100))) - 1) * 100) }}%
+            {{ Math.floor(((modalTrocaLista.novo.bonus * (1 + (obterBuffRaca(modalTrocaLista.novo) / 100))) - 1) * 100) }}%
         </span>
         <div v-if="tooltipAberto === 'troca_novo_prod' && obterBuffRaca(modalTrocaLista.novo) > 0" class="balao-flutuante">
             Base: {{ getInfoTooltip(modalTrocaLista.novo, 'producao').original }}%<br>
@@ -1140,10 +1208,10 @@
 </div>
 
 <div v-else class="info-linha">
-    <strong>Bônus:</strong> 
+    <strong>Bônus: </strong> 
     <span class="stat-container" @click.stop="toggleTooltip(func.id + 'troca_prod')">
         <span :style="{ color: obterBuffRaca(func) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(func) > 0 ? 'bold' : 'normal' }">
-            ✨ {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
+            {{ Math.floor(((func.bonus * (1 + (obterBuffRaca(func) / 100))) - 1) * 100) }}%
         </span>
         <div v-if="tooltipAberto === (func.id + 'troca_prod') && obterBuffRaca(func) > 0" class="balao-flutuante">
             Base: {{ getInfoTooltip(func, 'producao').original }}%<br>

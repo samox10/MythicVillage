@@ -398,25 +398,44 @@ export const acoes = {
         // --- VERIFICAÇÃO DE PROFISSÃO ---
         const profBase = funcs[0].profissao;
         const mesmaProf = funcs.every(f => f.profissao === profBase);
-        const profissaoFinal = mesmaProf ? profBase : null;
+        // Se for tudo igual, a profissão final é essa. Se não, é null (aleatória)
+        let profissaoFinal = mesmaProf ? profBase : null; 
 
-        // --- VERIFICAÇÃO DE RAÇA (NOVO!) ---
+        // --- VERIFICAÇÃO DE AVENTUREIROS (NOVO) ---
+        // Se todos forem aventureiros (mesmo que classes diferentes), o resultado DEVE ser aventureiro
+        const saoTodosAventureiros = funcs.every(f => f.profissao === 'aventureiro');
+        
+        let classeFinal = null;
+
+        if (saoTodosAventureiros) {
+            profissaoFinal = 'aventureiro'; // Força ser aventureiro
+            
+            // Verifica se são da mesma CLASSE
+            const classeBase = funcs[0].classe;
+            const mesmaClasse = funcs.every(f => f.classe === classeBase);
+            
+            if (mesmaClasse) {
+                classeFinal = classeBase; // Mantém a classe (ex: 3 Necromantes viram 1 Necromante)
+            }
+            // Se não forem mesma classe, classeFinal fica null (gera uma aleatória)
+        }
+
+        // --- VERIFICAÇÃO DE RAÇA ---
         const racaBase = funcs[0].raca;
         const mesmaRaca = funcs.every(f => f.raca === racaBase);
         const racaFinal = mesmaRaca ? racaBase : null;
 
-        // --- CÁLCULO DO BÔNUS DE SINERGIA (NOVO!) ---
-        // Se tem mesma profissão OU mesma raça, ganha bônus (não soma os dois)
-        const temSinergia = mesmaProf || mesmaRaca;
+        // --- CÁLCULO DO BÔNUS DE SINERGIA ---
+        // Sinergia se: Mesma Profissão OU Mesma Raça OU Mesma Classe (caso aventureiros)
+        const temSinergia = mesmaProf || mesmaRaca; // (Classe igual já implica profissão igual, então está coberto)
 
         const bonusFusao = bonusSorteTotal.value * 0.6;
         
-        // Passamos 'temSinergia' para calcular as chances visuais
         const chances = calcularChancesFusao(tierBase, jogo.taverna || 1, bonusFusao, temSinergia);
 
         const executarLogica = () => {
-            // Passamos profissaoFinal, racaFinal e temSinergia para a execução real
-            const novo = processarFusao(tierBase, jogo.taverna || 1, profissaoFinal, racaFinal, bonusFusao, temSinergia);
+            // Passamos profissaoFinal, racaFinal, temSinergia E AGORA classeFinal
+            const novo = processarFusao(tierBase, jogo.taverna || 1, profissaoFinal, racaFinal, bonusFusao, temSinergia, classeFinal);
             
             idsSelecionados.forEach(id => {
                 const idx = jogo.funcionarios.findIndex(f => f.id === id);

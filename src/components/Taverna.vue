@@ -1,7 +1,8 @@
 <script setup>
   import { ref, computed } from 'vue';
   import { jogo, acoes, ui, populacaoTotal, custoContratacao, bonusSorteTotal, limites, obterBuffRaca } from '../jogo.js';
-  import { ORDEM_TIERS, DESBLOQUEIO_POR_NIVEL, obterProbabilidades } from '../funcionarios.js';
+  import { ORDEM_TIERS, DESBLOQUEIO_POR_NIVEL, obterProbabilidades, CLASSES_RPG } from '../funcionarios.js';
+  
     
   // Função visual para mostrar o stat buffado no card
   const getStatReal = (func) => {
@@ -45,10 +46,7 @@
       let original = 0;
       let final = 0;
 
-      if (tipo === 'comandante') {
-          original = valorCmd;
-          final = Math.floor(original * (1 + (buffPct / 100)));
-      } else if (tipo === 'producao') {
+      if (tipo === 'producao') {
           // O bônus salvo é 1.10, mas mostramos 10.
           original = Math.floor((func.bonus - 1) * 100);
           final = Math.floor(((func.bonus * (1 + (buffPct / 100))) - 1) * 100);
@@ -74,6 +72,24 @@
   const abaAtual = ref('contratar'); 
   const ordemAtual = ref('tier'); // Pode ser: 'tier', 'raca', 'profissao'
   const idsSelecionados = ref([]);
+  const filtroProfissao = ref('');
+  const filtroRaca = ref('');
+  const filtroClasse = ref('');
+  // Lista manual de profissões comuns (Não Elites)
+  const opcoesProfissoes = [
+      { v: 'minerador', t: 'Minerador' },
+      { v: 'lenhador',  t: 'Lenhador' },
+      { v: 'cacador',   t: 'Caçador' },
+      { v: 'academico', t: 'Acadêmico' },
+      { v: 'batedor',   t: 'Batedor' },
+      { v: 'saqueador', t: 'Saqueador' },
+      { v: 'aventureiro', t: 'Aventureiro' }
+  ];
+  // Lista manual de raças
+  const opcoesRacas = [
+      'humano', 'draconiano', 'elfo', 'sombrineo', 'espectral', 
+      'lobisomem', 'automato', 'serpentideo', 'corvido', 'tiefling'
+  ];
   const modalFusao = ref({ aberto: false, funcionario: null, status: '' });
   const modalHelp = ref(false);
   const conflitoGerente = ref(null);
@@ -161,7 +177,6 @@
             'lenhador':  { m: 'Lenhador',  f: 'Lenhadora' },
             'cacador':   { m: 'Caçador',   f: 'Caçadora' },
             'ferreiro':  { m: 'Ferreiro',  f: 'Ferreira' },
-            'comandante':{ m: 'Comandante', f: 'Comandante' },
             'saqueador': { m: 'Saqueador',  f: 'Saqueadora' },
             'batedor':   { m: 'Batedor',    f: 'Batedora' },
             'aventureiro': { m: 'Aventureiro', f: 'Aventureira' },
@@ -232,12 +247,29 @@
 
   const funcionariosElegiveis = computed(() => {
       const idxMax = DESBLOQUEIO_POR_NIVEL[Math.min(jogo.taverna, 10)];
-      const proibidos = ['gerente', 'prefeito', 'bancario', 'medico', 'ferreiro'];
+      
+      // Lista atualizada de proibidos (inclui todos os especiais)
+      const proibidos = [
+          'ferreiro', 'administrador', 'lorde', 'tesoureiro', 'curandeiro'
+      ];
       
       const lista = jogo.funcionarios.filter(f => {
           const idxFunc = ORDEM_TIERS.indexOf(f.tier);
+          
+          // 1. Filtros Básicos (Nível e Proibidos)
           if (proibidos.includes(f.profissao)) return false;
-          return idxFunc < idxMax;
+          if (idxFunc >= idxMax) return false;
+
+          // 2. Filtro de Profissão (Se tiver algo selecionado, tem que ser igual)
+          if (filtroProfissao.value !== '' && f.profissao !== filtroProfissao.value) return false;
+
+          // 3. Filtro de Raça
+          if (filtroRaca.value !== '' && f.raca !== filtroRaca.value) return false;
+
+          // 4. Filtro de Classe (Só funciona se for Aventureiro e tiver classe selecionada)
+          if (filtroProfissao.value === 'aventureiro' && filtroClasse.value !== '' && f.classe !== filtroClasse.value) return false;
+
+          return true;
       });
       return ordenarLista(lista);
   });
@@ -287,7 +319,7 @@
       { id: 'lenhador', nome: 'Lenhador', req: 1, desc: 'Trabalha na Floresta cortando madeira.', stat: 'Bônus de Produção (Madeira).' },
       { id: 'cacador', nome: 'Caçador', req: 1, desc: 'Obtém comida e couro na Floresta.', stat: 'Bônus de Produção (Comida/Couro).' },
       { id: 'cientista', nome: 'Acadêmico', req: 1, desc: 'Gera pontos de estudo na Academia.', stat: 'Bônus de Produção (Estudo).' },
-      { id: 'comandante', nome: 'Comandante', req: 1, desc: 'Lidera exércitos (Futuro). Possui atributos de combate.', stat: 'Atributos de Batalha (Ataque/Defesa).' },
+      { id: 'aventureiro', nome: 'Aventureiro', req: 1, desc: 'Lidera exércitos (Futuro). Possui atributos de combate.', stat: 'Atributos de Batalha (Ataque/Defesa).' },
       { id: 'batedor', nome: 'Batedor', req: 1, desc: 'Explorador ágil.', stat: 'Percepção: Aumenta chance de encontrar itens raros em explorações.' },
       { id: 'saqueador', nome: 'Saqueador', req: 1, desc: 'Especialista em pilhagem.', stat: 'Pilhagem: Aumenta a quantidade de recursos roubados.' },
       
@@ -620,13 +652,47 @@
         </div>
 
         <div class="barra-ordenacao-fusao">
-            <div class="filtros-container-fusao">
-                <label>Ordenar por: </label>
-                <select v-model="ordemAtual">
-                    <option value="tier">Tier</option>
-                    <option value="raca">Raça</option>
-                    <option value="profissao">Profissão</option>
-                </select>
+            <div class="filtros-container-fusao" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                
+                <div>
+                    <label>Ordem: </label>
+                    <select v-model="ordemAtual">
+                        <option value="tier">Tier</option>
+                        <option value="raca">Raça</option>
+                        <option value="profissao">Profissão</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Prof: </label>
+                    <select v-model="filtroProfissao">
+                        <option value="">Todas</option>
+                        <option v-for="p in opcoesProfissoes" :key="p.v" :value="p.v">
+                            {{ p.t }}
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Raça: </label>
+                    <select v-model="filtroRaca">
+                        <option value="">Todas</option>
+                        <option v-for="r in opcoesRacas" :key="r" :value="r">
+                            {{ formatarRaca(r) }}
+                        </option>
+                    </select>
+                </div>
+
+                <div v-if="filtroProfissao === 'aventureiro'" class="animacao-entrada">
+                    <label>Classe: </label>
+                    <select v-model="filtroClasse">
+                        <option value="">Todas</option>
+                        <option v-for="c in CLASSES_RPG" :key="c" :value="c">
+                            {{ c }}
+                        </option>
+                    </select>
+                </div>
+
             </div>
         </div>
 
@@ -651,7 +717,7 @@
                     :style="{ backgroundColor: idsSelecionados.includes(func.id) ? getCorSelecao(func.tier) : corTier(func.tier) }">
                     <span class="tier-badge">{{ func.tier }}</span>
                     <span class="card-nome">{{ func.nome }}</span>
-                    <span v-if="idsSelecionados.includes(func.id)" class="check">⬆️</span>
+                    <span v-if="idsSelecionados.includes(func.id)" class="check"></span>
                 </div>
                 
                 <div class="card-mid">
@@ -809,24 +875,8 @@
                     </span>
                 </div>
 
-                <div v-else-if="modalFusao.funcionario.profissao === 'comandante' && modalFusao.funcionario.atributos" 
-                    class="info-linha" 
-                    style="justify-content:center; display:flex; gap: 4px; flex-wrap: wrap; margin-bottom: 15px;">
-                    <strong>Buffs:</strong>
-                    <span v-for="(valor, chave) in modalFusao.funcionario.atributos" :key="chave" 
-                        class="stat-container"
-                        @click.stop="toggleTooltip('resultado_cmd_' + chave)"
-                        style="font-size: 0.9em;">
-                        
-                        <span :style="{ color: obterBuffRaca(modalFusao.funcionario) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(modalFusao.funcionario) > 0 ? 'bold' : 'normal' }">
-                            {{ iconesAtributos[chave] }} {{ Math.floor(valor * (1 + (obterBuffRaca(modalFusao.funcionario) / 100))) }}
-                        </span>
-
-                        <div v-if="tooltipAberto === ('resultado_cmd_' + chave) && obterBuffRaca(modalFusao.funcionario) > 0" class="balao-flutuante">
-                            Base: {{ valor }}<br>
-                            Bônus: +{{ getInfoTooltip(modalFusao.funcionario, 'comandante', chave, valor).ganho }}
-                        </div>
-                    </span>
+                <div v-else-if="modalFusao.funcionario.profissao === 'aventureiro'" class="info-linha" style="justify-content:center; margin-bottom: 15px;">
+                     <strong>Classe:</strong>&nbsp;{{ modalFusao.funcionario.classe || 'Desconhecida' }}
                 </div>
 
                 <p v-else style="display: flex; justify-content: center; gap: 5px;">
@@ -884,23 +934,8 @@
                     </span>
                 </div>
 
-                <div v-else-if="novoFuncionarioModal.profissao === 'comandante' && novoFuncionarioModal.atributos" 
-                    class="info-linha" 
-                    style="justify-content:center; display:flex; gap: 4px; flex-wrap: wrap; margin-bottom: 15px;">
-                    <strong>Buffs:</strong>
-                    <span v-for="(valor, chave) in novoFuncionarioModal.atributos" :key="chave" 
-                        class="stat-container"
-                        @click.stop="toggleTooltip('novo_func_' + chave)"
-                        style="font-size: 0.9em;">
-                        
-                        <span :style="{ color: obterBuffRaca(novoFuncionarioModal) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(novoFuncionarioModal) > 0 ? 'bold' : 'normal' }">
-                            {{ iconesAtributos[chave] }} {{ Math.floor(valor * (1 + (obterBuffRaca(novoFuncionarioModal) / 100))) }}
-                        </span>
-                        <div v-if="tooltipAberto === ('novo_func_' + chave) && obterBuffRaca(novoFuncionarioModal) > 0" class="balao-flutuante">
-                            Base: {{ valor }}<br>
-                            Bônus: +{{ getInfoTooltip(novoFuncionarioModal, 'comandante', chave, valor).ganho }}
-                        </div>
-                    </span>
+                <div v-else-if="novoFuncionarioModal.profissao === 'aventureiro'" class="info-linha" style="justify-content:center; margin-bottom: 15px;">
+                    <strong>Classe:</strong>&nbsp;{{ novoFuncionarioModal.classe || 'Desconhecida' }}
                 </div>
 
                 <p v-else style="display: flex; justify-content: center; gap: 5px;">
@@ -946,7 +981,7 @@
                 <p><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(funcionarioParaDemitir.salario) }}</p>
                 <!-- Inicio da Estatística Modal Demição -->
                 <div v-if="labelsEspeciais[funcionarioParaDemitir.profissao]" class="info-linha">
-                    <strong>{{ labelsEspeciais[funcionarioParaDemitir.profissao] }}:</strong> 
+                    <strong>{{ labelsEspeciais[funcionarioParaDemitir.profissao] }}: </strong> 
                     
                     <span class="stat-container" @click.stop="toggleTooltip('demissao_spec')">
                         <span :style="{ color: obterBuffRaca(funcionarioParaDemitir) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(funcionarioParaDemitir) > 0 ? 'bold' : 'normal' }">
@@ -955,6 +990,23 @@
                         <div v-if="tooltipAberto === 'demissao_spec' && obterBuffRaca(funcionarioParaDemitir) > 0" class="balao-flutuante">
                             Base: {{ getInfoTooltip(funcionarioParaDemitir).original }}<br>
                             Bônus: +{{ getInfoTooltip(funcionarioParaDemitir).ganho }}
+                        </div>
+                    </span>
+                </div>
+
+                <div v-else-if="funcionarioParaDemitir.profissao === 'aventureiro'" class="info-linha">
+                    <strong>Classe:</strong> {{ funcionarioParaDemitir.classe || 'Desconhecida' }}
+                </div>
+
+                <div v-else class="info-linha">
+                    <strong>Bônus: </strong> 
+                    <span class="stat-container" @click.stop="toggleTooltip('demissao_prod')">
+                        <span :style="{ color: obterBuffRaca(funcionarioParaDemitir) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(funcionarioParaDemitir) > 0 ? 'bold' : 'normal' }">
+                            {{ Math.floor(((funcionarioParaDemitir.bonus * (1 + (obterBuffRaca(funcionarioParaDemitir) / 100))) - 1) * 100) }}%
+                        </span>
+                        <div v-if="tooltipAberto === 'demissao_prod' && obterBuffRaca(funcionarioParaDemitir) > 0" class="balao-flutuante">
+                            Base: {{ getInfoTooltip(funcionarioParaDemitir, 'producao').original }}%<br>
+                            Bônus: +{{ getInfoTooltip(funcionarioParaDemitir, 'producao').ganho }}%
                         </div>
                     </span>
                 </div>

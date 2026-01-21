@@ -1,13 +1,3 @@
-.taverna-container { 
-    padding: 10px; 
-    width: 100%; /* Mudança: Ocupa tudo, igual a Mina */
-    box-sizing: border-box; /* Garante que o padding não estoure a tela */
-    max-width: 800px; /* Mantém o limite máximo igual da Mina */
-    margin: 0 auto; 
-    display: flex;
-    flex-direction: column;
-}
-
 /* --- PAINEL DE INFORMAÇÕES (TOPO) --- */
 .info-painel { 
     text-align: center; margin-bottom: 100px; background: #2c3e50; 
@@ -70,41 +60,6 @@
     border-radius: 50%; background: #3498db; color: white; border: none; 
     font-weight: bold; cursor: pointer; 
 }
-
-/* --- ABAS DE NAVEGAÇÃO --- */
-.abas-taverna { 
-    display: flex; 
-    gap: 10px; 
-    margin-bottom: 10px; /* Reduzido de 15px para 10px */
-}
-
-.abas-taverna button { 
-    flex: 1; 
-    padding: 12px; /* Botões mais "gordinhos" */
-    border: none; 
-    background: #34495e; 
-    color: #bdc3c7; 
-    font-weight: bold; 
-    cursor: pointer; 
-    border-radius: 8px; /* Arredondamento para combinar com o resto */
-    transition: all 0.2s; 
-    font-size: 1em; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.abas-taverna button.ativo { 
-    background: #d35400; 
-    color: white; 
-    /* Removemos a border-bottom antiga para ficar estilo "bloco" */
-    border-bottom: none; 
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-    transform: translateY(-1px);
-}
-
-.abas-taverna button:hover:not(.ativo) { 
-    background: #2c3e50; 
-}
-
 /* --- PAINEL DE RECRUTAMENTO --- */
 .painel-unificado { 
     display: flex; 
@@ -168,13 +123,21 @@
     transition: transform 0.1s;
 }
 
+h4 { 
+    margin: 0 0 5px 0; 
+    font-size: 0.75em; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    text-align: center; 
+    width: 100%; 
+}
+
 .btn-help-inline:active {
     transform: translateY(2px);
     box-shadow: none;
 }
 .coluna-especifica { flex: 1; display: flex; flex-direction: column; }
 .divisor-vertical { width: 1px; background: rgba(255,255,255,0.1); }
-h4 { margin: 0 0 5px 0; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; color: #bdc3c7; text-align: center; width: 100%; }
 
 /* Botões Aleatórios */
 .btn-aleatorio { 
@@ -204,26 +167,213 @@ h4 { margin: 0 0 5px 0; font-size: 0.75em; text-transform: uppercase; letter-spa
 /* Utilitários de Filtro e Títulos */
 .filtros-container { background: #2c3e50; padding: 8px; border-radius: 5px; margin-bottom: 10px; color: white; text-align: right; }
 .filtros-container select { padding: 5px; border-radius: 4px; border: none; font-weight: bold; color: #2c3e50; }
-.titulo-secao { text-align: left; margin: 15px 0 5px 0; padding-bottom: 5px; border-bottom: 2px solid #ccc; font-size: 1em; font-weight: bold; text-transform: uppercase; color: #7f8c8d; }
-.titulo-secao.elite { color: #9b59b6; border-bottom-color: #9b59b6; }
-.titulo-secao.comum { color: #27ae60; border-bottom-color: #27ae60; }
+.titulo-secao {
+    /* Layout e Tamanho */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;               /* Garante que ocupe a largura disponível */
+    box-sizing: border-box;    /* Vital: Impede que o padding estoure a largura da tela */
+    
+    /* Espaçamento Desktop (Padrão) */
+    padding: 10px 15px;        /* Reduzi um pouco para ficar mais elegante */
+    margin: 20px 0 10px 0;
+    
+    /* Visual */
+    background: #f8f9fa;
+    color: #2c3e50;
+    border: 1px solid #dfe6e9;
+    border-radius: 6px;
+    
+    /* A borda grossa na esquerda */
+    border-left: 5px solid #95a5a6; 
+    
+    /* Tipografia */
+    font-size: 0.9em;          /* Fonte levemente menor para ficar mais harmônico */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.05);
+}
+
+/* Hover */
+.titulo-secao:hover {
+    background: #fff;
+    transform: translateX(2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+}
+
+/* Cores das Categorias */
+.titulo-secao.elite { border-left-color: #9b59b6; }
+.titulo-secao.aventureiro { border-left-color: #e74c3c; }
+.titulo-secao.comum { border-left-color: #27ae60; }
+
+/* Seta/Contador discretos */
+.titulo-secao span:last-child {
+    color: #95a5a6;
+    font-size: 0.85em;
+}
+
+/* --- RESPONSIVIDADE (AJUSTE PARA CELULAR) --- */
+@media (max-width: 600px) {
+    .titulo-secao {
+        padding: 8px 12px;     /* Mais fino no celular para ganhar espaço */
+        font-size: 0.8em;      /* Fonte menor para não quebrar linha */
+        margin: 15px 0 8px 0;  /* Menos margem vertical */
+        border-left-width: 4px;/* Borda colorida um pouco mais fina */
+    }
+}
 
 /* Modificadores do Card para Fusão */
-.card-funcionario.selecionado { transform: scale(0.98); opacity: 0.9; box-shadow: 0 0 15px rgba(155, 89, 182, 0.5); border-color: #9b59b6; }
 .card-funcionario.desativado { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; pointer-events: none; transform: scale(0.95); }
+.card-funcionario.selecionado { transform: scale(0.98); opacity: 0.9; box-shadow: 0 0 15px rgba(155, 89, 182, 0.5); border-color: #9b59b6; }
 
 /* --- MODAL DE AJUDA (PROBABILIDADES) --- */
-.modal-content-help { background: #2c3e50; color: white; padding: 15px; border-radius: 10px; text-align: center; width: 95%; max-width: 500px; border: 2px solid #3498db; max-height: 90vh; overflow-y: auto; }
-.aviso-help { font-size: 0.8em; color: #bdc3c7; margin-bottom: 10px; }
-.aviso-bonus { color: #2ecc71; font-weight: bold; margin-bottom: 5px; }
-.tabela-container { background: #34495e; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-.tabela-container h4 { color: #f39c12; margin-bottom: 5px; font-size: 0.9em; text-transform: uppercase; }
-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-th { border-bottom: 1px solid #7f8c8d; padding: 5px; color: #ecf0f1; text-align: right; }
-th:first-child { text-align: left; }
-td { padding: 4px; border-bottom: 1px solid #2c3e50; text-align: right; }
-td:first-child { text-align: left; }
-.col-bonus { color: #2ecc71; font-weight: bold; }
+/* --- MODAL DE AJUDA (PROBABILIDADES - CLEAN) --- */
+.modal-content-help {
+    background: #fff; /* Fundo branco */
+    color: #2c3e50;   /* Texto escuro */
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    width: 95%;
+    max-width: 500px;
+    border-top: 5px solid #3498db; /* Topo azul padrão */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: entradaModal 0.3s ease-out;
+}
+
+.modal-content-help h2 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.4em;
+    font-weight: 800;
+    text-transform: uppercase;
+    border-bottom: 1px solid #ecf0f1;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* Aviso de Bônus */
+.aviso-bonus {
+    background-color: #e8f5e9; /* Verde bem claro */
+    color: #27ae60;            /* Verde forte */
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+    border: 1px solid #c8e6c9;
+    display: inline-block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Containers das Tabelas */
+.tabela-container {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow: hidden; /* Para arredondar os cantos da tabela */
+}
+
+.tabela-container h4 {
+    background: #f8f9fa;
+    color: #7f8c8d;
+    margin: 0;
+    padding: 8px;
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Tabela em si */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+thead th {
+    background-color: #f1f2f6;
+    color: #2c3e50;
+    font-weight: 700;
+    text-align: center; /* Centralizado */
+    padding: 8px 5px;
+    border-bottom: 2px solid #bdc3c7;
+}
+
+tbody td {
+    padding: 6px 5px;
+    border-bottom: 1px solid #f1f2f6;
+    text-align: center; /* Centralizado */
+    color: #34495e;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background-color: #fafafa;
+}
+
+/* Coluna de Tier (Visual da Badge) */
+.tier-col {
+    width: 60px;
+}
+
+.tier-box-table {
+    display: inline-block;
+    width: 30px;
+    height: 20px;
+    line-height: 20px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8em;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Coluna de Bônus */
+.col-bonus {
+    color: #27ae60; /* Verde */
+    font-weight: bold;
+    background-color: #f0fdf4; /* Fundo levemente esverdeado na célula */
+}
+
+/* Botão Entendi */
+.btn-entendi {
+    background: #34495e;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btn-entendi:hover {
+    background: #2c3e50;
+    transform: translateY(-1px);
+}
+
+@keyframes entradaModal {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* --- BADGES DE ATRIBUTOS --- */
 .badge-stat { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(0,0,0,0.1); background-color: #f0f0f0; color: #333; }
@@ -484,16 +634,6 @@ td:first-child { text-align: left; }
     color: #7f8c8d;
 }
 
-.lock-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1em; /* Cadeado menor */
-    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-    z-index: 2;
-}
-
 /* Ajuste no modal de detalhes */
 .aviso-travado {
     color: #e67e22;
@@ -504,25 +644,6 @@ td:first-child { text-align: left; }
     border-radius: 5px;
     border: 1px solid #ffe0b2;
 }
-.header-taverna { 
-    background: #2c3e50; 
-    color: white; 
-    padding: 15px; 
-    border-radius: 8px; 
-    margin-bottom: 10px; /* Reduzido de 15px para 10px */
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-.titulo-nivel h2 { 
-    margin: 0; 
-    font-size: 1.1em; 
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.badge-nivel { background: #f39c12; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
 /* Ajuste dos Status (Comum/Elite) para ficar fora do header mas bonito */
 .status-recrutamento-container {
     background: #34495e; /* Azul acinzentado (combina com o painel de baixo) */
@@ -548,14 +669,6 @@ td:first-child { text-align: left; }
     padding-top: 0;    /* Remove o enchimento antigo */
 }
 /* --- NOVO BOTÃO HELP (AO LADO DO ALEATÓRIO) --- */
-.titulo-area-aleatorio {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 5px;
-    width: 100%;
-}
 .botoes-catalogo-mini {
     display: flex;
     gap: 5px;
@@ -580,4 +693,689 @@ td:first-child { text-align: left; }
     color: white;
     border-color: #2980b9;
     font-weight: bold;
+
+}
+
+
+
+
+
+
+
+
+/* --- PAINEL RECRUTAMENTO CLEAN --- */
+.painel-recrutamento-clean {
+    background: #fff;
+    border: 1px solid #bdc3c7;
+    border-radius: 8px 8px 0 0; /* Arredonda só em cima */
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* LADO ESQUERDO: BOTÕES DE AÇÃO */
+.secao-botoes-acao {
+    flex: 0 0 30%; /* Ocupa 40% da largura */
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.titulo-area-aleatorio {
+    display: flex; align-items: center; gap: 8px;
+    color: #1f2c38;
+    text-transform: uppercase;
+    font-weight: 800;
+    font-size: 1em;
+    border-bottom: 2px solid #f1f2f6;
+    padding-bottom: 5px;
+}
+
+.btn-help-circle {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #db6634; color: white;
+    border: none; font-weight: bold; cursor: pointer;
+    font-size: 0.75em;
+}
+
+.grid-botoes-contrato {
+    display: flex; flex-direction: column; gap: 10px; flex: 1;
+}
+
+/* ESTILO DOS BOTÕES DE CONTRATO (Parecem Cards) */
+.card-contrato {
+    display: flex; align-items: center; gap: 15px;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #bdc3c7;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-contrato:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-contrato:disabled {
+    opacity: 0.6; cursor: not-allowed; background: #f1f2f6;
+}
+
+/* Cores Específicas */
+.card-contrato.normal { border-left: 5px solid #3498db; }
+.card-contrato.normal:hover:not(:disabled) { border-color: #3498db; background: #f0f8ff; }
+
+.card-contrato.elite { border-left: 5px solid #9b59b6; }
+.card-contrato.elite:hover:not(:disabled) { border-color: #9b59b6; background: #fbf2ff; }
+
+.contrato-icon { font-size: 2em; }
+.contrato-info { display: flex; flex-direction: column; }
+.contrato-tipo { font-weight: 800; color: #2c3e50; text-transform: uppercase; font-size: 0.9em; }
+.contrato-preco { font-weight: bold; color: #7f8c8d; font-size: 0.85em; display: flex; align-items: center; gap: 4px; }
+.moeda-mini { width: 12px; height: 12px; }
+
+/* DIVISOR VERTICAL */
+.divisor-vertical-clean {
+    width: 1px;
+    background: #ecf0f1;
+}
+
+/* LADO DIREITO: CATÁLOGO */
+.secao-catalogo {
+    flex: 1;
+    display: flex; flex-direction: column; gap: 10px;
+}
+
+/* Mini Abas */
+.abas-mini-catalogo {
+    display: flex; gap: 5px;
+    background: #f1f2f6;
+    padding: 3px; border-radius: 6px;
+    align-self: flex-start; /* Fica à esquerda */
+}
+.abas-mini-catalogo button {
+    border: none; background: transparent;
+    padding: 4px 10px; border-radius: 4px;
+    font-size: 0.75em; font-weight: bold; color: #95a5a6;
+    cursor: pointer;
+}
+.abas-mini-catalogo button.ativo {
+    background: #fff; color: #2c3e50;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Grid do Catálogo */
+.grid-catalogo-clean {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 5px;
+    max-height: 200px; overflow-y: auto;
+    padding-right: 5px; /* Espaço pro scroll */
+}
+
+.slot-catalogo {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 5px;
+    border: 1px solid #ecf0f1;
+    border-radius: 6px;
+    cursor: help;
+    transition: all 0.2s;
+}
+.slot-catalogo:hover { border-color: #3498db; background: #fcfcfc; }
+.slot-catalogo.bloqueado { opacity: 0.5; filter: grayscale(100%); }
+
+.slot-img-box {
+    position: relative;
+    width: 32px; height: 26px;
+}
+.img-catalogo { width: 100%; height: 100%; object-fit: contain; }
+.lock-overlay { 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+}
+.nome-catalogo {
+    font-size: 0.6em; text-align: center; color: #7f8c8d;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* BARRA DE ORDENAÇÃO RODAPÉ */
+.barra-ordenacao-clean {
+    background: #ecf0f1; /* Cinza claro */
+    border: 1px solid #bdc3c7;
+    border-top: none; /* Cola no painel de cima */
+    border-radius: 0 0 8px 8px;
+    padding: 8px 15px;
+    
+    display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+    
+    color: #7f8c8d; font-size: 0.85em; font-weight: bold;
+}
+
+.barra-ordenacao-clean select {
+    padding: 4px 8px;
+    border-radius: 4px; border: 1px solid #bdc3c7;
+    color: #2c3e50; font-weight: bold;
+    outline: none; cursor: pointer;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 600px) {
+    .painel-recrutamento-clean { flex-direction: column; }
+    .divisor-vertical-clean { width: 100%; height: 1px; }
+    .grid-botoes-contrato { flex-direction: row; }
+    .card-contrato { flex: 1; padding: 10px; flex-direction: column; text-align: center; }
+    .card-contrato.normal, .card-contrato.elite { border-left: 1px solid #bdc3c7; border-bottom: 4px solid; }
+    .card-contrato.normal { border-bottom-color: #3498db; }
+    .card-contrato.elite { border-bottom-color: #9b59b6; }
+}
+/* --- PAINEL FUSÃO CLEAN --- */
+.painel-fusao-clean {
+    background: #fff;
+    border: 1px solid #bdc3c7;
+    border-radius: 8px 8px 0 0;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.header-ritual h4 {
+    color: #8e44ad; /* Roxo Mágico */
+    margin: 0;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+.subtitulo-ritual {
+    font-size: 0.8em; color: #95a5a6; margin-bottom: 15px; display: block;
+}
+
+/* CONTAINER DOS 3 SLOTS */
+.slots-ritual-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 15px 0;
+}
+
+/* O SLOT EM SI */
+.slot-fusao {
+    width: 80px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.slot-fusao:hover { transform: translateY(-3px); }
+
+/* ESTADO VAZIO (Bolinha Tracejada) */
+.slot-vazio-dashed {
+    width: 60px; height: 60px;
+    border: 2px dashed #bdc3c7;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #bdc3c7; font-weight: bold; font-size: 1.2em;
+    background: #f8f9fa;
+}
+
+/* ESTADO PREENCHIDO (Avatar) */
+.avatar-fusao-wrapper {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    border: 3px solid #ccc; /* Cor muda via inline style */
+    padding: 2px;
+    background: #fff;
+    position: relative;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+.img-fusao {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.badge-remove {
+    position: absolute; top: -2px; right: -2px;
+    background: #c0392b; color: white;
+    width: 20px; height: 20px; border-radius: 50%;
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+}
+.nome-fusao-mini {
+    font-size: 0.7em; color: #2c3e50; font-weight: bold;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ÁREA DE AÇÃO */
+.area-acao-fusao {
+    height: 50px; /* Altura fixa para não pular layout */
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 10px;
+}
+.status-texto-fusao {
+    color: #7f8c8d; font-style: italic; font-size: 0.9em;
+}
+.btn-fundir-final {
+     /* background: #fff;
+    color: #8e44ad;Roxo Mágico 
+    border: 2px solid #8e44ad;
+    
+    padding: 10px 25px;
+    border-radius: 25px;
+    
+    font-weight: 800;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    
+    cursor: pointer;
+    transition: all 0.2s;*/
+
+    padding: 10px 0;
+    width: 120px;         /* Largura fixa igual para ambos */
+    border-radius: 8px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    background: #10b981;    color: white;
+}
+
+
+.btn-fundir-final:hover {
+    opacity: 0.9;
+}
+
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
+}
+
+/* --- BARRA DE FILTROS INTEGRADA --- */
+.barra-filtros-clean {
+    background: #ecf0f1;
+    border: 1px solid #bdc3c7;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 10px 15px;
+    
+    display: flex; flex-wrap: wrap; 
+    gap: 15px; justify-content: center; /* Centralizado */
+    margin-bottom: 20px;
+}
+
+.grupo-filtro {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.85em; color: #7f8c8d; font-weight: bold;
+}
+.grupo-filtro select {
+    padding: 5px 10px;
+    border-radius: 4px; border: 1px solid #bdc3c7;
+    background: #fff; color: #2c3e50; font-weight: bold;
+    outline: none; cursor: pointer;
+}
+.grupo-filtro select:hover { border-color: #3498db; }
+
+/* Mobile */
+@media (max-width: 500px) {
+    .barra-filtros-clean { flex-direction: column; align-items: stretch; gap: 10px; }
+    .grupo-filtro { justify-content: space-between; }
+    .grupo-filtro select { flex: 1; text-align: right; }
+    .slots-ritual-container { gap: 10px; }
+}
+/* --- ÁREA DE ESTATÍSTICAS (SUBSTITUI OS SLOTS) --- */
+.container-stats-fusao {
+    padding: 10px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100px; /* Mantém a altura parecida com a dos slots */
+    justify-content: center;
+}
+
+.linha-stat-clean {
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+.label-stat {
+    display: flex; justify-content: space-between;
+    font-size: 0.85em; color: #7f8c8d; font-weight: bold;
+}
+
+/* Barras de Progresso Clean */
+.trilha-barra {
+    width: 100%; height: 8px;
+    background: #f1f2f6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.fill-barra {
+    height: 100%; border-radius: 4px;
+    transition: width 0.5s ease-out;
+}
+.fill-barra.upgrade { background: #27ae60; }
+.fill-barra.manter { background: #f39c12; }
+.fill-barra.downgrade { background: #c0392b; }
+
+/* Botões de Ação na Confirmação */
+.gap-botoes {
+    gap: 10px;
+}
+
+.btn-voltar-clean {
+    background: transparent;
+    border: 1px solid #bdc3c7;
+    color: #7f8c8d;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-size: 0.85em;
+}
+.btn-voltar-clean:hover {
+    background: #f1f2f6;
+    color: #2c3e50;
+}
+
+.aviso-travado-mini {
+    font-size: 0.75em; color: #e67e22; background: #fff3e0;
+    padding: 5px; border-radius: 4px; margin-top: 5px;
+}
+
+/* Ajuste no botão confirmar para diferenciar */
+.btn-fundir-final.confirmar {
+    box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
+}
+/* --- CARD DE RESULTADO FINAL (HERO CARD) --- */
+/* --- TEXTOS DO RESULTADO FINAL --- */
+
+/* Container geral das informações abaixo do avatar */
+.info-resultado-final {
+    text-align: center;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; /* Centraliza tudo */
+    gap: 5px;
+    width: 100%;
+}
+
+/* 1. Nome do Personagem (Grande) */
+.nome-resultado {
+    font-size: 1.4em;
+    font-weight: 800;
+    color: #2c3e50;
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+/* 2. Linha de Profissão e Raça (Lado a Lado) */
+.tags-resultado {
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 10px; /* Espaço entre profissão e raça */
+    
+    font-size: 0.9em;
+    color: #7f8c8d;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    margin-bottom: 12px; /* Espaço antes da caixa de bônus */
+}
+
+/* Estilo individual caso queira colorir diferente depois */
+.tag-prof { color: #34495e; } 
+.tag-raca { color: #7f8c8d; }
+
+.divisor-dot { 
+    color: #bdc3c7; 
+    font-size: 1.2em; 
+    line-height: 0; 
+}
+
+/* 3. Caixa de Atributo/Bônus (Destaque) */
+.atributo-resultado-destaque {
+    background: #f8f9fa;
+    border: 1px solid #bdc3c7;
+    padding: 8px 20px;
+    border-radius: 50px; /* Formato Pílula bem redondo */
+    
+    font-size: 0.95em;
+    color: #2c3e50;
+    
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    gap: 8px;
+    
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    min-width: 200px; /* Garante uma largura mínima bonita */
+}
+
+.label-res {
+    color: #95a5a6;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+}
+
+.valor-res {
+    font-weight: 800;
+    font-size: 1.1em;
+    color: #2c3e50;
+}
+
+/* Se tiver buff racial, fica verde */
+.valor-res.buffado {
+    color: #27ae60;
+}
+/* --- ESTRUTURA DO CARD DE RESULTADO (HERO CARD) --- */
+.card-resultado-final {
+    position: relative;
+    background: #fff;
+    border: 2px solid #ccc; /* A cor muda via inline-style no HTML */
+    border-radius: 12px;
+    padding: 25px 15px;
+    margin: 10px 20px 20px 20px;
+    overflow: hidden; /* Para o brilho não vazar */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* O brilho colorido atrás */
+.glow-fundo {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    opacity: 0.1; /* Bem suave */
+    background: radial-gradient(circle, currentColor 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.conteudo-card-result {
+    position: relative;
+    z-index: 1; /* Fica acima do brilho */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Avatar Gigante */
+.avatar-result-container {
+    position: relative;
+}
+
+.avatar-fusao-wrapper.gigante {
+    width: 100px; height: 100px; /* Bem maior que antes */
+    border-radius: 50%;
+    border-width: 4px;
+    border-style: solid;
+    padding: 3px;
+    background: #fff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* A Medalha do Tier (Letra) */
+.badge-tier-medalha {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    
+    /* Centraliza o texto */
+    display: flex; align-items: center; justify-content: center;
+    
+    color: #fff; /* Texto sempre branco para contraste */
+    font-weight: 900;
+    font-size: 1.1em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    border: 3px solid #fff; /* Borda branca para separar do avatar */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Animação de Entrada "Pop" */
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Estiliza APENAS o parágrafo de aviso no topo, ignorando o card */
+.demissao-content .aviso-topo {
+    background-color: #fdedec;   /* Fundo vermelho bem claro */
+    color: #c0392b;              /* Texto vermelho escuro */
+    border: 1px solid #fab1a0;   /* Borda vermelha suave */
+    
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;         /* Empurra o card para baixo */
+    
+    font-weight: bold;
+    font-size: 0.95em;
+    text-align: center;
+    
+    /* Centraliza o ícone e o texto */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Adiciona o ícone de alerta automaticamente */
+.demissao-content .aviso-topo::before {
+    content: "⚠️";
+    font-size: 1.2em;
+}
+
+
+
+
+/* --- BANNER DE LOTAÇÃO (Prefeitura Cheia) --- */
+.banner-lotacao {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espaço entre o ícone e o texto */
+    
+    background-color: #fff8e1;  /* Fundo creme/amarelo muito suave */
+    border: 1px solid #ffe0b2;  /* Borda laranja sutil */
+    border-left: 5px solid #f39c12; /* Borda grossa de destaque à esquerda */
+    
+    padding: 15px 20px;
+    border-radius: 6px;
+    margin-bottom: 25px;        /* Espaço para separar dos cards abaixo */
+    
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Ícone do Prédio Grande */
+.icone-predio {
+    font-size: 2.2em; /* Ícone bem visível */
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+/* Área de Texto */
+.texto-aviso {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left; /* Alinhado à esquerda fica mais moderno que centralizado nesse caso */
+}
+
+.texto-aviso h3 {
+    margin: 0;
+    color: #d35400;      /* Laranja escuro (queimado) para o título */
+    font-size: 1.1em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.texto-aviso p {
+    margin: 0;
+    color: #7f8c8d;      /* Cinza padrão de descrição */
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+/* Responsividade: No celular, empilha e centraliza */
+@media (max-width: 500px) {
+    .banner-lotacao {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    .texto-aviso {
+        text-align: center;
+    }
+}
+
+.area-acao-fusao.gap-botoes {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-padrao {
+    padding: 10px 0;
+    width: 120px;         /* Largura fixa igual para ambos */
+    border-radius: 8px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-padrao:hover {
+    opacity: 0.9;
+}
+
+/* Cancelar: Texto escuro em fundo cinza claro */
+.btn-cancelar {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* Confirmar: Texto branco em fundo verde vibrante */
+.btn-confirmar {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
 }

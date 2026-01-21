@@ -1,11 +1,29 @@
 <script setup>
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted} from 'vue';
 import { jogo, acoes, dadosItens, obterBuffRaca } from '../jogo.js';
 
 // --- ESTADO LOCAL ---
 const filtroTipo = ref('todos');
 const filtroStat = ref('todos');
 const filtroNivel = ref('todos'); // Apenas visual por enquanto
+const mostrarBotaoTopo = ref(false);
+    // Função que verifica a posição da tela
+    const verificarScroll = () => {
+        // Se desceu mais que 300 pixels, mostra o botão
+        mostrarBotaoTopo.value = window.scrollY > 300;
+    };
+    // Quando a página carregar, começa a vigiar o scroll
+    onMounted(() => {
+        window.addEventListener('scroll', verificarScroll);
+    });
+    // Quando sair da página, para de vigiar (para não pesar o navegador)
+    onUnmounted(() => {
+        window.removeEventListener('scroll', verificarScroll);
+    });
+    // Função para rolar a janela até o topo suavemente
+    const voltarAoTopo = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 // --- Adicione isso logo abaixo das outras variáveis 'ref' ou 'const' ---
 const itemSelecionado = ref(null); // Guarda qual item estamos vendo no modal
 // Adicione isso junto com as outras variáveis 'ref'
@@ -236,9 +254,9 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
 </script>
 
 <template>
-  <div class="ferraria-container">
+  <div class="mythic-container">
     
-    <div class="header-taverna">
+    <div class="header-titulo-aba">
         <div class="titulo-nivel">
             <h2>⚒️ Ferraria</h2>
         </div>
@@ -557,12 +575,19 @@ const corTier = (t) => ({'F':'#8A8A8A','E':'#659665','D':'#71c404','C':'#475fad'
           :style="{ top: tooltipData.y + 'px', left: tooltipData.x + 'px' }">
         {{ tooltipData.texto }}
     </div>
+    <button v-if="mostrarBotaoTopo"
+        class="btn-scroll-topo"
+        @click="voltarAoTopo"
+        title="Voltar ao Topo">
+    ▲
+</button>
 
 </div> 
 </template>
 
 <style scoped>
 @import '../css/taverna.css';
+@import '../css/importantes.css';
 
 /* Container Geral */
 .ferraria-container {

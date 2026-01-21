@@ -1,8 +1,26 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { jogo, acoes, calcularProducaoPorMinuto, obterBuffRaca } from '../jogo.js';
 import { tabelaMinerais } from '../dados.js';
 
+const mostrarBotaoTopo = ref(false);
+    // Função que verifica a posição da tela
+    const verificarScroll = () => {
+        // Se desceu mais que 300 pixels, mostra o botão
+        mostrarBotaoTopo.value = window.scrollY > 300;
+    };
+    // Quando a página carregar, começa a vigiar o scroll
+    onMounted(() => {
+        window.addEventListener('scroll', verificarScroll);
+    });
+    // Quando sair da página, para de vigiar (para não pesar o navegador)
+    onUnmounted(() => {
+        window.removeEventListener('scroll', verificarScroll);
+    });
+    // Função para rolar a janela até o topo suavemente
+    const voltarAoTopo = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 // Controle do Modal de Seleção
 const modalSelecao = ref(null); // Formato: { minerioId: 'cobre', slot: 0 }
 
@@ -97,7 +115,7 @@ const getDiferencaPrefeito = (func) => {
 </script>
 
 <template>
-<div class="mina-container">
+<div class="mythic-container">
     
     <div class="header-mina">
         <div class="titulo-nivel">
@@ -234,20 +252,34 @@ const getDiferencaPrefeito = (func) => {
             </div>
         </div>
     </div>
+<button v-if="mostrarBotaoTopo"
+        class="btn-scroll-topo"
+        @click="voltarAoTopo"
+        title="Voltar ao Topo">
+    ▲
+</button>
 
 </div>
 </template>
 
 <style scoped>
+@import '../css/importantes.css';
 .mina-container { padding: 10px; max-width: 800px; margin: 0 auto; }
-.header-mina { 
-    background: #2c3e50; color: white; padding: 15px; 
-    border-radius: 8px; margin-bottom: 20px; 
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 10px;
+.header-mina {
+    background: #f3f3f3;       /* Cinza muito claro (quase branco) */
+    color: #2c3e50;            /* Texto Azul Escuro */
+    border: 1px solid #bdc3c7; /* Borda cinza suave */
+    border-left: 5px solid #3498db; /* Detalhe lateral (cor de pedra/mina) */
+    
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-.titulo-nivel h2 { margin: 0; font-size: 1.1em; }
-.badge-nivel { background: #f39c12; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
 .btn-upgrade { 
     background: #27ae60; border: none; padding: 8px 15px; 
     color: white; font-weight: bold; border-radius: 5px; cursor: pointer; 

@@ -2,26 +2,27 @@
 body {
   /* Substitua pelo caminho da sua imagem de fantasia/mapa */
   background-image: url('/assets/ui/fundo-mapa.png');
-  
-  /* Faz a imagem cobrir todo o espaço disponível */
   background-size: cover;
-  
-  /* Centraliza a imagem */
   background-position: center center;
-  
-  /* (Opcional) Deixa o fundo fixo quando você rola a página (efeito bonito) */
   background-attachment: fixed;
-  
-  /* Remove repetições */
   background-repeat: no-repeat;
   
-  /* Cor de fundo caso a imagem demore a carregar (use um tom escuro) */
-  background-color: #1a1a1a;
-  
-  /* Remove margens padrão do navegador */
+  /* Fallback cinza claro */
+  background-color: #dfe6e9; 
   margin: 0;
+  
+  /* Fonte padrão */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50; /* Garante texto escuro no corpo */
 }
+
+/* Scrollbar Estilo Light (Cinza Suave) */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #ecf0f1; }
+::-webkit-scrollbar-thumb { background: #bdc3c7; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #95a5a6; }
 </style>
+
 <script setup>
   import { ref, onMounted } from 'vue';
   import { jogo, limites, populacaoTotal, acoes, iniciarLoop, iniciarSave, resetar, dadosMinerais } from './jogo.js';
@@ -33,40 +34,31 @@ body {
   import Ferraria from './components/Ferraria.vue';
   import Inventario from './components/Inventario.vue';
   import Modal from './components/Modal.vue';
+  import Biblioteca from './components/Biblioteca.vue';
 
   // --- ESTADO DA NAVEGAÇÃO ---
   const categoriaAtual = ref('cidade'); 
   const abaAtual = ref('visao_geral');
-  
-  // Novo estado para controlar qual menu "dropdown" está aberto
   const menuAberto = ref(null); 
 
-  // 1. Função para botões SIMPLES (sem sub-menu, ex: Cidade)
   const navegarDireto = (cat, aba) => {
     categoriaAtual.value = cat;
     abaAtual.value = aba;
-    menuAberto.value = null; // Fecha qualquer menu aberto
+    menuAberto.value = null;
   };
 
-  // 2. Função para botões COM MENU (ex: Produção)
   const alternarMenu = (cat) => {
-    // Se já estiver aberto, fecha. Se não, abre este e fecha os outros.
-    if (menuAberto.value === cat) {
-      menuAberto.value = null;
-    } else {
-      menuAberto.value = cat;
-    }
-    // OBS: NÃO mudamos a 'categoriaAtual' aqui. A tela continua onde estava.
+    if (menuAberto.value === cat) menuAberto.value = null;
+    else menuAberto.value = cat;
   };
 
-  // 3. Função para clicar na SUB-OPÇÃO (ex: Mina)
   const selecionarOpcao = (cat, aba) => {
     categoriaAtual.value = cat;
     abaAtual.value = aba;
-    menuAberto.value = null; // Fecha o menu após selecionar (opcional, fica mais limpo)
+    menuAberto.value = null;
   };
 
-  // --- FUNÇÕES VISUAIS (Mantive igual) ---
+  // --- HELPERS VISUAIS ---
   const getImagemMinerio = (nome) => {
     const imagens = {
         pedra: '/assets/recursos/min_pedra.png', cobre: '/assets/recursos/min_cobre.png',
@@ -82,11 +74,6 @@ body {
         aetherium: '/assets/recursos/min_aetherium.png',      
     };
     return imagens[nome] || 'https://img.icons8.com/color/48/box.png';
-  };
-
-  const formatarNomeTooltip = (id) => {
-    const item = dadosMinerais.find(m => m.id === id);
-    return item ? item.nome : id.replace('_min', '').toUpperCase();
   };
 
   const formatarTempo = (s) => {
@@ -107,91 +94,90 @@ body {
     
     <div class="header-geral">
        <div class="header-bg"></div>
-       <div v-if="jogo.construindo.tipo" class="barra-construcao-global">
-          <div class="info-construcao">
-            <span>🔨 Construindo: <strong>{{ jogo.construindo.tipo.toUpperCase() }}</strong></span>
-            <small>{{ formatarTempo(jogo.construindo.tempoRestante) }} restante</small>
-          </div>
-          <div class="progresso-fundo-global">
-            <div class="progresso-enchimento-global" 
-                 :style="{ width: ((jogo.construindo.tempoTotal - jogo.construindo.tempoRestante) / jogo.construindo.tempoTotal * 100) + '%' }">
-            </div>
-          </div>
-       </div>
     </div>
 
-    <div class="recursos-container">
-      <div class="recursos-row">
-        <div class="res-item"><img src="/assets/ui/icone_couro.png" class="icon-moeda-topo" alt="Couro"> {{ Math.floor(jogo.couro) }}</div>
-        <div class="res-item"><img src="/assets/ui/icone_madeira.png" class="icon-moeda-topo" alt="Madeira"> {{ Math.floor(jogo.madeira).toLocaleString('pt-BR') }}</div>
-        <div class="res-item"><img src="/assets/ui/icone_comida.png" class="icon-moeda-topo" alt="Comida"> {{ Math.floor(jogo.comida).toLocaleString('pt-BR') }}</div>
-        <div class="res-item"><img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro"> {{ Math.floor(jogo.ouro).toLocaleString('pt-BR') }}</div>
+    <div v-if="jogo.construindo.tipo" class="barra-construcao-clean animacao-entrada">
+        <div class="info-construcao">
+            <span class="label-construcao">🔨 Construindo: <strong>{{ jogo.construindo.tipo.toUpperCase() }}</strong></span>
+            <small class="tempo-construcao">{{ formatarTempo(jogo.construindo.tempoRestante) }}</small>
+        </div>
+        <div class="progresso-fundo-clean">
+            <div class="progresso-enchimento-clean" 
+                 :style="{ width: ((jogo.construindo.tempoTotal - jogo.construindo.tempoRestante) / jogo.construindo.tempoTotal * 100) + '%' }">
+            </div>
+        </div>
+    </div>
+
+    <div class="recursos-container-clean">
+      
+      <div class="recursos-row principal">
+        <div class="res-item" title="Couro"><img src="/assets/ui/icone_couro.png" class="icon-moeda-topo"> {{ Math.floor(jogo.couro) }}</div>
+        <div class="res-item" title="Madeira"><img src="/assets/ui/icone_madeira.png" class="icon-moeda-topo"> {{ Math.floor(jogo.madeira).toLocaleString('pt-BR') }}</div>
+        <div class="res-item" title="Comida"><img src="/assets/ui/icone_comida.png" class="icon-moeda-topo"> {{ Math.floor(jogo.comida).toLocaleString('pt-BR') }}</div>
+        <div class="res-item destaque-ouro" title="Ouro"><img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo"> {{ Math.floor(jogo.ouro).toLocaleString('pt-BR') }}</div>
       </div>
+
       <div class="recursos-minerais">
         <template v-for="(quantidade, nome) in jogo.minerios" :key="nome">
-          <span v-if="quantidade > 0" class="minerio-tag">
+          <span v-if="quantidade > 0" class="minerio-tag-clean" :title="nome.toUpperCase()">
             <img :src="getImagemMinerio(nome)" class="icon-minerio">
-            &nbsp;{{ Math.floor(quantidade).toLocaleString('pt-BR') }}
+            {{ Math.floor(quantidade).toLocaleString('pt-BR') }}
           </span>
         </template>
       </div>
-      <div class="recursos-row info-extra">
-        <span class="info-item-alinhado">
+
+      <div class="recursos-row info-extra-clean">
+        <span class="info-item-alinhado" title="População">
           <img src="/assets/ui/icone_morador.png" class="icon-minerio">
-          <strong>{{ populacaoTotal }} / {{ jogo.populacaoMax }}</strong>
+          {{ populacaoTotal }} / {{ jogo.populacaoMax }}
         </span>
-        <span class="info-item-alinhado">🏛️ {{ jogo.funcionarios.filter(f => f.isEspecial).length }} / {{ limites.vagasEspeciais }}</span>
-        <span class="info-item-alinhado">📦 Cap: {{ limites.recursos.toLocaleString('pt-BR') }}</span>
+        <span class="info-item-alinhado" title="Cargos de Elite">
+            👑 {{ jogo.funcionarios.filter(f => f.isEspecial).length }} / {{ limites.vagasEspeciais }}
+        </span>
+        <span class="info-item-alinhado" title="Capacidade de Armazenamento">
+            📦 {{ limites.recursos.toLocaleString('pt-BR') }}
+        </span>
       </div>
     </div>
 
-    <div class="nav-bar">
+    <div class="nav-bar-clean">
       
       <div class="nav-item">
-        <button 
-  class="nav-btn" 
-  :class="{ ativo: categoriaAtual === 'cidade' }" 
-  @click="navegarDireto('cidade', 'visao_geral')"
-  title="Castelo & Vila"> 🏛️
-</button>
+        <button class="nav-btn-clean" :class="{ ativo: categoriaAtual === 'cidade' }" @click="navegarDireto('cidade', 'visao_geral')" title="Castelo & Vila"> 
+            🏛️ <span class="nav-label"></span>
+        </button>
       </div>
 
       <div class="nav-item">
-        <button 
-          class="nav-btn" 
-          :class="{ 'menu-aberto': menuAberto === 'producao', ativo: categoriaAtual === 'producao' }" 
-          @click="alternarMenu('producao')"
-          title="Produção">
-          ⚙️
-          <span class="seta-menu">▼</span>
+        <button class="nav-btn-clean" :class="{ 'menu-aberto': menuAberto === 'producao', ativo: categoriaAtual === 'producao' }" @click="alternarMenu('producao')" title="Área de Produção">
+            ⚙️ <span class="nav-label"></span>
         </button>
 
         <Transition name="fade-slide">
-      <div v-if="menuAberto === 'producao'" class="dropdown-menu">
-        <button @click="selecionarOpcao('producao', 'mina')">⛏️ Mina</button>
-        <button @click="selecionarOpcao('producao', 'ferraria')">⚔️ Ferraria</button>
+            <div v-if="menuAberto === 'producao'" class="dropdown-menu-clean">
+                <button @click="selecionarOpcao('producao', 'mina')">⛏️ Mina</button>
+                <button @click="selecionarOpcao('producao', 'ferraria')">⚔️ Ferraria</button>
+            </div>
+        </Transition>
       </div>
-    </Transition>
-</div>
 
       <div class="nav-item">
-        <button 
-          class="nav-btn" 
-          :class="{ ativo: categoriaAtual === 'inventario' }" 
-          @click="navegarDireto('inventario', 'itens')"
-          title="Inventário">
-          🌎
+        <button class="nav-btn-clean" :class="{ ativo: categoriaAtual === 'inventario' }" @click="navegarDireto('inventario', 'itens')" title="Seu Inventário">
+          🎒 <span class="nav-label"></span>
         </button>
       </div>
 
       <div class="nav-item">
-<button 
-  class="nav-btn" 
-  :class="{ ativo: categoriaAtual === 'taverna' }" 
-  @click="navegarDireto('taverna', 'geral')"
-  title="Guilda dos Trabalhadores"> 📜
-</button>
-</div>
+        <button class="nav-btn-clean" :class="{ ativo: categoriaAtual === 'taverna' }" @click="navegarDireto('taverna', 'geral')" title="Guilda dos Trabalhadores"> 
+            📜 <span class="nav-label"></span>
+        </button>
+      </div>
+
+      <div class="nav-item">
+        <button class="nav-btn-clean" :class="{ ativo: categoriaAtual === 'biblioteca' }" @click="navegarDireto('biblioteca', 'biblioteca')" title="Biblioteca Arcana"> 
+            📘 <span class="nav-label"></span>
+        </button>
+      </div>
 
     </div>
 
@@ -203,470 +189,291 @@ body {
       
       <Taverna v-if="abaAtual === 'geral' && categoriaAtual === 'taverna'" />
       <Inventario v-if="abaAtual === 'itens' && categoriaAtual === 'inventario'" />
+      <Biblioteca v-if="abaAtual === 'biblioteca' && categoriaAtual === 'biblioteca'" />
     </div>
 
     <Modal />
 
-    <div class="rodape">
-      <button class="btn-hack" @click="acoes.hack">🔧 HACK</button>
-      <button class="btn-hack" @click="acoes.hackConstrucoes" style="background: #8e44ad;">🏗️ HACK PRÉDIOS</button>
-      <button class="btn-aviso" @click="acoes.resetarRecursos">🗑️ Limpar Recursos</button>
-      <button class="btn-perigo" @click="resetar">⚠️ Resetar Save</button>
+    <div class="rodape-clean">
+      <div class="grupo-botoes-debug">
+          <button class="btn-debug" @click="acoes.hack" title="Adiciona Recursos">+ Res</button>
+          <button class="btn-debug" @click="acoes.hackConstrucoes" title="Acelera Construção">Speed</button>
+      </div>
+      <div class="grupo-botoes-perigo">
+          <button class="btn-reset-soft" @click="acoes.resetarRecursos">Limpar</button>
+          <button class="btn-reset-hard" @click="resetar">Reset Save</button>
+      </div>
     </div>
 
   </div>
 </template>
 
 <style scoped>
-/* --- ESTILOS GERAIS DA PÁGINA --- */
+/* --- CONTAINER PRINCIPAL (WHITE / LIGHT THEME) --- */
 .jogo {
   max-width: 800px;
   margin: 0 auto;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  text-align: center;
-  padding-bottom: 50px;
-
-  /* --- ADICIONE ISSO --- */
-  /* Um fundo escuro levemente transparente para dar contraste */
-  
-  /* Uma sombra para o jogo "flutuar" sobre a imagem de fundo */
-  box-shadow: 0 0 50px rgba(0,0,0,0.8);
-  
-  /* Garante que o container tenha altura mínima para preencher bem a tela */
   min-height: 100vh; 
+  padding-bottom: 30px;
+  
+  /* MUDANÇA: Fundo Branco Levemente Translúcido */
+  background: #f1f1f1; 
+  
+  /* Sombra para destacar do wallpaper */
+  
+  position: relative;
+  
+  /* MUDANÇA: Texto Escuro para contraste no fundo branco */
+  color: #2c3e50; 
 }
 
-h1 { margin: 8px 0; color: #2c3e50; }
+/* --- CABEÇALHO --- */
+.header-bg {
+  width: 100%;
+  height: 180px;
+  max-height: 180px;
+  background-image: url('/assets/ui/header-mythic-village.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid #bdc3c7; 
+}
+@media (max-width: 400px) {
+  .header-bg { height: 80px; max-height: 80px; }
+}
 
-/* --- HUD DE RECURSOS (O que estava faltando!) --- */
-.recursos-container {
-  background-color: #2c3e50; /* Azul escuro */
-  color: #ecf0f1; /* Branco */
-  padding: 10px;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+/* --- BARRA DE CONSTRUÇÃO (CLEAN) --- */
+.barra-construcao-clean {
+  background: #ffffff;
+  color: #2c3e50;
+  padding: 10px 15px;
+  margin: 10px 10px 0 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  border: 1px solid #dfe6e9;
+}
+
+.info-construcao { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: 5px; 
+}
+.label-construcao { font-size: 0.9em; color: #7f8c8d; font-weight: bold; }
+.label-construcao strong { color: #d35400; }
+.tempo-construcao { font-weight: bold; color: #2c3e50; font-size: 0.85em; }
+
+.progresso-fundo-clean { width: 100%; height: 6px; background: #ecf0f1; border-radius: 3px; overflow: hidden; }
+.progresso-enchimento-clean { height: 100%; background: #27ae60; transition: width 1s linear; }
+
+
+/* --- HUD DE RECURSOS (ESTILO CLEAN) --- */
+.recursos-container-clean {
+  background: #f8f9fa; /* Cinza muito claro */
+  color: #2c3e50;      /* Texto Escuro */
+  padding: 15px;
+  margin: 10px;
+  border-radius: 12px;
+  border: 1px solid #dfe6e9;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
 .recursos-row {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 8px;
-  font-weight: bold;
+  gap: 20px;
+  margin-bottom: 12px;
 }
 
-.res-item { font-size: 1.1em; }
-.icon-moeda-topo {
-  /* Usamos 'em' para que o tamanho seja relativo ao tamanho da fonte do texto ao lado (1.1em) */
-  width: 1.1em;
-  height: 1.1em;
-  object-fit: contain;
-  /* Alinha a base da imagem com a base do texto, similar a um emoji */
-  vertical-align: text-bottom;
-  /* Um pequeno espaçamento entre o ícone e o número */
-  margin-right: 4px;
+.res-item { 
+    font-size: 1em; 
+    font-weight: 700; 
+    color: #576574;
+    display: flex; align-items: center; 
 }
+.res-item.destaque-ouro { color: #f39c12; }
 
+.icon-moeda-topo { width: 18px; height: 18px; object-fit: contain; margin-right: 5px; vertical-align: middle; }
+
+/* Minérios Clean */
 .recursos-minerais {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
-  background: rgba(0,0,0,0.2);
-  padding: 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 5px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #ecf0f1;
 }
 
-.minerio-tag {
-  background: rgba(255,255,255,0.1);
+.minerio-tag-clean {
+  background: #f1f2f6; 
   padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.9em;
-  display: flex;
-  align-items: center;
-}
-
-.info-extra {
-  font-size: 0.9em;
-  color: #bdc3c7;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  padding-top: 5px;
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-}
-
-.info-item-alinhado {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.icon-minerio {
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-}
-
-/* --- BARRA DE CONSTRUÇÃO GLOBAL --- */
-.barra-construcao-global {
-  background: #34495e;
-  color: white;
-  padding: 8px 12px;
   border-radius: 6px;
-  margin: 10px auto;
-  width: 95%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  text-align: left;
-}
-.info-construcao { display: flex; justify-content: space-between; font-size: 0.9em; margin-bottom: 4px; }
-.progresso-fundo-global { width: 100%; height: 6px; background: #2c3e50; border-radius: 3px; overflow: hidden; }
-.progresso-enchimento-global { height: 100%; background: #f1c40f; transition: width 1s linear; }
-
-/* --- MENUS DE NAVEGAÇÃO --- */
-.menu-categorias { 
-  display: flex; 
-  gap: 6px; 
-  padding: 0 5px;
-  margin-bottom: 0; /* Remove margem inferior para colar no submenu */
-  position: relative;
-  z-index: 10; /* Garante que fique acima do submenu se precisar */
-}
-
-.menu-categorias button { 
-  flex: 1; 
-  padding: 12px 0; /* Padding vertical maior, horizontal zero */
-  background: #e0e0e0;
-  color: #555; 
-  border: 1px solid #bdc3c7; 
-  border-bottom: none; /* Remove borda de baixo para integrar visualmente */
-  cursor: pointer; 
-  font-size: 1.4em; /* Ícones maiores */
-  border-radius: 8px 8px 0 0; /* Arredonda só em cima */
-  transition: all 0.2s;
-  box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
-}
-
-.menu-categorias button:hover { 
-  background: #d5d5d5; 
-  transform: translateY(-2px);
-}
-
-.menu-categorias button.ativo { 
-  background: #2c3e50; 
-  color: white; 
-  border-color: #2c3e50;
-  z-index: 12;
-  /* Cria o efeito de "aba selecionada" conectada ao submenu */
-  box-shadow: 0 -3px 5px rgba(0,0,0,0.2); 
-}
-.submenu-container {
-  background: #2c3e50; /* Mesma cor do botão ativo */
-  padding: 10px;
-  border-radius: 0 0 10px 10px; /* Arredonda só embaixo */
-  margin: 0 5px 15px 5px; /* Margem lateral alinhada e margem inferior para o conteúdo */
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  overflow: hidden; /* Importante para animação */
-  flex-wrap: wrap;
-}
-
-.submenu-container button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #bdc3c7;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
+  font-size: 0.8em;
   font-weight: bold;
-  font-size: 0.9em;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  color: #7f8c8d;
+  display: flex; align-items: center; gap: 4px;
 }
+.icon-minerio { width: 16px; height: 16px; object-fit: contain; }
 
-.submenu-container button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: white;
-  transform: scale(1.05);
-}
-
-.submenu-container button.ativo {
-  background: #f1c40f; /* Amarelo destaque */
-  color: #2c3e50; 
-  border-color: #f1c40f;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-/* --- ANIMAÇÃO DE SLIDE (Vue Transition) --- */
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.3s ease-out;
-  max-height: 100px; /* Altura máxima aproximada do submenu */
-  opacity: 1;
-}
-
-.slide-enter-from,
-.slide-leave-to {
-  max-height: 0;
-  opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+/* Info Extra Clean */
+.info-extra-clean {
+  font-size: 0.85em;
+  color: #95a5a6;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 10px;
   margin-bottom: 0;
+  gap: 15px;
 }
-.painel-producao {
-  background: #2c3e50; /* O mesmo fundo do header da mina */
-  color: white;
-  padding: 10px;
-  border-radius: 10px; /* Bordas arredondadas */
-  margin: 0 auto 4px auto; /* Centralizado e com margem embaixo */
-  display: flex; /* Ocupa apenas o espaço necessário, não a tela toda */
-  gap: 14px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-  border: 2px solid #34495e;
-  width: 93%;
-  justify-content: center;
-
-}
-
-.painel-producao button {
-  background: rgba(255, 255, 255, 0.1); /* Fundo sutil */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f2f2f2;
-  padding: 6px 14px;
-  border-radius: 15px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 0.9em;
-  transition: all 0.5s;
-}
-
-.painel-producao button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.painel-producao button.ativo {
-  background: #f1c40f; /* Amarelo destaque (igual badges de nível) */
-  color: #2c3e50; /* Texto escuro para contraste */
-  border-color: #f1c40f;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Responsividade para o painel não quebrar em telas muito pequenas */
-@media (max-width: 400px) {
-  .painel-producao {
-    display: flex;
-    width: 92%;
-    justify-content: center;
-  }
-}
-/* */
-
-.menu-subabas { 
-  display: flex; 
-  gap: 8px; 
-  margin-bottom: 15px; 
-  background: #34495e; 
-  padding: 10px; 
-  border-radius: 0 0 8px 8px; 
-  justify-content: center;
-}
-.menu-subabas button { 
-  padding: 6px 15px; 
-  background: rgba(255,255,255,0.1); 
-  border: 1px solid rgba(255,255,255,0.2); 
-  color: #bdc3c7;
-  cursor: pointer; 
-  border-radius: 20px; 
-  font-size: 0.9em;
-  transition: all 0.2s;
-}
-.menu-subabas button:hover { background: rgba(255,255,255,0.2); color: white; }
-.menu-subabas button.ativo { 
-  background: #f1c40f; 
-  color: #2c3e50; 
-  border-color: #f1c40f; 
-  font-weight: bold;
-}
-
-/* --- RODAPÉ --- */
-.rodape { margin-top: 30px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-.rodape button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
-.btn-hack { background: #9b59b6; }
-.btn-aviso { background: #e67e22; }
-.btn-perigo { background: #c0392b; }
+.info-item-alinhado { display: flex; align-items: center; gap: 5px; font-weight: 600; color: #000; }
 
 
-.nav-bar {
+/* --- NAV BAR (BOTÕES CLEAN) --- */
+.nav-bar-clean {
   display: flex;
-  gap: 12px; /* Aumentei de 8px para 12px */
-  padding: 0 10px; /* Um pouco mais de margem lateral */
-  margin-bottom: 20px;
-  justify-content: center; /* Centraliza se sobrar espaço */
+  gap: 12px;
+  padding: 0 15px;
+  margin-bottom: 25px;
+  justify-content: center;
   position: relative;
   z-index: 100;
 }
 
-/* Container de cada botão (para alinhar o menu relativo a ele) */
-.nav-item {
-  position: relative; 
-  flex: 1;
-}
+.nav-item { flex: 1; position: relative; }
 
-/* O Botão Principal */
-/* --- Estilo Neon Mágico (Azul Cristal) --- */
-
-.nav-btn {
+.nav-btn-clean {
   width: 100%;
   padding: 12px 0;
-  background: #1a252f; 
-  /* Cor do ícone inativo (cinza mais escuro para não brigar) */
-  color: #7f8c8d; 
-  border: 1px solid #34495e;
-  border-radius: 6px;
+  background: #ffffff; 
+  color: #95a5a6;
+  border: 1px solid #dfe6e9;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 1.4em;
-  transition: all 0.3s ease-in-out;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+  font-size: 1.2em;
+  transition: all 0.2s;
+  box-shadow: 0 4px 0 #bdc3c7;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
 }
 
-/* Hover: Fica levemente mais claro, cor de céu */
-.nav-btn:hover {
-  color: #85c1e9; /* Azul bem clarinho */
-  border-color: #5dade2;
-  box-shadow: 0 0 10px rgba(93, 173, 226, 0.3);
+.nav-label { 
+  font-size: 0.5em; 
+  text-transform: uppercase; 
+  font-weight: 800; 
+  letter-spacing: 0.5px;
+  color: #7f8c8d;
 }
 
-/* Estado ATIVO */
-.nav-btn.ativo {
-  background: #1a252f;
-  
-  /* NOVA COR: Azul Cristal (#3498db) */
-  color: #3498db; 
-  border: 1px solid #3498db;
-  
-  /* GLOW ajustado para o novo azul (menos intenso que o anterior) */
-  box-shadow: 
-    0 0 15px rgba(52, 152, 219, 0.4), /* Brilho externo mais suave */
-    inset 0 0 10px rgba(52, 152, 219, 0.2); /* Brilho interno */
-    transform: translateY(-1px);
+/* Hover */
+.nav-btn-clean:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  color: #2c3e50;
 }
 
-/* Barrinha de luz inferior */
-.nav-btn.ativo::after {
-  content: '';
+/* Ativo */
+.nav-btn-clean.ativo {
+  background: #ffffff;
+  color: #3498db;      
+  border-color: #3498db;
+  box-shadow: 0 4px 0 #2980b9;
+  transform: translateY(-1px);
+}
+.nav-btn-clean.ativo .nav-label { color: #3498db; }
+
+/* Menu Aberto */
+.nav-btn-clean.menu-aberto {
+    background: #f1f2f6;
+    color: #3498db;
+    border-color: #3498db;
+}
+
+.seta-menu { font-size: 0.5em; margin-top: -2px; opacity: 0.7; }
+
+/* Dropdown (Branco) */
+.dropdown-menu-clean {
   position: absolute;
-  bottom: 0;
-  left: 20%;
-  width: 60%;
-  height: 3px;
-  
-  /* Cor da barra combinando */
-  background: #3498db; 
-  box-shadow: 0 0 12px #3498db, 0 0 4px #85c1e9;
-  
-  border-radius: 2px 2px 0 0;
-  animation: pulsarLuz 2s infinite alternate;
-}
-
-/* Ajuste do menu dropdown */
-.nav-btn.menu-aberto {
-  border-bottom-color: transparent;
-  box-shadow: none;
-  background: #34495e;
-  color: #3498db; /* Mantém o texto azul */
-}
-
-/* Setinha indicadora */
-.seta-menu {
-  font-size: 0.4em;
-  position: absolute;
-  bottom: 2px;
-  right: 4px;
-  opacity: 0.7;
-}
-
-/* --- MENU DROPDOWN (FLUTUANTE) --- */
-.dropdown-menu {
-  position: absolute;
-  top: 100%; /* Exatamente abaixo do botão */
-  left: 0;
-  width: 180px; /* Largura fixa ou min-width: 100% */
-  background: #34495e;
-  border-radius: 0 8px 8px 8px; /* Canto reto na esquerda superior para colar no botão */
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  background: #ffffff;
+  border: 1px solid #dfe6e9;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   z-index: 200;
 }
-
-/* Se o botão for o último da direita, alinha o menu para a esquerda para não sair da tela */
-.nav-item:last-child .dropdown-menu {
-  left: auto;
-  right: 0;
-  border-radius: 8px 0 8px 8px;
+.dropdown-menu-clean::before {
+    content: ''; position: absolute; top: -6px; left: 50%; margin-left: -6px;
+    border-width: 6px; border-style: solid;
+    border-color: transparent transparent #ffffff transparent;
 }
 
-.dropdown-menu button {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: #ecf0f1;
+.dropdown-menu-clean button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #7f8c8d;
   padding: 10px;
-  text-align: left;
-  border-radius: 5px;
+  text-align: center;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
-  font-size: 0.9em;
-  transition: background 0.2s;
+  font-size: 0.9em; font-weight: bold;
+}
+.dropdown-menu-clean button:hover { 
+    background: #f1f2f6; 
+    color: #2c3e50; 
 }
 
-.dropdown-menu button:hover {
-  background: rgba(255,255,255,0.2);
-  padding-left: 15px; /* Efeito de movimento */
-}
-
-/* --- ANIMAÇÃO SUAVE --- */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.2s ease;
-}
-
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* Conteúdo */
+/* --- CONTEÚDO --- */
 .conteudo-aba {
-  min-height: 400px; /* Altura mínima para evitar pulos */
+  min-height: 400px; 
+  padding: 0; 
 }
-.header-bg {
-  width: 100%;
-  height: 210px;              /* altura máxima */
-  max-height: 210px;
 
-  background-image: url('/assets/ui/header-mythic-village.png');
-  background-repeat: no-repeat;
-  background-size: cover;    /* cobre toda a largura */
-  background-position: center;
+/* --- RODAPÉ CLEAN --- */
+.rodape-clean {
+    margin-top: 40px;
+    padding: 20px;
+    background: #ffffff; 
+    border-top: 1px solid #dfe6e9;
+    border-radius: 12px 12px 0 0;
+    margin-left: 10px; margin-right: 10px;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    opacity: 0.9;
 }
-@media (max-width: 400px) {
-  .header-bg {
-  height: 80px;              /* altura máxima */
-  max-height: 80px;
+
+.grupo-botoes-debug, .grupo-botoes-perigo { display: flex; gap: 8px; }
+
+.btn-debug {
+    background: #f1f2f6; border: 1px solid #bdc3c7; color: #7f8c8d;
+    padding: 6px 12px; font-size: 0.75em; border-radius: 6px; cursor: pointer; font-weight: bold;
 }
+.btn-debug:hover { background: #dfe6e9; color: #2c3e50; }
+
+.btn-reset-soft {
+    background: #fff; border: 1px solid #e67e22; color: #e67e22;
+    padding: 6px 12px; font-size: 0.75em; border-radius: 6px; cursor: pointer; font-weight: bold;
 }
+.btn-reset-hard {
+    background: #fff; border: 1px solid #c0392b; color: #c0392b;
+    padding: 6px 12px; font-size: 0.75em; border-radius: 6px; cursor: pointer; font-weight: bold;
+}
+.btn-reset-hard:hover { background: #c0392b; color: white; }
+
+/* --- TRANSIÇÕES --- */
+.animacao-entrada { animation: fadeIn 0.5s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.2s ease; }
+.fade-slide-enter-from, .fade-slide-leave-to { opacity: 0; transform: translateY(-5px) translateX(-50%); }
+
 </style>

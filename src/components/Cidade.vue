@@ -70,14 +70,16 @@
         </div>
 
         <div class="construcao-card">
-            <h4>⚗️ Academia de Pesquisa ({{ jogo.laboratorio ? 'Ativo' : 'Não construído' }})</h4>
-            <div v-if="jogo.laboratorio === 0">
-                <button @click="acoes.construir('laboratorio')" :disabled="jogo.construindo.tipo">
-                    Construir (🌲{{ jogo.custoLaboratorio.madeira }} 🪨{{ jogo.custoLaboratorio.pedra }} <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ jogo.custoLaboratorio.ouro }})
+            <h4>📘 Biblioteca (Nv {{ jogo.biblioteca }})</h4>
+            <div v-if="jogo.biblioteca === 0">
+                <button @click="acoes.construir('biblioteca')" :disabled="jogo.construindo.tipo">
+                    Construir (🌲{{ jogo.custoBiblioteca.madeira }} 🪨{{ jogo.custoBiblioteca.pedra }} <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ jogo.custoBiblioteca.ouro }})
                 </button>
             </div>
             <div v-else>
-                <small>Construído ✅</small>
+                <button @click="acoes.evoluir('biblioteca')" :disabled="jogo.construindo.tipo">
+                     Evoluir
+                </button>
             </div>
         </div>
         <div class="construcao-card">

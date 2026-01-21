@@ -1,9 +1,23 @@
 <script setup>
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted, onUnmounted } from 'vue';
   import { jogo, acoes, ui, populacaoTotal, custoContratacao, bonusSorteTotal, limites, obterBuffRaca } from '../jogo.js';
   import { ORDEM_TIERS, DESBLOQUEIO_POR_NIVEL, obterProbabilidades, CLASSES_RPG } from '../funcionarios.js';
   
-    
+
+    const mostrarBotaoTopo = ref(false);
+    // Função que verifica a posição da tela
+    const verificarScroll = () => {
+        // Se desceu mais que 300 pixels, mostra o botão
+        mostrarBotaoTopo.value = window.scrollY > 300;
+    };
+    // Quando a página carregar, começa a vigiar o scroll
+    onMounted(() => {
+        window.addEventListener('scroll', verificarScroll);
+    });
+    // Quando sair da página, para de vigiar (para não pesar o navegador)
+    onUnmounted(() => {
+        window.removeEventListener('scroll', verificarScroll);
+    });
   // Função visual para mostrar o stat buffado no card
   const getStatReal = (func) => {
       const base = func.poderEspecial || func.poderGerencia || 0;
@@ -17,6 +31,19 @@
       // Formatação bonita: se for inteiro, sem casas. Se for quebrado (bancário), 2 casas.
       return Number.isInteger(base) ? Math.floor(final) : parseFloat(final.toFixed(2));
   };
+    // Função para rolar a janela até o topo suavemente
+    const voltarAoTopo = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+  // Função para pegar o objeto funcionário pelo índice da seleção (0, 1 ou 2)
+const getSelecionadoPorIndex = (index) => {
+    const id = idsSelecionados.value[index];
+    if (!id) return null;
+    return jogo.funcionarios.find(f => f.id === id);
+};
+const modoFusao = ref('selecao'); // 'selecao' ou 'preview'
+const resultadoFusao = ref(null);
+
   const tooltipAberto = ref(null); // Guarda o ID de qual balão está visível agora
   // --- FUNÇÃO PARA MOSTRAR DETALHES AO CLICAR ---
   // Alterna: se clicar no mesmo, fecha. Se for outro, abre.
@@ -259,6 +286,7 @@
           // 1. Filtros Básicos (Nível e Proibidos)
           if (proibidos.includes(f.profissao)) return false;
           if (idxFunc >= idxMax) return false;
+          if (f.diasEmGreve > 0) return false;
 
           // 2. Filtro de Profissão (Se tiver algo selecionado, tem que ser igual)
           if (filtroProfissao.value !== '' && f.profissao !== filtroProfissao.value) return false;
@@ -288,26 +316,50 @@
       }
   };
 
-  const executarFusao = () => {
-      acoes.fundirFuncionarios(
-          idsSelecionados.value, 
-          (novoFuncionario, tierAntigo) => {
-              idsSelecionados.value = [];
-              dadosFusaoPreview.value = null;
-              
-              const idxNovo = ORDEM_TIERS.indexOf(novoFuncionario.tier);
-              const idxAntigo = ORDEM_TIERS.indexOf(tierAntigo);
-              let st = "Manteve";
-              if (idxNovo > idxAntigo) st = "Upgrade";
-              else if (idxNovo < idxAntigo) st = "Downgrade";
-              
-              modalFusao.value = { aberto: true, funcionario: novoFuncionario, status: st };
-          },
-          (chances, tierBase, callbackConfirmar) => {
-              dadosFusaoPreview.value = { chances, tier: tierBase, confirmar: callbackConfirmar };
-          }
-      );
-  };
+    const executarFusao = () => {
+    acoes.fundirFuncionarios(
+        idsSelecionados.value,
+        
+        // 1. Callback de SUCESSO (O que acontece quando termina)
+        (novoFuncionario, tierAntigo) => {
+            // Calcula se foi Upgrade, Downgrade ou Manter
+            const idxNovo = ORDEM_TIERS.indexOf(novoFuncionario.tier);
+            const idxAntigo = ORDEM_TIERS.indexOf(tierAntigo);
+            let status = "Manteve";
+            if (idxNovo > idxAntigo) status = "Upgrade";
+            else if (idxNovo < idxAntigo) status = "Downgrade";
+
+            // Salva o resultado para mostrar na tela
+            resultadoFusao.value = { funcionario: novoFuncionario, status };
+            
+            // Troca para a tela de resultado
+            modoFusao.value = 'resultado';
+            
+            // Limpa dados anteriores
+            idsSelecionados.value = [];
+            dadosFusaoPreview.value = null;
+        },
+
+        // 2. Callback de PREVIEW (O que acontece ao clicar em Continuar)
+        (chances, tierBase, callbackConfirmar) => {
+            dadosFusaoPreview.value = { 
+                chances, 
+                tier: tierBase, 
+                confirmar: callbackConfirmar 
+            };
+            modoFusao.value = 'confirmacao';
+        }
+    );
+};
+// Função para fechar o resultado e voltar ao início
+const fecharResultadoFusao = () => {
+    modoFusao.value = 'selecao';
+    resultadoFusao.value = null;
+};
+    const cancelarFusao = () => {
+    modoFusao.value = 'selecao';
+    dadosFusaoPreview.value = null;    
+    };
 
   // Controle do Modal de Detalhes
   const modalDetalheProf = ref(null);
@@ -380,9 +432,9 @@
 </script>
 
 <template>
-  <div class="taverna-container">
+  <div class="mythic-container">
     
-    <div class="header-taverna">
+    <div class="header-titulo-aba">
         <div class="titulo-nivel">
             <h2>📜 Guilda dos Trabalhadores</h2>
         </div>
@@ -391,85 +443,101 @@
         </div>
     </div>
     <div class="abas-taverna">
-        <button :class="{ ativo: abaAtual === 'contratar' }" @click="abaAtual = 'contratar'">📜 Recrutamento</button>
-        <button :class="{ ativo: abaAtual === 'fusao' }" @click="abaAtual = 'fusao'">🌀 Fusão</button>
+        <button :class="{ ativo: abaAtual === 'contratar' }" @click="abaAtual = 'contratar'">Recrutamento</button>
+        <button :class="{ ativo: abaAtual === 'fusao' }" @click="abaAtual = 'fusao'">Fusão</button>
     </div>
 
     <div v-if="abaAtual === 'contratar'">
-        <div class="painel-unificado">
+        <div class="painel-recrutamento-clean">
+        
+        <div class="secao-botoes-acao">
+            <div class="titulo-area-aleatorio">
+                <h4 class="h4-contratar">Contratar</h4>
+                <button class="btn-help-circle" @click="modalHelp = true" title="Ver Probabilidades">?</button>
+            </div>
             
-            <div class="coluna-aleatoria">
-                <div class="titulo-area-aleatorio">
-                    <h4>Contratação</h4>
-                    <button class="btn-help-inline" @click="modalHelp = true" title="Ver Probabilidades">?</button>
-                </div>
-                
+            <div class="grid-botoes-contrato">
                 <button 
-                    class="btn-aleatorio" 
+                    class="card-contrato normal" 
                     @click="chamarContratacao(null, false)"
                     :disabled="jogo.taverna === 0 || jogo.ouro < custoContratacao || populacaoTotal >= jogo.populacaoMax || jogo.contratacoesHoje >= 500"
                 >
-                    <div class="icone-grande">🎲 </div> <!-- {{ jogo.contratacoesHoje }} -->
-                    <div class="preco">{{ formatarNumero(custoContratacao) }}</div>
+                    <div class="contrato-icon">🎲</div>
+                    <div class="contrato-info">
+                        <span class="contrato-tipo">PADRÃO</span>
+                        <span class="contrato-preco">
+                            {{ formatarNumero(custoContratacao) }} <img src="/assets/ui/icone_goldC.png" class="moeda-mini">
+                        </span>
+                    </div>
                 </button>
+
                 <button 
                     v-if="jogo.taverna >= 2"
-                    class="btn-aleatorio btn-elite" 
+                    class="card-contrato elite" 
                     @click="chamarContratacao(null, true)"
                     :disabled="jogo.ouro < (custoContratacao * (jogo.taverna * 5)) || populacaoTotal >= jogo.populacaoMax || jogo.contratacoesHoje >= 500 || jogo.contratacoesEliteHoje >= 10000"
                     title="Alta chance de Tiers raros! Pode vir Cargos de Poder!"
                 >
-                    <div class="icone-grande">👑</div> <!-- {{ jogo.contratacoesEliteHoje }} -->
-                    <div class="preco"> {{ formatarNumero(custoContratacao * (jogo.taverna * 5)) }}</div>
+                    <div class="contrato-icon">👑</div>
+                    <div class="contrato-info">
+                        <span class="contrato-tipo">SUPERIOR</span>
+                        <span class="contrato-preco">
+                            {{ formatarNumero(custoContratacao * (jogo.taverna * 5)) }} <img src="/assets/ui/icone_goldC.png" class="moeda-mini">
+                        </span>
+                    </div>
                 </button>
             </div>
-            
-            <div class="divisor-vertical"></div>
-            <div class="coluna-especifica">
-                <div class="botoes-catalogo-mini">
-                    <button 
-                        :class="{ ativo: abaCatalogo === 'profissoes' }" 
-                        @click="abaCatalogo = 'profissoes'">
-                        Profissões
-                    </button>
-                    <button 
-                        :class="{ ativo: abaCatalogo === 'aventureiros' }" 
-                        @click="abaCatalogo = 'aventureiros'">
-                        Aventureiros
-                    </button>
-                </div>
+        </div>
 
-                <div class="grid-catalogo">
-                    <div 
-                        v-for="item in listaCatalogoAtual" 
-                        :key="item.id" 
-                        class="item-catalogo" 
-                        :class="{ 'bloqueado': jogo.taverna < item.req }"
-                        @click="abrirDetalhesProfissao(item)"
-                        :title="jogo.taverna < item.req ? `Desbloqueia no Nível ${item.req}` : 'Clique para ver detalhes'"
-                    >
-                        <div class="icon-wrapper">
-                            <img :src="`/assets/ui/i_${getNomeImagem(item.id)}.png`" class="icone-prof-catalogo" alt="Icone">
-                            <div v-if="jogo.taverna < item.req" class="lock-overlay">🔒</div>
-                        </div>
-                        
-                        <div class="prof-nome-catalogo">{{ item.nome }}</div>
+        <div class="divisor-vertical-clean"></div>
+
+        <div class="secao-catalogo">
+            <div class="abas-mini-catalogo">
+                <button 
+                    :class="{ ativo: abaCatalogo === 'profissoes' }" 
+                    @click="abaCatalogo = 'profissoes'">
+                    Profissões
+                </button>
+                <button 
+                    :class="{ ativo: abaCatalogo === 'aventureiros' }" 
+                    @click="abaCatalogo = 'aventureiros'">
+                    Aventureiros
+                </button>
+            </div>
+
+            <div class="grid-catalogo-clean">
+                <div 
+                    v-for="item in listaCatalogoAtual" 
+                    :key="item.id" 
+                    class="slot-catalogo" 
+                    :class="{ 'bloqueado': jogo.taverna < item.req }"
+                    @click="abrirDetalhesProfissao(item)"
+                    :title="jogo.taverna < item.req ? `Desbloqueia no Nível ${item.req}` : 'Clique para ver detalhes'"
+                >
+                    <div class="slot-img-box">
+                        <img :src="`/assets/ui/i_${getNomeImagem(item.id)}.png`" class="img-catalogo">
+                        <div v-if="jogo.taverna < item.req" class="lock-overlay">🔒</div>
                     </div>
+                    <span class="nome-catalogo">{{ item.nome }}</span>
                 </div>
             </div>
-        </div> <div class="barra-ordenacao-acoplada">
-            <label for="filtro-recrutamento">Ordenar por: </label>
+        </div>
+    </div>
+
+    <div class="barra-ordenacao-clean">
+        <label for="filtro-recrutamento">Ordenar Lista Abaixo:</label>
+        <div class="select-wrapper">
             <select v-model="ordemAtual" id="filtro-recrutamento">
-                <option value="tier">Tier</option>
-                <option value="raca">Raça</option>
-                <option value="profissao">Profissão</option>
+                <option value="tier">Por Tier (Raridade)</option>
+                <option value="raca">Por Raça</option>
+                <option value="profissao">Por Profissão</option>
             </select>
         </div>
+    </div>
 
         <div v-if="listaElite.length > 0">
             <h4 class="titulo-secao elite" 
-                @click="alternarSecao('elite')" 
-                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                @click="alternarSecao('elite')" >
                 
                 <span>👑 Elite da Vila ({{ listaElite.length }})</span>
                 <span>{{ secoesAbertas.elite ? '▼' : '◀' }}</span>
@@ -521,17 +589,15 @@
             </div>
         </div>
         <div v-if="listaAventureiros.length > 0">
-            <h4 class="titulo-secao" 
-                @click="alternarSecao('aventureiros')"
-                style="color: #e67e22; border-bottom: 2px solid #e67e22; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-                <span>⚔️ Aventureiros ({{ listaAventureiros.length }})</span>
-                <span>{{ secoesAbertas.aventureiros ? '▼' : '◀' }}</span>
-            </h4>
+            <h4 class="titulo-secao aventureiro" 
+    @click="alternarSecao('aventureiros')">
+    <span>⚔️ Aventureiros ({{ listaAventureiros.length }})</span>
+    <span>{{ secoesAbertas.aventureiros ? '▼' : '◀' }}</span>
+</h4>
 
             <div v-show="secoesAbertas.aventureiros" class="lista-funcionarios">
                 <div v-for="func in listaAventureiros" :key="func.id" 
                      class="card-funcionario"
-                     style="background: #fff5e6;"
                      :style="{ borderColor: corTier(func.tier) }">
                     
                     <div class="card-topo" :style="{ backgroundColor: corTier(func.tier) }">
@@ -568,8 +634,7 @@
 
         <div>
             <h4 class="titulo-secao comum" 
-                @click="alternarSecao('comuns')"
-                style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                @click="alternarSecao('comuns')">
                 <span>🏠 Trabalhadores ({{ listaComuns.length }})</span>
                 <span>{{ secoesAbertas.comuns ? '▼' : '◀' }}</span>
             </h4>
@@ -638,61 +703,195 @@
 
     <div v-if="abaAtual === 'fusao'">
         
-        <div class="painel-fusao-header compacto">
-            <div class="instrucoes-simples">
+        <div class="painel-fusao-clean">
+    
+    <template v-if="modoFusao === 'selecao'">
+        <div class="header-ritual">
+            <h4>🔮 Ritual de Fusão</h4>
+            <span class="subtitulo-ritual">Selecione 3 funcionários da lista abaixo</span>
+        </div>
+
+        <div class="slots-ritual-container">
+            <div v-for="(index) in [0, 1, 2]" :key="index" 
+                 class="slot-fusao"
+                 :class="{ 'preenchido': idsSelecionados[index] }"
+                 @click="idsSelecionados[index] ? toggleSelecao(idsSelecionados[index], null) : null">
+                
+                <template v-if="getSelecionadoPorIndex(index)">
+                    <div class="avatar-fusao-wrapper" :style="{ borderColor: corTier(getSelecionadoPorIndex(index).tier) }">
+                        <img :src="`/assets/faces/${getSelecionadoPorIndex(index).raca}/${getSelecionadoPorIndex(index).imagem}.png`" class="img-fusao">
+                        <div class="badge-remove">✖</div>
+                    </div>
+                    <span class="nome-fusao-mini">{{ getSelecionadoPorIndex(index).nome }}</span>
+                </template>
+
+                <template v-else>
+                    <div class="slot-vazio-dashed"><span>{{ index + 1 }}º</span></div>
+                </template>
+            </div>
+        </div>
+
+        <div class="area-acao-fusao">
+            <button v-if="idsSelecionados.length === 3" class="btn-fundir-final" @click="executarFusao">
+                Continuar
+            </button>
+            <span v-else class="status-texto-fusao">
+                Aguardando seleção... ({{ idsSelecionados.length }} / 3)
+            </span>
+        </div>
+    </template>
+
+    <template v-else-if="dadosFusaoPreview">
+        <div class="header-ritual">
+            <h4>📊 Probabilidades</h4>
+            <span class="subtitulo-ritual">Resultado previsto para Tier <strong>{{ dadosFusaoPreview.tier }}</strong></span>
+        </div>
+
+        <div class="container-stats-fusao">
+            
+            <div class="linha-stat-clean">
+                <div class="label-stat">
+                    <span>⬆️ Upgrade</span>
+                    <strong class="verde">{{ dadosFusaoPreview.chances.upgrade }}%</strong>
+                </div>
+                <div class="trilha-barra"><div class="fill-barra upgrade" :style="{ width: dadosFusaoPreview.chances.upgrade + '%' }"></div></div>
             </div>
 
-            <div v-if="idsSelecionados.length < 3" class="contador-status">
-                Selecionados: <strong>{{ idsSelecionados.length }} / 3</strong>
+            <div class="linha-stat-clean">
+                <div class="label-stat">
+                    <span>↔️ Manter</span>
+                    <strong class="amarelo">{{ dadosFusaoPreview.chances.manter }}%</strong>
+                </div>
+                <div class="trilha-barra"><div class="fill-barra manter" :style="{ width: dadosFusaoPreview.chances.manter + '%' }"></div></div>
             </div>
 
-            <button v-else class="btn-fundir-transformado" @click="executarFusao">
-                ✨ FUNDIR AGORA ✨
+            <div class="linha-stat-clean" v-if="dadosFusaoPreview.chances.downgrade > 0">
+                <div class="label-stat">
+                    <span>⬇️ Perda</span>
+                    <strong class="vermelho">{{ dadosFusaoPreview.chances.downgrade }}%</strong>
+                </div>
+                <div class="trilha-barra"><div class="fill-barra downgrade" :style="{ width: dadosFusaoPreview.chances.downgrade + '%' }"></div></div>
+            </div>
+
+             <p v-if="dadosFusaoPreview.chances.travado" class="aviso-travado-mini">
+                ⚠️ Nível Máximo do Sindicato atingido!
+            </p>
+        </div>
+
+        <div class="area-acao-fusao gap-botoes">
+    <button class="btn-padrao btn-cancelar" @click="cancelarFusao">
+        Cancelar
+    </button>
+    <button class="btn-padrao btn-confirmar" @click="dadosFusaoPreview.confirmar()">
+        Confirmar
+    </button>
+</div>
+    </template>
+    <template v-else-if="modoFusao === 'resultado' && resultadoFusao">
+        
+        <div class="header-ritual">
+            <h4 :class="{ 
+                'verde': resultadoFusao.status === 'Upgrade',
+                'amarelo': resultadoFusao.status === 'Manteve',
+                'vermelho': resultadoFusao.status === 'Downgrade'
+            }">
+                {{ resultadoFusao.status === 'Upgrade' ? '✨ SUCESSO DIVINO!' : (resultadoFusao.status === 'Downgrade' ? '💀 INSTABILIDADE...' : '🔄 FUSÃO ESTÁVEL') }}
+            </h4>
+        </div>
+
+        <div class="card-resultado-final" :style="{ borderColor: corTier(resultadoFusao.funcionario.tier) }">
+            
+            <div class="glow-fundo" :style="{ background: corTier(resultadoFusao.funcionario.tier) }"></div>
+
+            <div class="conteudo-card-result">
+                
+                <div class="avatar-result-container">
+                    <div class="avatar-fusao-wrapper gigante" :style="{ borderColor: corTier(resultadoFusao.funcionario.tier) }">
+                        <img v-if="resultadoFusao.funcionario.imagem" 
+                             :src="`/assets/faces/${resultadoFusao.funcionario.raca}/${resultadoFusao.funcionario.imagem}.png`" 
+                             class="img-fusao">
+                    </div>
+                    
+                    <div class="badge-tier-medalha" :style="{ backgroundColor: corTier(resultadoFusao.funcionario.tier) }">
+                        {{ resultadoFusao.funcionario.tier }}
+                    </div>
+                </div>
+
+                <div class="info-resultado-final">
+                    <span class="nome-resultado">{{ resultadoFusao.funcionario.nome }}</span>
+                    
+                    <div class="tags-resultado">
+                        <span class="tag-prof">{{ nomeProfissao(resultadoFusao.funcionario) }}</span>
+                        <span class="divisor-dot">•</span>
+                        <span class="tag-raca">{{ formatarRaca(resultadoFusao.funcionario.raca) }}</span>
+                    </div>
+
+                    <div class="atributo-resultado-destaque">
+                        <template v-if="resultadoFusao.funcionario.profissao === 'aventureiro'">
+                            <span class="label-res">Classe:</span>
+                            <strong class="valor-res">{{ resultadoFusao.funcionario.classe || 'Desconhecida' }}</strong>
+                        </template>
+
+                        <template v-else-if="labelsEspeciais[resultadoFusao.funcionario.profissao]">
+                            <span class="label-res">{{ labelsEspeciais[resultadoFusao.funcionario.profissao] }}:</span>
+                            <strong class="valor-res" :class="{ 'buffado': obterBuffRaca(resultadoFusao.funcionario) > 0 }">
+                                {{ getStatReal(resultadoFusao.funcionario) }}{{ resultadoFusao.funcionario.profissao === 'gerente' ? '' : '%' }}
+                            </strong>
+                        </template>
+
+                        <template v-else>
+                            <span class="label-res">Bônus:</span>
+                            <strong class="valor-res" :class="{ 'buffado': obterBuffRaca(resultadoFusao.funcionario) > 0 }">
+                                +{{ Math.floor(((resultadoFusao.funcionario.bonus * (1 + (obterBuffRaca(resultadoFusao.funcionario) / 100))) - 1) * 100) }}%
+                            </strong>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="area-acao-fusao">
+            <button class="btn-fundir-final" @click="fecharResultadoFusao" style="background: #27ae60; border-color: #27ae60; color: white;">
+                <span>Concluir</span>
             </button>
         </div>
 
-        <div class="barra-ordenacao-fusao">
-            <div class="filtros-container-fusao" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                
-                <div>
-                    <label>Ordem: </label>
-                    <select v-model="ordemAtual">
-                        <option value="tier">Tier</option>
-                        <option value="raca">Raça</option>
-                        <option value="profissao">Profissão</option>
-                    </select>
-                </div>
+    </template>
 
-                <div>
-                    <label>Prof: </label>
-                    <select v-model="filtroProfissao">
-                        <option value="">Todas</option>
-                        <option v-for="p in opcoesProfissoes" :key="p.v" :value="p.v">
-                            {{ p.t }}
-                        </option>
-                    </select>
-                </div>
+</div>
 
-                <div>
-                    <label>Raça: </label>
-                    <select v-model="filtroRaca">
-                        <option value="">Todas</option>
-                        <option v-for="r in opcoesRacas" :key="r" :value="r">
-                            {{ formatarRaca(r) }}
-                        </option>
-                    </select>
-                </div>
+        <div class="barra-filtros-clean">
+            <div class="grupo-filtro">
+                <label>Ordem:</label>
+                <select v-model="ordemAtual">
+                    <option value="tier">Raridade</option>
+                    <option value="raca">Raça</option>
+                    <option value="profissao">Profissão</option>
+                </select>
+            </div>
 
-                <div v-if="filtroProfissao === 'aventureiro'" class="animacao-entrada">
-                    <label>Classe: </label>
-                    <select v-model="filtroClasse">
-                        <option value="">Todas</option>
-                        <option v-for="c in CLASSES_RPG" :key="c" :value="c">
-                            {{ c }}
-                        </option>
-                    </select>
-                </div>
+            <div class="grupo-filtro">
+                <label>Profissão:</label>
+                <select v-model="filtroProfissao">
+                    <option value="">Todas</option>
+                    <option v-for="p in opcoesProfissoes" :key="p.v" :value="p.v">{{ p.t }}</option>
+                </select>
+            </div>
 
+            <div class="grupo-filtro">
+                <label>Raça:</label>
+                <select v-model="filtroRaca">
+                    <option value="">Todas</option>
+                    <option v-for="r in opcoesRacas" :key="r" :value="r">{{ formatarRaca(r) }}</option>
+                </select>
+            </div>
+
+            <div v-if="filtroProfissao === 'aventureiro'" class="grupo-filtro animacao-entrada">
+                <label>Classe:</label>
+                <select v-model="filtroClasse">
+                    <option value="">Todas</option>
+                    <option v-for="c in CLASSES_RPG" :key="c" :value="c">{{ c }}</option>
+                </select>
             </div>
         </div>
 
@@ -769,6 +968,12 @@
             </div>
         </div>
     </div>
+    <button v-if="(abaAtual === 'fusao' || abaAtual === 'contratar') && mostrarBotaoTopo" 
+            class="btn-scroll-topo" 
+            @click="voltarAoTopo" 
+            title="Voltar ao Topo">
+        ▲
+    </button>
 
     <div v-if="ui.modal.aberto" class="modal-overlay" style="z-index: 1000;">
         <div class="modal-content-global">
@@ -782,19 +987,21 @@
         </div>
     </div>
 
-    <div v-if="modalHelp" class="modal-overlay" @click.self="modalHelp = false">
+    <div v-if="modalHelp" class="modal-overlay" @click.self="modalHelp = false" style="z-index: 5000;">
         <div class="modal-content-help">
-            <h2>📊 Probabilidades</h2>
+            <h2>Probabilidades</h2>
+            
             <p v-if="bonusSorteTotal > 0" class="aviso-bonus">
-                🤝 Bônus de Influência Ativo
+                Bônus de Influência Ativo
             </p>
+            
             <div class="tabela-container">
-                <h4>Comum</h4>
+                <h4>Contrato Padrão</h4>
                 <table>
                     <thead>
                         <tr>
                             <th>Tier</th>
-                            <th>Chance Base</th>
+                            <th>Base</th>
                             <th v-if="bonusSorteTotal > 0">Sua Chance</th>
                         </tr>
                     </thead>
@@ -813,13 +1020,14 @@
                     </tbody>
                 </table>
             </div>
+
             <div class="tabela-container" v-if="probsAtuais.base.elite">
-                <h4>Elite</h4>
+                <h4>Contrato Superior</h4>
                 <table>
                     <thead>
                         <tr>
                             <th>Tier</th>
-                            <th>Chance Base</th>
+                            <th>Base</th>
                             <th v-if="bonusSorteTotal > 0">Sua Chance</th>
                         </tr>
                     </thead>
@@ -838,71 +1046,15 @@
                     </tbody>
                 </table>
             </div>
-            <button @click="modalHelp = false">Entendi</button>
-        </div>
-    </div>
 
-    <div v-if="modalFusao.aberto" class="modal-overlay">
-        <div class="modal-content" :class="modalFusao.status.toLowerCase()">
-            <h2>{{ modalFusao.status === 'Upgrade' ? '✨ FUSÃO BEM SUCEDIDA! ✨' : (modalFusao.status === 'Downgrade' ? '💀 FALHA NA FUSÃO...' : '🔄 FUSÃO ESTÁVEL') }}</h2>
-            <div class="card-destaque" :style="{ borderColor: corTier(modalFusao.funcionario.tier) }">
-                <div class="card-topo" :style="{ backgroundColor: corTier(modalFusao.funcionario.tier) }">
-                    <span class="tier-badge-lg">{{ modalFusao.funcionario.tier }}</span>
-                </div>
-                
-                <img v-if="modalFusao.funcionario.imagem" 
-                     :src="`/assets/faces/${modalFusao.funcionario.raca}/${modalFusao.funcionario.imagem}.png`" 
-                     class="avatar-destaque" alt="Face">
-                
-                <h3>{{ modalFusao.funcionario.nome }}</h3>
-                
-                <p><strong>Profissão:</strong> {{ nomeProfissao(modalFusao.funcionario) }}</p>
-                <p><strong>Raça:</strong> {{ formatarRaca(modalFusao.funcionario.raca) }}</p>
-                <p><strong>Sexo:</strong> {{ formatarSexo(modalFusao.funcionario.sexo) }}</p>
-                <p><strong>Salário:</strong> <img src="/assets/ui/icone_goldC.png" class="icon-moeda-topo" alt="Ouro">{{ formatarNumero(modalFusao.funcionario.salario) }}</p>
-                <!-- Inicio da Estatística Modal Fusão -->
-                <div v-if="labelsEspeciais[modalFusao.funcionario.profissao]" class="info-linha" style="justify-content:center; display:flex; margin-bottom: 15px;">
-                    <strong>{{ labelsEspeciais[modalFusao.funcionario.profissao] }}:</strong>&nbsp;
-                    
-                    <span class="stat-container" @click.stop="toggleTooltip('resultado_fusao')">
-                        <span :style="{ color: obterBuffRaca(modalFusao.funcionario) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(modalFusao.funcionario) > 0 ? 'bold' : 'normal' }">
-                            {{ getStatReal(modalFusao.funcionario) }}{{ modalFusao.funcionario.profissao === 'gerente' ? '' : '%' }}
-                        </span>
-                        <div v-if="tooltipAberto === 'resultado_fusao' && obterBuffRaca(modalFusao.funcionario) > 0" class="balao-flutuante">
-                            Base: {{ getInfoTooltip(modalFusao.funcionario).original }}<br>
-                            Bônus: +{{ getInfoTooltip(modalFusao.funcionario).ganho }}
-                        </div>
-                    </span>
-                </div>
-
-                <div v-else-if="modalFusao.funcionario.profissao === 'aventureiro'" class="info-linha" style="justify-content:center; margin-bottom: 15px;">
-                     <strong>Classe:</strong>&nbsp;{{ modalFusao.funcionario.classe || 'Desconhecida' }}
-                </div>
-
-                <p v-else style="display: flex; justify-content: center; gap: 5px;">
-                    <strong>Bônus: </strong> 
-                    <span class="stat-container" @click.stop="toggleTooltip('resultado_prod')">
-                        <span :style="{ color: obterBuffRaca(modalFusao.funcionario) > 0 ? '#2ecc71' : 'inherit', fontWeight: obterBuffRaca(modalFusao.funcionario) > 0 ? 'bold' : 'normal' }">
-                            {{ Math.floor(((modalFusao.funcionario.bonus * (1 + (obterBuffRaca(modalFusao.funcionario) / 100))) - 1) * 100) }}%
-                        </span>
-                        <div v-if="tooltipAberto === 'resultado_prod' && obterBuffRaca(modalFusao.funcionario) > 0" class="balao-flutuante">
-                            Base: {{ getInfoTooltip(modalFusao.funcionario, 'producao').original }}%<br>
-                            Bônus: +{{ getInfoTooltip(modalFusao.funcionario, 'producao').ganho }}%
-                        </div>
-                    </span>
-                </p>
-                <!-- Fim da Estatística Modal Fusão -->
-            </div>
-            <button @click="modalFusao.aberto = false">FECHAR</button>
+            <button class="btn-entendi" @click="modalHelp = false">Entendi</button>
         </div>
     </div>
 
   </div>
 
   <div v-if="novoFuncionarioModal" class="modal-overlay" style="z-index: 2000;">
-        <div class="modal-content animacao-entrada">
-            <h2>✨ NOVO HABITANTE! ✨</h2>
-            
+        <div class="modal-content animacao-entrada">            
             <div class="card-destaque" :style="{ borderColor: corTier(novoFuncionarioModal.tier) }">
                 <div class="card-topo" :style="{ backgroundColor: corTier(novoFuncionarioModal.tier) }">
                     <span class="tier-badge-lg">{{ novoFuncionarioModal.tier }}</span>
@@ -960,8 +1112,7 @@
 
     <div v-if="funcionarioParaDemitir" class="modal-overlay" style="z-index: 2000;">
         <div class="modal-content animacao-entrada demissao-content">
-            <h2 style="color: #c0392b;">⚠️ TEM CERTEZA? ⚠️</h2>
-            <p>Você vai demitir este funcionário permanentemente.</p>
+            <p class="aviso-topo">Você vai demitir este funcionário permanentemente.</p>
             
             <div class="card-destaque" :style="{ borderColor: '#c0392b' }">
                 <div class="card-topo" :style="{ backgroundColor: corTier(funcionarioParaDemitir.tier) }">
@@ -1023,8 +1174,6 @@
 
     <div v-if="conflitoGerente" class="modal-overlay" style="z-index: 2100;">
         <div class="modal-content animacao-entrada modal-largo-vertical">
-            <h3 style="color: #e67e22; margin-bottom: 5px;">👔 CONFLITO DE GESTÃO</h3>
-            <p style="color: #7f8c8d; margin-bottom: 20px;">Para a entrada do novo, o atual deve sair.</p>
             
             <div class="duelo-vertical-stack">
                 
@@ -1118,66 +1267,16 @@
             </div>
         </div>
     </div>
-
-    <div v-if="dadosFusaoPreview" class="modal-overlay" style="z-index: 2200;">
-        <div class="modal-content animacao-entrada modal-fusao-confirm">
-            <h3>🔮 RITUAL DE FUSÃO</h3>
-            
-            <div class="info-tier-fusao">
-                <p>Fundindo 3 Funcionários</p>
-                <div class="badge-tier-gigante" :style="{ backgroundColor: corTier(dadosFusaoPreview.tier) }">
-                    Tier {{ dadosFusaoPreview.tier }}
-                </div>
-            </div>
-
-            <div class="tabela-probabilidades">
-                <div class="linha-probabilidade">
-                    <div class="label-prob">
-                        <span>⬆️ UPGRADE</span>
-                        <strong>{{ dadosFusaoPreview.chances.upgrade }}%</strong>
-                    </div>
-                    <div class="barra-fundo-prob">
-                        <div class="barra-fill upgrade" :style="{ width: dadosFusaoPreview.chances.upgrade + '%' }"></div>
-                    </div>
-                </div>
-
-                <div class="linha-probabilidade">
-                    <div class="label-prob">
-                        <span>↔️ MANTER</span>
-                        <strong>{{ dadosFusaoPreview.chances.manter }}%</strong>
-                    </div>
-                    <div class="barra-fundo-prob">
-                        <div class="barra-fill manter" :style="{ width: dadosFusaoPreview.chances.manter + '%' }"></div>
-                    </div>
-                </div>
-
-                <div class="linha-probabilidade" v-if="dadosFusaoPreview.chances.downgrade > 0">
-                    <div class="label-prob">
-                        <span>⬇️ DOWNGRADE</span>
-                        <strong>{{ dadosFusaoPreview.chances.downgrade }}%</strong>
-                    </div>
-                    <div class="barra-fundo-prob">
-                        <div class="barra-fill downgrade" :style="{ width: dadosFusaoPreview.chances.downgrade + '%' }"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <p v-if="dadosFusaoPreview.chances.travado" class="aviso-travado">
-                ⚠️ Upgrade bloqueado pelo nível do Sindicato!
-            </p>
-
-            <div class="botoes-demissao">
-                <button class="btn-cancelar-demissao" @click="dadosFusaoPreview = null">Cancelar</button>
-                <button class="btn-confirmar-demissao" style="background: #27ae60; box-shadow: 0 4px 0 #1e8449;" @click="dadosFusaoPreview.confirmar()">
-                    CONFIRMAR
-                </button>
-            </div>
-        </div>
-    </div>
     <div v-if="modalTrocaLista" class="modal-overlay" style="z-index: 2100;">
         <div class="modal-content animacao-entrada modal-largo" style="max-height: 90vh; overflow-y: auto;">
-            <h3 style="color: #e67e22; text-align: center;">🏛️ PREFEITURA LOTADA</h3>
-            <p style="text-align: center; margin-bottom: 15px;">Para a entrada do novo, alguém deve sair.</p>
+    
+    <div class="banner-lotacao">
+        <div class="icone-predio">🏛️</div>
+        <div class="texto-aviso">
+            <h3>Capacidade Máxima Atingida</h3>
+            <p>Para a entrada do novo candidato, você deve dispensar um funcionário atual.</p>
+        </div>
+    </div>
 
             <div class="novo-candidato-container">
                 <div class="card-funcionario" style="width: 245px; border-color: #3498db; box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);">
@@ -1285,29 +1384,26 @@
     <!-- Modal de detalhes da profissão -->
     <div v-if="modalDetalheProf" class="modal-overlay" style="z-index: 3000;" @click.self="modalDetalheProf = null">
         <div class="modal-content animacao-entrada" :style="{ borderTop: '5px solid ' + (jogo.taverna < modalDetalheProf.req ? '#7f8c8d' : '#3498db') }">
-            
             <h3 style="margin-bottom: 5px;">{{ modalDetalheProf.nome }}</h3>
-            
             <div style="margin: 15px 0;">
                 <img :src="`/assets/ui/i_${getNomeImagem(modalDetalheProf.id)}.png`" style="width: 64px; height: 64px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));">
             </div>
-
             <div v-if="jogo.taverna < modalDetalheProf.req" class="aviso-travado" style="margin-bottom: 15px;">
                 🔒 Desbloqueia no Sindicato Nível {{ modalDetalheProf.req }}
             </div>
-
             <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; font-size: 0.9em; color: #2c3e50;">
                 <p style="margin-bottom: 10px;"><strong>📜 Função:</strong><br>{{ modalDetalheProf.desc }}</p>
                 <p><strong>✨ Atributo Especial:</strong><br>{{ modalDetalheProf.stat }}</p>
             </div>
-
             <button class="btn-receber" style="margin-top: 15px; background: #34495e;" @click="modalDetalheProf = null">
                 Fechar
             </button>
         </div>
-    </div>
-</template>
+    </div> 
+
+ </template>
 
 <style scoped>
     @import '../css/taverna.css';
-    </style>
+    @import '../css/importantes.css';
+</style>

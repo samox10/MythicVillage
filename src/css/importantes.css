@@ -1,0 +1,332 @@
+/* INICIO ESTILO PARA O CABEÇALHO DAS ABAS */
+.header-titulo-aba { 
+    background: #f3f3f3;       /* Cinza muito claro (quase branco) */
+    color: #2c3e50;            /* Texto Azul Escuro */
+    border: 1px solid #bdc3c7; /* Borda cinza suave */
+    border-left: 5px solid #3498db; /* Borda esquerda azul vibrante */
+    
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.titulo-nivel h2 { 
+    margin: 0; 
+    font-size: 1.1em; 
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge-nivel { 
+    background: #f39c12; 
+    color: #fff; 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-size: 0.8em; 
+    font-weight: bold; 
+}
+/* FIM ESTILO PARA O CABEÇALHO DAS ABAS */
+/* ==================================================================== */
+/* --- INICIO BOTÃO FLUTUANTE (VOLTAR AO TOPO) --- */
+.btn-scroll-topo {
+    position: fixed;
+    bottom: 30px;    
+    left: 50%;             /* 1. Começa exatamente no centro da tela */
+    margin-left: 410px;    /* 2. Empurra 400px (metade do container) + 10px de folga */
+    right: auto;           /* 3. Desliga o alinhamento antigo */    
+    width: 45px;
+    height: 45px;    
+    background: #2c3e50;
+    border: 2px solid #7f8c8d;
+    border-radius: 8px;
+    color: #ecf0f1;    
+    font-size: 1.2em;
+    cursor: pointer;
+    z-index: 990;    
+    display: flex;
+    align-items: center;
+    justify-content: center;    
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.btn-scroll-topo:hover {
+    background: #e67e22;
+    border-color: #fff;
+    transform: translateY(-5px) scale(1.1);
+    box-shadow: 0 8px 20px rgba(230, 126, 34, 0.5);
+}
+.btn-scroll-topo:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+@media (max-width: 920px) {
+    .btn-scroll-topo {
+        left: auto;        /* Reseta o centro */
+        margin-left: 0;    /* Reseta o empurrão */
+        right: 20px;       /* Cola na direita da tela */
+        bottom: 20px;        
+        /* Ajuste de tamanho mobile */
+        width: 40px;
+        height: 40px;
+        opacity: 0.8;
+    }    
+    .btn-scroll-topo:hover {
+        opacity: 1;
+    }
+}
+/* Responsividade: Um pouco menor no celular para não atrapalhar */
+@media (max-width: 500px) {
+    .btn-scroll-topo {
+        bottom: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        opacity: 0.8; /* Um pouco transparente no celular pra não atrapalhar */
+    }
+    .btn-scroll-topo:hover {
+        opacity: 1;
+    }
+}
+/* --- FIM BOTÃO FLUTUANTE (VOLTAR AO TOPO) --- */
+/* ==================================================================== */
+
+
+
+
+.abas-taverna { 
+    display: flex; 
+    gap: 5px; /* Espaço pequeno entre os botões */
+    margin-bottom: 15px; 
+    
+    /* Container estilo "Capsula" */
+    background: #fff;
+    padding: 5px;
+    border: 1px solid #bdc3c7;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.abas-taverna button { 
+    flex: 1; 
+    padding: 10px; 
+    border: none; 
+    background: transparent; /* Fundo transparente por padrão */
+    color: #7f8c8d;          /* Cinza texto secundário */
+    
+    font-weight: 800;        /* Negrito forte igual Ferraria */
+    text-transform: uppercase;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer; 
+    border-radius: 6px; 
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.abas-taverna button:hover { 
+    background: #f1f2f6;     /* Cinza bem clarinho no hover */
+    color: #2c3e50;
+}
+
+/* --- ESTADO ATIVO --- */
+.abas-taverna button.ativo { 
+    background: #e67e22;     /* Laranja Fogo (Ferraria) */
+    color: white; 
+    box-shadow: 0 2px 5px rgba(230, 126, 34, 0.4); /* Sombra laranja suave */
+    transform: translateY(-1px); /* Leve subida */
+}
+
+/* Responsividade para celular: Texto menor se precisar */
+@media (max-width: 400px) {
+    .abas-taverna button {
+        font-size: 0.8em;
+        padding: 8px;
+    }
+}
+
+
+
+/* Container comum as abas */
+.mythic-container {
+    padding: 10px; /* Espaçamento interno */
+    width: 100%; /* Mudança: Ocupa tudo, igual a Mina */
+    box-sizing: border-box; /* Garante que o padding não estoure a tela */
+    max-width: 800px; /* Mantém o limite máximo igual da Mina */
+    margin: 0 auto; /* Centraliza horizontalmente */
+    display: flex; /* Flexbox para layout */
+    flex-direction: column; /* Empilha verticalmente */
+}
+
+
+/* Cores de status reutilizáveis */
+.verde { color: #27ae60; }
+.amarelo { color: #f39c12; }
+.vermelho { color: #c0392b; }
+/* Títulos menores reutilizáveis */
+.h4-contratar { 
+    margin: 0 0 5px 0; 
+    font-size: 0.75em; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    text-align: center; 
+    width: 100%; 
+}
+@font-face {
+    font-family: 'Averia Bold';
+    /* O caminho ../ volta uma pasta (sai de css) e entra em assets */
+    src: url('../assets/fonts/AveriaBold.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.painel-controle-global {
+    display: flex; 
+    align-items: center; 
+    justify-content: flex-start; 
+    background: #ecf0f1; 
+    border: 1px solid #bdc3c7; 
+    border-radius: 8px;
+    padding: 10px 15px; 
+    /* O gap define o espaço base, mas a margem da linha vai personalizar isso */
+    gap: 0; 
+    height: auto; 
+    min-height: 180px; 
+}
+/* --- ENFERMEIRO --- */
+.funcionario-ativo {
+    width: 100%;
+    max-width: 235px; 
+    margin: 0;  
+    background: #ffffff;
+    border-width: 2px; 
+    border-style: solid;
+    border-radius: 8px; 
+    overflow: hidden;
+    display: flex; 
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    flex-shrink: 0; 
+    margin-right: 0;
+}
+.funcionario-ativo .card-mid { 
+    flex: 1; 
+    display: flex; 
+    align-items: center; 
+    padding: 5px 5px 5px 15px; 
+    background: #fff; 
+}
+.card-topo {
+    position: relative; /* IMPORTANTE: É a âncora do posicionamento */
+    display: flex;
+    align-items: center;
+    padding: 1px 5px;
+    padding-right: 35px; /* Garante que o texto do nome não fique embaixo do ícone */
+    color: #fff; 
+    font-weight: bold;
+    height: 32px; /* Altura fixa para o cabeçalho não pular */
+}
+.topo-esquerda { 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+}
+.tier-badge { 
+    background: rgba(0,0,0,0.3); 
+    padding: 1px 5px; 
+    border-radius: 4px; 
+    font-size: 0.9em; 
+}
+/* BOLINHA BRANCA DO ICONE DA PROFISSÃO */
+.molde-icone-prof {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    background-color: #ffffff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    z-index: 10;
+}
+/* TAMANHO DO ICONE DA PROFISSAO NA BOLINHA BRANCA */
+.img-prof-inner { 
+    width: 19px; 
+    height: 19px; 
+    object-fit: contain; 
+}
+.avatar-box {
+    width: 80px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f1f2f6; border-right: 1px solid #dfe4ea;
+}
+.avatar-func { 
+    width: 90px;
+    height: 90px;
+    border-radius: 4px; border: 1px solid #ced6e0; background: #fff; 
+}
+.tabela-dados-func { flex: 1; display: flex; flex-direction: column; font-size: 0.75em; }
+
+.linha-dado {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 3px 6px; border-bottom: 1px solid #f1f2f6; color: #2f3542;
+}
+.linha-dado:nth-child(even) { background-color: #f8f9fa; }
+.dado-label { color: #747d8c; font-weight: 600; }
+.dado-valor { font-weight: bold; color: #2f3542; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.capitalize { text-transform: capitalize; }
+.tiny-coin { width: 11px; height: 11px; }
+.rodape-card {
+    background: #fff;
+    border-top: 1px solid #f1f2f6;
+    padding: 6px 4px;
+    text-align: center;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.info-produtividade { font-size: 0.75em; color: #2c3e50; font-weight: 600; }
+.frase-efeito { font-size: 0.7em; font-style: italic; color: #a4b0be; }
+.linha-divisoria {
+    width: 2px;
+    height: 160px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(160, 160, 160, 0.6) 20%,
+        rgba(160, 160, 160, 0.6) 80%,
+        transparent 100%
+    );
+    margin: 0 15px;
+    flex-shrink: 0;
+}
+.lado-direito-filtros {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Adiciona uma borda sutil para separar do card do funcionário */    
+    align-items: center; /* CENTRALIZA TUDO HORIZONTALMENTE */
+    justify-content: center;  
+}
+@media (max-width: 768px) {
+    .painel-controle-global { 
+        flex-direction: column; 
+        height: auto;
+        gap: 10px;         
+    }
+    .linha-divisoria {
+        display: none !important;
+    }
+
+}
+
+
+
+

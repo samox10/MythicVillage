@@ -1,83 +1,21 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useGameStore } from './stores/gameStore'
 import HeaderHUD from './components/HeaderHUD.vue'
 import VilaView from './components/VilaView.vue'
 import RecrutamentoView from './components/RecrutamentoView.vue' 
 
-// === 1. ESTADO (PERSISTENTE) ===
-const player = ref({
-  name: 'SamOx',
-  race: 'Automato', 
-  avatar: '/assets/faces/automato/lorde_m.png', 
-})
-
-const buildingsState = ref([
-  { id: 1, key: 'nexus', level: 1 },
-  { id: 2, key: 'armazem', level: 1 },
-  { id: 3, key: 'hospedagem', level: 1 },
-  { id: 4, key: 'sifao', level: 0 }
-])
-
-const resources = ref({ mythicCoin: 10, goldCoin: 10000 })
-const villageStats = ref({ populacao: 5 })
-
-// === 2. FÓRMULAS ===
-const calculatedVillage = computed(() => {
-  const lvlHospedagem = buildingsState.value.find(b => b.key === 'hospedagem')?.level || 1
-  const lvlArmazem = buildingsState.value.find(b => b.key === 'armazem')?.level || 1
-  return {
-    populacao: villageStats.value.populacao,
-    maxPopulacao: 10 + (lvlHospedagem * 2),
-    maxArmazem: 1000 + (lvlArmazem * 500)
-  }
-})
-
-// === 3. SAVE SYSTEM ===
-const loadGame = () => {
-  const savedRes = localStorage.getItem('mythic_resources')
-  const savedBuilds = localStorage.getItem('mythic_buildings')
-  if (savedRes) resources.value = JSON.parse(savedRes)
-  if (savedBuilds) {
-    const loaded = JSON.parse(savedBuilds)
-    buildingsState.value = buildingsState.value.map(b => {
-      const found = loaded.find(lb => lb.key === b.key)
-      return found ? { ...b, level: found.level } : b
-    })
-  }
-}
-const saveGame = () => {
-  localStorage.setItem('mythic_resources', JSON.stringify(resources.value))
-  localStorage.setItem('mythic_buildings', JSON.stringify(buildingsState.value))
-}
-watch([resources, buildingsState], () => saveGame(), { deep: true })
-
-// === 4. GAME LOOP ===
-onMounted(() => {
-  loadGame()
-  setInterval(() => { resources.value.goldCoin += 1 }, 1000)
-})
-
-// === 5. AÇÕES DE UPGRADE (CORRIGIDO) ===
-
-// ETAPA A: Pagar (Imediato)
-const handleSpend = (cost) => {
-  if (resources.value.goldCoin >= cost.gold && resources.value.mythicCoin >= cost.mythic) {
-    resources.value.goldCoin -= cost.gold
-    resources.value.mythicCoin -= cost.mythic
-  }
-}
-
-// ETAPA B: Upar (Só depois do tempo)
-const handleLevelUp = (buildingId) => {
-  const target = buildingsState.value.find(b => b.id === buildingId)
-  if (target) {
-    target.level++
-    // Feedback visual ou sonoro poderia entrar aqui
-    console.log(`Prédio ${buildingId} evoluiu para o nível ${target.level}`)
-  }
-}
-
+const store = useGameStore()
 const currentScreen = ref('vila')
+
+onMounted(() => {
+  store.loadGame()
+  // Salários a cada 1 min
+  setInterval(() => { store.paySalaries() }, 60000)
+  // Renda Passiva de Teste
+  setInterval(() => { store.resources.goldCoin += 10 }, 1000)
+})
+
 const menuItems = [
   { id: 'vila', label: 'BASE', icon: '🏰' },
   { id: 'recrutamento', label: 'RECRUTAR', icon: '🤝' },
@@ -90,7 +28,11 @@ const menuItems = [
 <template>
   <div class="layout-tactical-bg">
     <main class="tactical-frame">
-      <HeaderHUD :player="player" :resources="resources" :village="calculatedVillage" />
+      <HeaderHUD 
+        :player="{ name: 'SamOx', avatar: '/assets/faces/automato/lorde_m.png' }" 
+        :resources="store.resources" 
+        :village="{ populacao: store.workers.length, maxPopulacao: 20, maxArmazem: 5000 }" 
+      />
       
       <nav class="skew-nav">
         <button v-for="item in menuItems" :key="item.id" @click="currentScreen = item.id" class="skew-btn" :class="{ active: currentScreen === item.id }">
@@ -100,15 +42,9 @@ const menuItems = [
 
       <section class="tactical-viewport">
         <div class="slate-panel">
-          <div class="panel-header-deco"><div class="deco-line"></div><div class="sys-txt">SYSTEM: ONLINE</div><div class="deco-line"></div></div>
+          <div class="panel-header-deco"><div class="deco-line"></div><div class="deco-line"></div></div>
 
-          <VilaView 
-            v-if="currentScreen === 'vila'" 
-            :resources="resources"
-            :buildings-state="buildingsState"
-            @spend-resources="handleSpend"
-            @finish-upgrade="handleLevelUp"
-          />
+          <VilaView v-if="currentScreen === 'vila'" />
           
           <RecrutamentoView v-if="currentScreen === 'recrutamento'" />
           

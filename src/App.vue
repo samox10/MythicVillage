@@ -31,7 +31,11 @@ const menuItems = [
       <HeaderHUD 
         :player="{ name: 'SamOx', avatar: '/assets/faces/automato/lorde_m.png' }" 
         :resources="store.resources" 
-        :village="{ populacao: store.workers.length, maxPopulacao: 20, maxArmazem: 5000 }" 
+        :village="{ 
+          populacao: store.workers.length, 
+          maxPopulacao: store.maxPopulation, 
+          maxArmazem: store.maxStorage 
+        }" 
       />
       
       <nav class="skew-nav">

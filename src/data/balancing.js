@@ -20,54 +20,56 @@ export const RACAS = ['automato', 'corvido', 'draconiano', 'elfo', 'espectral', 
 
 // 2. Cores e Definições de Tier (Resolve o problema das cores)
 export const TIER_CONFIG = {
-  'F': { minEff: 2, maxEff: 8, salary: 50, color: 'gray', hex: '#64748b' },
-  'E': { minEff: 6, maxEff: 14, salary: 80, color: 'gray', hex: '#94a3b8' },
-  'D': { minEff: 12, maxEff: 20, salary: 120, color: 'green', hex: '#10b981' },
-  'C': { minEff: 18, maxEff: 28, salary: 180, color: 'blue', hex: '#2dd4bf' },
-  'B': { minEff: 25, maxEff: 38, salary: 250, color: 'blue', hex: '#38bdf8' },
-  'A': { minEff: 35, maxEff: 50, salary: 400, color: 'purple', hex: '#a855f7' },
-  'S': { minEff: 48, maxEff: 70, salary: 700, color: 'gold', hex: '#ffd700' },
-  'SS': { minEff: 68, maxEff: 100, salary: 1200, color: 'red', hex: '#ff003c' }
+  'F': { minEff: 5,   maxEff: 20,  salary: 50,   hex: '#64748b' }, // Cinza Pedra
+  'E': { minEff: 15,  maxEff: 40,  salary: 80,   hex: '#b45309' }, // Bronze
+  'D': { minEff: 35,  maxEff: 75,  salary: 120,  hex: '#10b981' }, // Verde
+  'C': { minEff: 70,  maxEff: 110, salary: 180,  hex: '#06b6d4' }, // Ciano
+  'B': { minEff: 105, maxEff: 160, salary: 250,  hex: '#3b82f6' }, // Azul Real
+  'A': { minEff: 155, maxEff: 210, salary: 400,  hex: '#a855f7' }, // Roxo
+  'S': { minEff: 205, maxEff: 310, salary: 700,  hex: '#eab308' }, // Dourado
+  'SS':{ minEff: 305, maxEff: 400, salary: 1200, hex: '#ef4444' }  // Vermelho Sangue
 }
 
-// 3. Probabilidades Base (Sem Admin, Nível 1)
-export const BASE_DROP_RATES = {
-  'SS': 0.1, 'S': 0.5, 'A': 2.0, 'B': 8.0,
-  'C': 18.0, 'D': 25.0, 'E': 25.0, 'F': 21.4
+// 3. Probabilidades por Nível (A CURVA DESLIZANTE)
+// Aqui definimos manualmente a chance de cada nível.
+export const PROBABILIDADE_POR_NIVEL = {
+  1:  { 'SS': 0,    'S': 0,    'A': 0,    'B': 0,    'C': 0,    'D': 0,    'E': 0,    'F': 100.0 },
+  2:  { 'SS': 0,    'S': 0,    'A': 0,    'B': 0,    'C': 0,    'D': 0,    'E': 30.0, 'F': 70.0 },
+  3:  { 'SS': 0,    'S': 0,    'A': 0,    'B': 0,    'C': 0,    'D': 15.0, 'E': 35.0, 'F': 50.0 },
+  4:  { 'SS': 0,    'S': 0,    'A': 0,    'B': 3.0,  'C': 12.0, 'D': 25.0, 'E': 30.0, 'F': 30.0 },
+  5:  { 'SS': 0,    'S': 1.0,  'A': 4.0,  'B': 10.0, 'C': 20.0, 'D': 25.0, 'E': 20.0, 'F': 20.0 },
+  6:  { 'SS': 0.2,  'S': 1.8,  'A': 10.0, 'B': 18.0, 'C': 25.0, 'D': 20.0, 'E': 15.0, 'F': 10.0 },
+  7:  { 'SS': 0.5,  'S': 2.5,  'A': 12.0, 'B': 22.0, 'C': 28.0, 'D': 20.0, 'E': 10.0, 'F': 5.0  },
+  8:  { 'SS': 0.8,  'S': 3.2,  'A': 13.0, 'B': 25.0, 'C': 30.0, 'D': 18.0, 'E': 10.0, 'F': 0    },
+  9:  { 'SS': 1.2,  'S': 4.0,  'A': 15.0, 'B': 29.0, 'C': 30.0, 'D': 15.0, 'E': 5.8,  'F': 0    },
+  10: { 'SS': 1.5,  'S': 4.5,  'A': 15.0, 'B': 30.0, 'C': 30.0, 'D': 15.0, 'E': 4.0,  'F': 0    }
 }
 
-// 4. Configuração de Balanceamento de Drop (O "META" do Jogo)
+// 4. Configuração do Buff de Administrador
 export const DROP_RATE_META = {
-  // Poder do Shift (Quanto % sai do Tier F/E e vai para cima)
-  shiftPerLevel: 2.0, // Reduzi levemente para 2.0% por nível (antes 2.5%)
-  shiftPerAdmin: 15.0, // Admin 100% continua movendo 15%
-  
-  // QUEM SOFRE O NERF? (Pesos de quem perde probabilidade)
-  losersWeights: { 
-    'F': 0.70, // F perde muito rápido
-    'E': 0.30  // E perde o resto
-  },
-
-  // QUEM GANHA O BÔNUS? (Distribuição do Shift)
-  // Isso impede que o Tier S ganhe 10% de uma vez.
-  // Aqui definimos a "fatia do bolo" que cada um recebe.
-  bonusDistribution: {
-    'D': 15, // Ganha um pouco
-    'C': 25, // Ganha bem
-    'B': 35, // O GRANDE VENCEDOR (Meta do mid-game)
-    'A': 15, // Ganha razoável
-    'S': 8,  // Ganha pouco (Dificulta o S)
-    'SS': 2  // Ganha migalhas (Mantém o SS lendário)
-  }
+  shiftPerAdmin: 15.0, 
+  // Preferência de quem ganha o bônus (Se estiver liberado)
+  bonusTargetPreference: ['SS', 'S', 'A', 'B', 'C']
 }
 
-// 5. Regras de Desbloqueio por Nível
+// 5. Ordem dos Tiers (Para loops)
 export const TIER_ORDER = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS']
 
-export const UNLOCK_THRESHOLDS = {
-  1: 'E', // Nível 1 libera até E (F, E)
-  2: 'C', // Nível 2 libera até C (F, E, D, C)
-  3: 'A', // Nível 3 libera até A
-  4: 'S', // Nível 4 libera até S
-  5: 'SS' // Nível 5 libera TUDO
-}
+// 6. Gerador de Nomes (RPG)
+export const NOMES_M = [
+  'Aldous', 'Balgor', 'Caelum', 'Dorian', 'Eldrin', 'Fargus', 'Garrick', 'Halt', 
+  'Ignis', 'Jorund', 'Kael', 'Lorcan', 'Marek', 'Norius', 'Orion', 'Phaelan', 
+  'Quintus', 'Ragnar', 'Silas', 'Thorne', 'Ulric', 'Valerius', 'Wulf', 'Xandar', 'Zephyr'
+]
+
+export const NOMES_F = [
+  'Adara', 'Brynn', 'Celeste', 'Dahlia', 'Elara', 'Fae', 'Ginevra', 'Hestia', 
+  'Isolde', 'Juno', 'Kaia', 'Lyra', 'Mira', 'Nyssa', 'Ophelia', 'Primrose', 
+  'Quinn', 'Rowena', 'Seraphina', 'Talia', 'Una', 'Vesper', 'Willow', 'Xylia', 'Yara'
+]
+
+export const SOBRENOMES = [
+  'Stormrage', 'Lightfoot', 'Ironheart', 'Nightshade', 'Dawnseeker', 'Frostborn', 
+  'Fireforge', 'Moonwhisper', 'Starfall', 'Windrunner', 'Stonefist', 'Bloodraven', 
+  'Goldleaf', 'Silverhand', 'Blackwood', 'Whitehawk', 'Deepwalker', 'Skydancer'
+]

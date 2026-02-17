@@ -26,6 +26,19 @@ export const useGameStore = defineStore('game', () => {
     return b ? b.level : 0
   })
 
+  const maxPopulation = computed(() => {
+    // Procura o prédio 'hospedagem' (ID 3 ou key 'hospedagem')
+    const b = buildings.value.find(x => x.key === 'hospedagem')
+    const lvl = b ? b.level : 1
+    // Fórmula: 10 base + 2 por nível (Mesma regra visual do VilaView)
+    return 10 + (lvl * 2)
+  })
+  const maxStorage = computed(() => {
+    const b = buildings.value.find(x => x.key === 'armazem')
+    const lvl = b ? b.level : 1
+    return 1000 + (lvl * 500) // Fórmula do Armazém (Base 1000 + 500 por nível)
+  })
+
   // === ACTIONS (Ações) ===
 
   // 1. Contratar
@@ -95,7 +108,7 @@ export const useGameStore = defineStore('game', () => {
 
   return {
     resources, workers, buildings, adminId,
-    currentAdmin, recruitmentLevel,
+    currentAdmin, recruitmentLevel, maxPopulation, maxStorage,
     hireWorker, fireWorker, setAdmin, paySalaries,
     spendResources, upgradeBuilding, loadGame
   }

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import { PROFISSOES, RACAS, TIER_CONFIG, BASE_DROP_RATES, DROP_RATE_META, UNLOCK_THRESHOLDS, TIER_ORDER } from '../data/balancing'
+import { PROFISSOES, RACAS, TIER_CONFIG, PROBABILIDADE_POR_NIVEL, DROP_RATE_META, TIER_ORDER, NOMES_M, NOMES_F, SOBRENOMES } from '../data/balancing'
 
 const store = useGameStore()
 
@@ -22,88 +22,76 @@ const availableAdmins = computed(() => {
   return store.workers.filter(w => w.jobKey === 'administrador' && w.id !== store.adminId)
 })
 
-// === CÁLCULO DE PROBABILIDADE COM DESBLOQUEIO ===
-// === CÁLCULO DE PROBABILIDADE (DISTRIBUIÇÃO PONDERADA) ===
+// === CÁLCULO DE PROBABILIDADE INTELIGENTE ===
 const dropRateTable = computed(() => {
   const adminEff = store.currentAdmin ? store.currentAdmin.efficiency : 0
-  const buildingLvl = store.recruitmentLevel || 1
-
-  // 1. Definição do Teto (Tier Máximo Liberado)
-  const effectiveLvl = Math.min(buildingLvl, 5)
-  const maxAllowedTier = UNLOCK_THRESHOLDS[effectiveLvl] || 'E'
-  const maxIndex = TIER_ORDER.indexOf(maxAllowedTier)
-
-  // Separa Tiers Liberados e Bloqueados
-  let unlockedTiers = TIER_ORDER.filter((_, i) => i <= maxIndex)
-  let lockedTiers = TIER_ORDER.filter((_, i) => i > maxIndex)
-
-  // 2. Normalização Inicial (Regra de Três)
-  // Faz com que os tiers liberados ocupem 100% do espaço proporcionalmente à sua base
-  let sumBaseUnlocked = unlockedTiers.reduce((acc, t) => acc + BASE_DROP_RATES[t], 0)
-  let currentRates = {}
   
-  unlockedTiers.forEach(tier => {
-    // Ex: Se só tem F e E, a soma é ~46. F vira (21/46)*100 = ~45%
-    currentRates[tier] = (BASE_DROP_RATES[tier] / sumBaseUnlocked) * 100
-  })
+  // Limita o nível entre 1 e 10
+  let lvl = store.recruitmentLevel || 1
+  if (lvl > 10) lvl = 10
+  if (lvl < 1) lvl = 1
+  
+  // 1. Pega a probabilidade base (Cópia para não alterar original)
+  let currentRates = { ...PROBABILIDADE_POR_NIVEL[lvl] }
 
-  // 3. Aplicação do Bônus (Shift)
-  const totalShift = (buildingLvl * DROP_RATE_META.shiftPerLevel) + ((adminEff / 100) * DROP_RATE_META.shiftPerAdmin)
+  // 2. Aplica o Bônus do Administrador
+  const totalShift = (adminEff / 100) * DROP_RATE_META.shiftPerAdmin
   
   if (totalShift > 0) {
-    // A) CALCULAR O POTE DE PERDA (De onde sai a %)
-    // Apenas tiers F e E perdem. Se E for o máximo (Nível 1), ele não perde, ele ganha.
-    let validLosers = unlockedTiers.filter(t => 
-      DROP_RATE_META.losersWeights[t] && t !== maxAllowedTier
-    )
-    
-    // Se não tiver quem perder (Ex: Nível 1 só tem F e E, e E é o max), o shift sai só do F
-    let lossPot = 0
-    let loserWeightsSum = validLosers.reduce((acc, t) => acc + DROP_RATE_META.losersWeights[t], 0)
-    
-    validLosers.forEach(tier => {
-      // Normaliza o peso da perda
-      const weight = DROP_RATE_META.losersWeights[tier] / (loserWeightsSum || 1)
-      const loss = Math.min(currentRates[tier], totalShift * weight) // Não deixa ficar negativo
-      currentRates[tier] -= loss
-      lossPot += loss
-    })
+    // A) IDENTIFICAR TIERS LIBERADOS (Base > 0)
+    const unlockedTiers = TIER_ORDER.filter(t => currentRates[t] > 0)
 
-    // B) DISTRIBUIR O POTE DE GANHO (Para onde vai a %)
-    // O ganho vai para todos os tiers liberados que NÃO são losers (D até SS)
-    // Se estiver no Nível 1 (E é max), o E recebe tudo.
-    let validGainers = unlockedTiers.filter(t => !DROP_RATE_META.losersWeights[t])
-    
-    // Caso especial Nível 1: E é gainer
-    if (validGainers.length === 0 && unlockedTiers.includes('E')) validGainers.push('E')
+    // B) DEFINIR "GAINERS" (Quem recebe o buff)
+    // Tenta buffar tiers na ordem de preferência: SS > S > A > B > C...
+    let validGainers = DROP_RATE_META.bonusTargetPreference.filter(t => unlockedTiers.includes(t))
 
-    let gainerWeightsSum = validGainers.reduce((acc, t) => acc + (DROP_RATE_META.bonusDistribution[t] || 1), 0)
+    // REGRA DE SEGURANÇA (NÍVEL BAIXO):
+    // Se a lista de preferência estiver vazia (Ex: Nível 2), buffa o MAIOR TIER LIBERADO (Ex: E).
+    if (validGainers.length === 0) {
+      const highestUnlocked = unlockedTiers[unlockedTiers.length - 1]
+      if (highestUnlocked && highestUnlocked !== 'F') {
+         validGainers = [highestUnlocked]
+      }
+    }
 
-    validGainers.forEach(tier => {
-      // Pega o peso do balancing.js (B=35, S=8, etc)
-      const weight = (DROP_RATE_META.bonusDistribution[tier] || 1) / gainerWeightsSum
-      currentRates[tier] += lossPot * weight
-    })
+    // C) DEFINIR "LOSERS" (Quem perde probabilidade)
+    let validLosers = unlockedTiers.filter(t => !validGainers.includes(t))
+
+    if (validGainers.length > 0 && validLosers.length > 0) {
+      // Divide o peso da perda
+      const lossPerTier = totalShift / validLosers.length 
+
+      let lossPot = 0
+      validLosers.forEach(tier => {
+        const actualLoss = Math.min(currentRates[tier], lossPerTier)
+        currentRates[tier] -= actualLoss
+        lossPot += actualLoss
+      })
+
+      // Distribui o ganho
+      const gainPerTier = lossPot / validGainers.length
+      validGainers.forEach(tier => {
+        currentRates[tier] += gainPerTier
+      })
+    }
   }
 
-  // 4. Formatação Final
+  // 3. Formatação Final
   return TIER_ORDER.slice().reverse().map(tier => {
-    const isLocked = lockedTiers.includes(tier)
-    // Base recalculada para exibição (mostra quanto seria sem o bônus do admin/nível)
-    const normalizedBase = isLocked ? 0 : (BASE_DROP_RATES[tier] / sumBaseUnlocked) * 100
-    const real = isLocked ? 0 : currentRates[tier]
-    const diff = real - normalizedBase
+    const baseVal = PROBABILIDADE_POR_NIVEL[lvl][tier]
+    const realVal = currentRates[tier]
+    const diff = realVal - baseVal
+    const isLocked = baseVal === 0 && realVal === 0
 
     return {
       tier,
-      base: isLocked ? "BLOQ" : normalizedBase.toFixed(2),
-      real: real.toFixed(2),
+      base: baseVal.toFixed(2),
+      real: realVal.toFixed(2),
       diff: diff.toFixed(2),
       diffSign: diff > 0 ? '+' : '',
       isBuffed: diff > 0.05,
       isNerfed: diff < -0.05,
-      isLocked: isLocked,
-      color: TIER_CONFIG[tier].color
+      isLocked: isLocked
     }
   })
 })
@@ -114,30 +102,34 @@ const randomRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + 
 const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
 const generateRecruit = (forcedJob = null) => {
-  // 1. Validação de Ouro
+  // 1. Validação de População
+  if (store.workers.length >= store.maxPopulation) {
+    alert(`População Máxima Atingida (${store.maxPopulation})! Construa mais Estalagens.`)
+    return null
+  }
+
+  // 2. Validação de Ouro
   if (store.resources.goldCoin < 500) {
     alert("Ouro Insuficiente! Requer 500 G.")
     return null
   }
 
-  // 2. Dados Básicos
+  // 3. Gerar Nome RPG
   const race = randomItem(RACAS)
   const sex = randomItem(['m', 'f'])
+  const firstName = sex === 'm' ? randomItem(NOMES_M) : randomItem(NOMES_F)
+  const lastName = randomItem(SOBRENOMES)
+  const fullName = `${firstName} ${lastName}`
+
   const jobKey = forcedJob || randomItem(Object.keys(PROFISSOES))
   const jobTitle = PROFISSOES[jobKey][sex] 
   
-  // 3. LÓGICA DE DROP RATE REAL (CORRIGIDO)
-  // Pega a tabela de probabilidades calculada (aquela que aparece no modal)
+  // 4. Roleta de Tiers
   const rates = dropRateTable.value 
-  
-  // Gera um número entre 0 e 100 (Soma total das porcentagens)
-  // Usamos reduce para garantir precisão caso a soma varie levemente de 100%
   const totalWeight = rates.reduce((sum, r) => sum + parseFloat(r.real), 0)
   let randomNum = Math.random() * totalWeight
   
-  let selectedTier = 'F' // Tier padrão caso algo falhe
-
-  // Roda a roleta: vai subtraindo a chance de cada tier até o número zerar
+  let selectedTier = 'F' 
   for (const rate of rates) {
     randomNum -= parseFloat(rate.real)
     if (randomNum <= 0) {
@@ -146,22 +138,18 @@ const generateRecruit = (forcedJob = null) => {
     }
   }
   
-  const tier = selectedTier
-  
-  // 4. Configuração Final do Boneco
-  const config = TIER_CONFIG[tier]
+  const config = TIER_CONFIG[selectedTier]
   let efficiency = randomRange(config.minEff, config.maxEff)
-  
   if (race === 'automato') efficiency += 5 
   
   const avatarUrl = `/assets/faces/${sanitize(race)}/${jobKey}_${sex}.png`
 
   return { 
     id: Date.now() + Math.random(), 
-    name: `Recruta ${Math.floor(Math.random() * 900) + 100}`,
+    name: fullName,
     race,
     sex: sex === 'm' ? 'Masculino' : 'Feminino', 
-    jobKey, jobTitle, tier, efficiency, 
+    jobKey, jobTitle, tier: selectedTier, efficiency, 
     happiness: 100,
     salary: config.salary, 
     avatarUrl
@@ -189,7 +177,7 @@ const closeModal = () => {
   newHire.value = null
 }
 
-const getTierClass = (tier) => `tier-${TIER_CONFIG[tier].color}`
+const getTierClass = (tier) => `tier-${tier}`
 const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 
 </script>
@@ -248,7 +236,7 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
         <div class="slot-content-wrapper">
           <div class="slot-info">
             <span class="s-title">SISTEMA OFFLINE</span>
-            <span class="s-desc">Bônus de eficiência inativos. Requer unidade classe [ADMINISTRADOR].</span>
+            <span class="s-desc">Bônus de eficiência inativos. </span>
           </div>
           
           <button class="btn-designar" @click="showAdminSelect = true">
@@ -288,39 +276,45 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
     </div>
 
     <div class="modal-overlay" v-if="showModal && newHire" @click.self="closeModal">
-      <div class="new-hire-card style-tcg" :class="getTierClass(newHire.tier)">
-        <div class="tcg-header">
-           <span class="p-rank">RANK {{ newHire.tier }}</span>
-           <button class="p-close" @click="closeModal">✕</button>
-        </div>
+      <div class="bio-card" :class="getTierClass(newHire.tier)">
+         
+         <div class="bio-data-panel">
+            <div class="bio-header">
+               <span class="bio-rank">TIER {{ newHire.tier }}</span>
+               <h2 class="bio-name">{{ newHire.name }}</h2>
+               <span class="bio-job">{{ newHire.jobTitle }}</span>
+            </div>
 
-        <div class="tcg-body">
-           <div class="tcg-visual-container">
-              <img :src="newHire.avatarUrl" class="tcg-img">
-              <div class="tcg-shine"></div> 
-           </div>
-           
-           <div class="tcg-info">
-              <h2 class="tcg-name">{{ newHire.name }}</h2>
-              <span class="tcg-job">{{ newHire.jobTitle }}</span>
-           </div>
+            <div class="bio-grid">
+               <div class="bg-item">
+                  <span class="l">RAÇA</span>
+                  <span class="v capitalize">{{ newHire.race }}</span>
+               </div>
+               
+               <div class="bg-item">
+                  <span class="l">HUMOR</span>
+                  <span class="v teal">{{ newHire.happiness || 100 }}%</span>
+               </div>
 
-           <div class="tcg-stats-box">
-              <div class="ts-row">
-                 <span class="lbl">RAÇA</span>
-                 <span class="val capitalize">{{ newHire.race }}</span>
-              </div>
-              <div class="ts-row">
-                 <span class="lbl">EFICIÊNCIA</span>
-                 <span class="val highlight">{{ newHire.efficiency }}%</span>
-              </div>
-              <div class="ts-row highlight-row">
-                 <span class="lbl">SALÁRIO</span>
-                 <span class="val gold">{{ formatNum(newHire.salary) }} G/dia</span>
-              </div>
-           </div>
-        </div>
-        <button class="game-btn confirm lg portal-btn" @click="closeModal">CONFIRMAR CONTRATAÇÃO</button>
+               <div class="bg-item">
+                  <span class="l">EFICIÊNCIA</span>
+                  <span class="v highlight">{{ newHire.efficiency }}%</span>
+               </div>
+               
+               <div class="bg-item">
+                  <span class="l">SALÁRIO</span>
+                  <span class="v gold">{{ formatNum(newHire.salary) }} G</span>
+               </div>
+            </div>
+
+            <button class="bio-btn" @click="closeModal">:: REGISTRAR NO SISTEMA ::</button>
+         </div>
+
+         <div class="bio-visual-panel">
+            <img :src="newHire.avatarUrl" class="bio-img">
+            <div class="bio-overlay"></div>
+            <div class="bio-tech-lines"></div>
+         </div>
       </div>
     </div>
     <div class="modal-overlay" v-if="showAdminSelect" @click.self="showAdminSelect = false">
@@ -483,15 +477,15 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 }
 
 /* Cores de Rank */
-.tier-gray   { --rk-c: #94a3b8; --rk-bg: #1e293b; background: #94a3b8; color: #000; }
-.tier-green  { --rk-c: #10b981; --rk-bg: #064e3b; background: #10b981; color: #000; }
-.tier-blue   { --rk-c: #00f0ff; --rk-bg: #1e3a8a; background: #38bdf8; color: #000; }
-.tier-purple { --rk-c: #d946ef; --rk-bg: #581c87; background: #c084fc; color: #000; }
-.tier-gold   { --rk-c: #ffd700; --rk-bg: #713f12; background: #facc15; color: #000; }
-.tier-red    { --rk-c: #ff003c; --rk-bg: #7f1d1d; background: #f43f5e; color: #fff; }
+.tier-F  { --rk-c: #64748b; --rk-bg: #1e293b; background: #64748b; color: #000; }
+.tier-E  { --rk-c: #b45309; --rk-bg: #451a03; background: #b45309; color: #fff; } /* Bronze - Texto Branco */
+.tier-D  { --rk-c: #10b981; --rk-bg: #064e3b; background: #10b981; color: #000; }
+.tier-C  { --rk-c: #06b6d4; --rk-bg: #164e63; background: #06b6d4; color: #000; } /* Ciano */
+.tier-B  { --rk-c: #3b82f6; --rk-bg: #1e3a8a; background: #3b82f6; color: #fff; } /* Azul Escuro - Texto Branco */
+.tier-A  { --rk-c: #a855f7; --rk-bg: #581c87; background: #a855f7; color: #fff; }
+.tier-S  { --rk-c: #eab308; --rk-bg: #713f12; background: #eab308; color: #000; }
+.tier-SS { --rk-c: #ef4444; --rk-bg: #7f1d1d; background: #ef4444; color: #fff; }
 
-.gold { color: #ffd700; text-shadow: 0 0 2px #000; }
-.blue { color: #38bdf8; text-shadow: 0 0 2px #000; }
 .highlight { color: #fff; font-weight: 700; }
 .capitalize { text-transform: capitalize; }
 
@@ -633,8 +627,10 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 .h-name { font-size: 18px; color: #fff; margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
 .admin-race-tag { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700; }
 .h-metrics { display: flex; gap: 25px; }
-.metric { display: flex; flex-direction: column; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 10px; }
+.metric { display: flex; flex-direction: column; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 10px;}
 .m-val { font-size: 15px; font-weight: 700; color: #fff; }
+.gold { color: #ffd700; text-shadow: 0 0 2px #000; }
+.blue { color: #38bdf8; text-shadow: 0 0 2px #000; }
 .m-lbl { font-size: 9px; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
 
 /* =========================================
@@ -700,11 +696,9 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   background: #1e293b; border: 1px solid #475569; border-radius: 8px; overflow: hidden;
   transition: 0.3s; position: relative; display: flex; flex-direction: column;
 }
-.worker-card:hover { transform: translateY(-5px); border-color: var(--rk-c); box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
 
 .card-visual { height: 140px; position: relative; background: #000; }
-.card-visual img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-.worker-card:hover .card-visual img { transform: scale(1.05); opacity: 0.8; }
+.card-visual img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: 0.3s; }
 
 .card-rank-badge {
   position: absolute; top: 8px; right: 8px; z-index: 2;
@@ -744,37 +738,109 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
-.new-hire-card {
-  width: 320px; background: #1e293b; border: 2px solid var(--rk-c); border-radius: 12px;
-  box-shadow: 0 0 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; overflow: hidden;
-  animation: cardFlip 0.4s ease-out;
+/* === CSS MODELO 2.2 (V2): SCANNER LIMPO === */
+.bio-card {
+  width: 620px; /* Um pouco mais largo para respirar */
+  background: #0f172a;
+  border: 1px solid var(--rk-c);
+  display: flex;
+  box-shadow: 0 0 60px rgba(0,0,0,0.9);
+  font-family: 'Chakra Petch', sans-serif;
+  position: relative;
+  overflow: hidden;
+  animation: slideLeft 0.3s ease-out;
 }
-@keyframes cardFlip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
+@keyframes slideLeft { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-.tcg-header { background: var(--rk-c); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
-.p-rank { font-weight: 900; color: #000; font-size: 16px; letter-spacing: 1px; }
-.p-close { background: none; border: none; color: #000; font-weight: bold; font-size: 16px; cursor: pointer; }
-
-.tcg-visual-container { height: 180px; width: 100%; position: relative; background: #000; }
-.tcg-img { width: 100%; height: 100%; object-fit: cover; }
-.tcg-shine { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); pointer-events: none; }
-
-.tcg-info { padding: 15px; text-align: center; background: #162032; border-bottom: 1px solid #334155; }
-.tcg-name { font-size: 20px; color: #fff; margin: 0; font-weight: 700; }
-.tcg-job { font-size: 11px; color: #38bdf8; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
-
-.tcg-stats-box { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-.ts-row { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 8px 12px; border-radius: 4px; border: 1px solid #334155; }
-.highlight-row { border-color: rgba(255, 215, 0, 0.3); }
-
-.ts-row .lbl { font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; }
-.ts-row .val { font-size: 12px; font-weight: 700; color: #fff; }
-
-.game-btn.portal-btn {
-  width: 100%; padding: 15px; border: none; background: var(--rk-c); color: #000;
-  font-weight: 800; font-size: 14px; text-transform: uppercase; cursor: pointer; transition: 0.2s;
+/* Linha decorativa na esquerda */
+.bio-card::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+  background: var(--rk-c); z-index: 2;
+  box-shadow: 0 0 10px var(--rk-c);
 }
-.game-btn.portal-btn:hover { filter: brightness(1.1); }
+
+/* --- LADO ESQUERDO (DADOS) --- */
+.bio-data-panel {
+  flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 25px;
+  z-index: 1; /* Garante que fique sobre a imagem se precisar */
+}
+
+.bio-header { display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+.bio-rank { font-size: 10px; color: var(--rk-c); font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+.bio-name { margin: 0; font-size: 26px; color: #fff; text-transform: uppercase; font-weight: 700; line-height: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.bio-job { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+/* Grid 2x2 Padronizado */
+.bio-grid { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 12px; 
+}
+
+.bg-item { 
+  background: rgba(2, 6, 23, 0.6); 
+  padding: 10px 14px; 
+  border-radius: 4px; 
+  border: 1px solid #334155; 
+  display: flex; flex-direction: column; gap: 4px;
+  transition: 0.2s;
+}
+.bg-item:hover { border-color: #475569; background: rgba(2, 6, 23, 0.8); }
+
+.bg-item .l { font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+.bg-item .v { font-size: 14px; font-weight: 700; color: #e2e8f0; }
+
+.bio-btn {
+  margin-top: auto; padding: 14px; background: transparent; 
+  border: 1px solid var(--rk-c); color: var(--rk-c);
+  font-weight: 900; text-transform: uppercase; cursor: pointer; transition: 0.2s;
+  letter-spacing: 1px; font-family: 'Chakra Petch', sans-serif;
+}
+.bio-btn:hover { background: var(--rk-c); color: #000; box-shadow: 0 0 15px var(--rk-c); }
+
+/* --- LADO DIREITO (VISUAL) --- */
+.bio-visual-panel {
+  width: 240px; 
+  position: relative; 
+  background: #000;
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 0% 100%); 
+  margin-left: -25px;
+  
+  /* NOVO: Sombra interna forçada na esquerda para matar a linha de corte */
+  box-shadow: inset 30px 0 40px #0f172a; 
+}
+
+.bio-img { 
+  width: 100%; height: 100%; 
+  object-fit: cover; 
+  object-position: top;
+  /* Removido o transform: scale(1.02) que eu tinha colocado */
+}
+
+.bio-overlay {
+  position: absolute; inset: 0; 
+  
+  /* NOVO GRADIENTE AGRESSIVO:
+     0% a 20%: Cor Sólida do Fundo (Esconde o corte)
+     20% a 50%: Transição Suave
+     100%: Transparente
+  */
+  background: linear-gradient(90deg, 
+    #0f172a 0%, 
+    #0f172a 20%, 
+    rgba(15, 23, 42, 0.8) 45%, 
+    rgba(15, 23, 42, 0.2) 70%,
+    transparent 100%
+  );
+  
+  pointer-events: none;
+  z-index: 10; /* Garante que fique acima de tudo */
+}
+.bio-tech-lines {
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 3px);
+  pointer-events: none;
+}
 
 /* =========================================
    7. MODAL PROBABILIDADE (TACTICAL CARD)
@@ -828,8 +894,117 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   .slot-btn { width: 100px; height: 45px; } 
   .slot-name { font-size: 8px; }
   .grid-workers { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-  .building-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .bh-right { width: 100%; }
+  .building-header {
+    display: flex;
+    flex-wrap: nowrap !important; /* AQUI O SEGREDO: Proíbe quebra de linha */
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    gap: 10px; 
+  }
+
+  /* LADO ESQUERDO (Texto) */
+  .bh-left {
+    flex: 1;              /* Ocupa todo o espaço sobrando */
+    min-width: 0;         /* PERMITE ENCOLHER: Sem isso, ele empurra o botão */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;     /* Garante que nada vaze */
+  }
+
+  .bh-data {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;         /* Permite encolher o texto interno */
+    overflow: hidden;
+  }
+
+  .bh-data h2 {
+    font-size: 13px;
+    white-space: nowrap;  /* Texto em uma linha só */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adiciona "..." se não couber */
+  }
+
+  .bh-lvl {
+  font-size: 10px;
+  color: #94a3b8;
+  background: #0f172a;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  
+  /* A CORREÇÃO MÁGICA: */
+  width: fit-content;    /* Só ocupa o espaço do texto */
+  white-space: nowrap;   /* Garante que não quebre linha */
+  margin-top: 2px;       /* Um respiro do título */
+}
+
+  /* LADO DIREITO (Botão) */
+  .bh-right {
+    flex-shrink: 0;       /* BLINDA O BOTÃO: Ele nunca vai diminuir ou pular */
+    display: flex;
+    align-items: center;
+  }
+
+  .help-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  .bio-card {
+    width: 90%;          /* Ocupa a largura da tela */
+    max-width: 350px;    /* Limita para não ficar gigante */
+    flex-direction: column-reverse; /* Inverte: Imagem vai pro Topo, Dados pro Fundo */
+    max-height: 90vh;    /* Garante que cabe na altura */
+    overflow-y: auto;    /* Permite scroll se a tela for muito pequena */
+  }
+  /* Painel Visual (Agora vira um cabeçalho no topo) */
+  .bio-visual-panel {
+    width: 100%;
+    height: 200px;       /* Altura fixa */
+    margin-left: 0;      /* Remove a margem negativa lateral */
+    margin-bottom: -2px; /* Garante junção perfeita */
+    
+    /* Corte diagonal na parte INFERIOR agora */
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+    
+    /* Sombra interna vindo de BAIXO para CIMA para fundir com os dados */
+    box-shadow: inset 0 -40px 60px #0f172a; 
+  }
+  /* Ajuste do Gradiente para Vertical */
+  .bio-overlay {
+    /* Degrade de cima para baixo: Transparente -> Cor do Fundo */
+    background: linear-gradient(to bottom, 
+      transparent 0%, 
+      rgba(15, 23, 42, 0.4) 50%, 
+      #0f172a 90%,
+      #0f172a 100%
+    );
+  }
+  /* Ajuste dos Dados */
+  .bio-data-panel {
+    padding: 20px;
+    gap: 15px;
+    background: #0f172a; /* Garante fundo sólido */
+  }
+  .bio-name { font-size: 22px; }  
+  /* Ajuste do Grid para telas muito estreitas */
+  .bio-grid { 
+    gap: 8px; 
+  }  
+  .bg-item .v { font-size: 12px; }
+  .header-action-btn.remove {
+    top: 2px;
+    right: 2px;
+    padding: 4px 6px;
+    font-size: 9px; /* Fonte minúscula */
+    letter-spacing: 0;
+    border-radius: 2px;
+  }
+
 }
 /* Ajuste do Slot Vazio para caber o botão */
 .slot-content-wrapper { display: flex; justify-content: space-between; align-items: center; flex: 1; z-index: 2; }
@@ -863,4 +1038,177 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 .text-gray { color: #94a3b8; }
 .text-red { color: #f43f5e; }
 .teal { color: #2dd4bf; text-shadow: 0 0 2px #000; font-weight: 700; }
+
+/* === AJUSTES PARA TELAS MUITO PEQUENAS (< 380px) === */
+@media (max-width: 450px) {
+  
+  /* 1. Botões de Contratar (Slots) */
+  .slots-container {
+    display: grid;              /* Muda de Flex para Grid */
+    grid-template-columns: 1fr 1fr; /* Força 2 colunas iguais */
+    gap: 6px;                   /* Espaço menor entre eles */
+    width: 100%;
+  }
+
+  .slot-btn {
+    width: 100%;  /* Ocupa toda a largura da coluna */
+    height: 45px; /* Altura compacta */
+  }
+  
+  .slot-name { font-size: 9px; } /* Texto levemente menor */
+
+  /* 2. Admin Card (Ultra Compacto) */
+  .admin-card.hud-style {
+    padding: 8px 6px; /* Reduz padding lateral para ganhar espaço */
+    gap: 8px;
+  }
+
+  /* Avatar menor */
+  .h-frame { 
+    width: 42px; 
+    height: 42px; 
+  }
+  
+  .h-tier-label {
+    font-size: 7px;
+    padding: 1px 3px;
+    margin-top: -5px;
+  }
+
+  /* Textos */
+  .h-name { 
+    font-size: 13px; /* Nome menor para não bater no botão */
+    max-width: 120px; /* Força quebra se for nome gigante */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-race-tag { font-size: 8px; margin-bottom: 2px; }
+
+  /* 3. Botão Remover (Micro) */
+  .header-action-btn.remove {
+    top: 4px;
+    right: 4px;
+    padding: 3px 6px;
+    font-size: 8px; /* Fonte minúscula */
+    letter-spacing: 0;
+    border-radius: 2px;
+  }
+
+  /* Métricas */
+  .h-metrics { gap: 8px; }
+  .metric { padding-left: 5px; }
+  .m-val { font-size: 11px; }
+  .m-lbl { font-size: 7px; }
+  .building-header {
+    padding: 8px 10px;    /* Reduz o espaço interno */
+    gap: 10px;            /* Garante um respiro mínimo entre texto e botão */
+  }
+
+  /* LADO ESQUERDO (Texto + Ícone) */
+  .bh-left {
+    flex: 1;              /* Ocupa todo o espaço disponível... */
+    min-width: 0;         /* ...mas permite encolher se faltar espaço (CRUCIAL) */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bh-icon { 
+    font-size: 18px; 
+    flex-shrink: 0;       /* Ícone não encolhe */
+  }
+
+  .bh-data {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;         /* Permite que o texto dentro dele quebre/encolha */
+  }
+
+  .bh-data h2 {
+    font-size: 11px;      /* Fonte menor */
+    white-space: nowrap;  /* Força uma linha só */
+    overflow: hidden;     /* Esconde o que vazar */
+    text-overflow: ellipsis; /* Adiciona "..." se o nome for longo demais */
+    width: 100%;
+  }
+
+  .bh-lvl {
+    font-size: 9px;
+  }
+
+  /* LADO DIREITO (Botão Ajuda) */
+  .bh-right {
+    flex-shrink: 0;       /* Garante que o botão NUNCA seja esmagado */
+  }
+
+  .help-btn {
+    width: 22px;          /* Levemente menor */
+    height: 22px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+/* === AJUSTE SLOT VAZIO (MOBILE < 500px) === */
+@media (max-width: 500px) {
+  
+  .admin-card.empty-slot {
+    padding: 7px;        /* Menos borda interna */
+    gap: 7px;            /* Aproxima o ícone do texto */
+    align-items: center;  /* Centraliza verticalmente */
+  }
+
+  /* 1. Ícone Menor */
+  .slot-frame {
+    width: 45px;          /* Reduz de 70px para 45px */
+    height: 45px;
+  }
+  
+  .slot-icon {
+    width: 20px;          /* Ajusta o tamanho da imagem interna */
+    height: 20px;
+  }
+
+  /* 2. Conteúdo (Texto + Botão) */
+  .slot-content-wrapper {
+    display: flex;
+    flex-direction: row;  /* Mantém lado a lado */
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;          /* Garante que ocupe o resto do card */
+    gap: 8px;
+  }
+
+  /* 3. Textos */
+  .slot-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;         /* Permite que o texto encolha se precisar */
+  }
+
+  .s-title {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .s-desc {
+    font-size: 9px;       /* Fonte bem pequena para caber */
+    line-height: 1.1;
+    color: #64748b;
+    max-width: 150px;     /* Força quebra de linha se for muito longo */
+  }
+
+  /* 4. Botão Designar */
+  .btn-designar {
+    padding: 6px 10px;    /* Botão mais compacto */
+    font-size: 8px;
+    white-space: nowrap;  /* Impede que o texto "DESIGNAR" quebre */
+    height: fit-content;
+  }
+}
 </style>

@@ -43,7 +43,7 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
       <div class="t-group">
         <div class="t-data">
           <span class="t-label">POP</span>
-          <span class="t-val blue">{{ village.populacao }}<span class="dim">/{{ village.maxPopulacao }}</span></span>
+          <span class="t-val blue">{{ village.populacao }}<span class="dim"> / {{ village.maxPopulacao }}</span></span>
         </div>
         <div class="t-sep"></div>
         <div class="t-data">
@@ -126,7 +126,7 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 .t-data { display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
 .t-label { font-size: 9px; color: #64748b; font-weight: 700; letter-spacing: 1px; margin-bottom: 3px; }
 .t-val { font-size: 16px; font-weight: 700; color: #fff; }
-.dim { color: #475569; font-size: 12px; }
+.dim { color: #71849e; font-size: 12px; }
 /* Cores */
 .t-val.purple { color: #c084fc; text-shadow: 0 0 10px rgba(192, 132, 252, 0.3); }
 .t-val.gold { color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.3); }

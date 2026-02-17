@@ -6,6 +6,7 @@ import VilaView from './components/VilaView.vue'
 import RecrutamentoView from './components/RecrutamentoView.vue' 
 
 const store = useGameStore()
+window.game = store
 const currentScreen = ref('vila')
 
 onMounted(() => {

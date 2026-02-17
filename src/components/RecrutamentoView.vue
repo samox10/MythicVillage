@@ -11,11 +11,32 @@ const showModal = ref(false)
 const showProbModal = ref(false)
 const showAdminSelect = ref(false)
 const newHire = ref(null)
+const showErrorModal = ref(false)
+const errorMessage = ref('')
+// Variáveis para o Modal de Demissão
+const showFireModal = ref(false)
+const workerToFire = ref(null)
 
 // Computed: Pega workers da store e filtra
 const filteredWorkers = computed(() => {
-  if (!filterJob.value) return store.workers
-  return store.workers.filter(w => w.jobKey === filterJob.value)
+  // 1. Pega a lista original
+  let lista = store.workers
+
+  // 2. Se tiver filtro de profissão, aplica o filtro
+  if (filterJob.value) {
+    lista = lista.filter(w => w.jobKey === filterJob.value)
+  }
+
+  // 3. Aplica a Ordenação (Do maior Tier para o menor)
+  // O [...lista] cria uma cópia segura para não bagunçar os dados originais
+  return [...lista].sort((a, b) => {
+    // TIER_ORDER.indexOf diz a posição do rank (Ex: F=0, S=6, SS=7)
+    const pesoA = TIER_ORDER.indexOf(a.tier)
+    const pesoB = TIER_ORDER.indexOf(b.tier)
+
+    // Cálculo: Peso B - Peso A faz ficar em ordem DECRESCENTE (Maior -> Menor)
+    return pesoB - pesoA
+  })
 })
 // Filtro de Administradores Disponíveis (Para o botão Designar)
 const availableAdmins = computed(() => {
@@ -104,13 +125,15 @@ const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)]
 const generateRecruit = (forcedJob = null) => {
   // 1. Validação de População
   if (store.workers.length >= store.maxPopulation) {
-    alert(`População Máxima Atingida (${store.maxPopulation})! Construa mais Estalagens.`)
+    errorMessage.value = `População Máxima Atingida (${store.maxPopulation})\nConstrua mais Estalagens`
+    showErrorModal.value = true
     return null
   }
 
-  // 2. Validação de Ouro
+  // 2. Validação de Ouro (JÁ APROVEITEI E MUDEI TAMBÉM)
   if (store.resources.goldCoin < 500) {
-    alert("Ouro Insuficiente! Requer 500 G.")
+    errorMessage.value = "Recursos Insuficientes: A contratação requer 500 G."
+    showErrorModal.value = true
     return null
   }
 
@@ -167,6 +190,36 @@ const tryHire = (jobKey) => {
     }
   }
 }
+// === SISTEMA DE DEMISSÃO ===
+
+// 1. Clica no botão "Demitir" na lista -> Abre o Modal
+const requestFire = (worker) => {
+  // A) Verifica se é Administrador
+  if (store.adminId === worker.id) {
+    errorMessage.value = "Este habitante é o Administrador vigente. Remova-o do cargo antes de demitir."
+    showErrorModal.value = true
+    return // Para tudo aqui, não abre o modal de demissão
+  }
+
+  // B) Se não tiver impedimentos, abre o modal de confirmação
+  workerToFire.value = worker
+  showFireModal.value = true
+}
+// 2. Clica em "Confirmar" dentro do Modal -> Chama a Store
+const confirmFire = () => {
+  if (workerToFire.value) {
+    const result = store.fireWorker(workerToFire.value.id)
+    if (result.success) {
+      showFireModal.value = false
+      workerToFire.value = null
+    } else {
+      // Caso extra de segurança (se a store bloquear por outro motivo)
+      showFireModal.value = false
+      errorMessage.value = result.msg
+      showErrorModal.value = true
+    }
+  }
+}
 
 const selectAdmin = (id) => {
   store.setAdmin(id)
@@ -179,6 +232,24 @@ const closeModal = () => {
 
 const getTierClass = (tier) => `tier-${tier}`
 const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
+
+// Ação do Botão PAGAR
+const tryPaySalary = (worker) => {
+  const result = store.manualPay(worker.id)
+  if (!result.success) {
+    errorMessage.value = result.msg
+    showErrorModal.value = true
+  }
+}
+
+// Helper para pegar dados calculados no template
+const getStats = (worker) => store.getWorkerStats(worker)
+// Helper para calcular o custo visualmente no botão
+const getDebtCost = (worker) => {
+  // Se greve > 0, usa o teto de 5 dias. Se não, é 1 salário.
+  const days = worker.strikeDays > 0 ? Math.min(worker.strikeDays, 5) : 1
+  return worker.salary * days
+}
 
 </script>
 
@@ -366,9 +437,10 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
       </div>
 
       <div class="grid-workers">
-        <div v-for="worker in filteredWorkers" :key="worker.id" class="worker-card" :class="getTierClass(worker.tier)">
+        <div v-for="worker in filteredWorkers" :key="worker.id" class="worker-card" :class="[getTierClass(worker.tier), { 'is-striking': worker.strikeDays > 0 }]">
            <div class="card-visual">
              <img :src="worker.avatarUrl">
+             <div v-if="worker.strikeDays > 0" class="strike-badge">GREVE ({{ worker.strikeDays }}D)</div>
              <div class="card-rank-badge">{{ worker.tier }}</div>
              <div class="card-gradient-overlay"></div>
              <div class="card-floating-name">
@@ -388,16 +460,42 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
              </div>
              <div class="stat-line">
                 <span class="s-label">EFICIÊNCIA</span>
-                <span class="s-value blue">{{ worker.efficiency }}%</span>
+
+                <div class="stat-tooltip-container">
+                    <span class="s-value" :class="worker.strikeDays > 0 ? 'strike-text' : 'blue'">
+                      {{ getStats(worker).finalEff }}%
+                    </span>
+
+                    <div class="stat-tooltip-box">
+             <div v-if="worker.strikeDays > 0">
+               <span class="strike-text">Em Greve (Dia {{ worker.strikeDays }})</span>
+               
+               <span class="strike-detail">
+                 PENALIDADE: -{{ getStats(worker).loss }}%
+               </span>
              </div>
+             
+             <div v-else>
+               STATUS: NORMAL<br>
+               <span v-if="worker.race === 'automato'" class="text-blue">BÔNUS RACIAL ATIVO</span>
+             </div>
+          </div>
+                </div>
+              </div>
              <div class="stat-line">
                 <span class="s-label">SALÁRIO</span>
                 <span class="s-value gold">{{ formatNum(worker.salary) }} G</span>
              </div>
 
              <div class="card-actions">
-                <button class="btn-action fire" @click="store.fireWorker(worker.id)">DEMITIR</button>
-             </div>
+              <button v-if="worker.strikeDays > 0" class="btn-action admin-toggle" @click="tryPaySalary(worker)">
+                  PAGAR ({{ formatNum(getDebtCost(worker)) }} G)
+              </button>
+
+              <button v-else class="btn-action fire" @click="requestFire(worker)">
+                  DEMITIR
+              </button>
+            </div>
           </div>
         </div>
         
@@ -446,8 +544,8 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
             <div class="col-final strong">{{ rate.real }}%</div>
             <div class="col-vis">
               <div class="vis-track">
-                <div class="vis-marker" :style="{ left: (rate.base * 3) + '%' }"></div>
-                <div class="vis-fill" :style="{ width: (rate.real * 3) + '%' }" :class="rate.isBuffed ? 'fill-buff' : 'fill-nerf'"></div>
+                <div class="vis-marker" :style="{ left: rate.base + '%' }"></div>
+                <div class="vis-fill" :style="{ width: rate.real + '%' }" :class="rate.isBuffed ? 'fill-buff' : 'fill-nerf'"></div>
               </div>
             </div>
           </div>
@@ -459,8 +557,61 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
 
       </div>
     </div>
+    <div class="modal-overlay" v-if="showFireModal && workerToFire" @click.self="showFireModal = false">
+      <div class="bio-card danger-mode">
+         <div class="bio-data-panel">
+            <div class="bio-header">
+               <h2 class="bio-name">{{ workerToFire.name }}</h2>
+               <span class="bio-job">{{ workerToFire.jobTitle }}</span>
+            </div>
+
+            <div class="warning-box">
+              <span class="warn-icon">⚠️</span>
+              <p>Ação irreversível. O funcionário será removido permanentemente da equipe.</p>
+            </div>
+
+            <div class="bio-grid">
+               <div class="bg-item">
+                  <span class="l">TIER</span><span class="v">{{ workerToFire.tier }}</span>
+               </div>
+               <div class="bg-item">
+                  <span class="l">EFICIÊNCIA</span><span class="v">{{ workerToFire.efficiency }}%</span>
+               </div>
+            </div>
+
+            <div class="danger-actions">
+               <button class="t-btn btn-cancel" @click="showFireModal = false">
+                 CANCELAR
+               </button>
+               <button class="t-btn btn-confirm" @click="confirmFire">
+                 CONFIRMAR
+               </button>
+            </div>
+         </div>
+
+         <div class="bio-visual-panel">
+            <img :src="workerToFire.avatarUrl" class="bio-img grayscale-effect">
+            <div class="bio-overlay red-overlay"></div>
+         </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" v-if="showErrorModal" @click.self="showErrorModal = false">
+      <div class="tactical-card error-card">
+        <div class="tc-header error-header">
+          <span class="tc-title">⛔ AVISO</span>
+        </div>
+        <div class="error-body">
+          <p>{{ errorMessage }}</p>
+        </div>
+        <div class="error-footer">
+          <button class="t-btn btn-ok" @click="showErrorModal = false">ENTENDIDO</button>
+        </div>
+      </div>
+    </div>
 
   </div>
+
 </template>
 
 <style scoped>
@@ -681,23 +832,72 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   display: flex; justify-content: space-between; align-items: center; 
   margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 8px;
 }
+.lh-left {
+  display: flex;           /* Isso força o ícone e o texto a ficarem lado a lado */
+  align-items: center;     /* Isso alinha eles perfeitamente no centro vertical */
+  gap: 6px;                /* Um pequeno espaço entre o ícone e o texto */
+}
+
+/* Opcional: Ajuste fino para o ícone não ficar gigante */
+.lh-icon {
+  font-size: 16px;         /* Tamanho controlado do ícone */
+  line-height: 1;          /* Remove espaços extras verticais */
+}
 .lh-title { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; }
 
 .tactical-select {
-  background-color: #0f172a; color: #94a3b8; border: 1px solid #334155;
-  padding: 4px 8px; font-family: 'Chakra Petch', sans-serif; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px; outline: none; cursor: pointer;
+  background-color: #0f172a; 
+  color: #94a3b8; 
+  border: 1px solid #334155;
+  
+  /* MUDANÇA AQUI: Reduzimos o padding e definimos altura fixa */
+  padding: 0 8px;          /* 0 em cima/baixo, 8px nos lados */
+  height: 24px;            /* Altura fixa e fina */
+  font-size: 10px; 
+  
+  font-family: 'Chakra Petch', sans-serif; 
+  font-weight: 700;
+  text-transform: uppercase; 
+  letter-spacing: 0.5px; 
+  border-radius: 4px; 
+  outline: none; 
+  cursor: pointer;
 }
 
 .grid-workers { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
 .empty-filter-msg { grid-column: 1 / -1; text-align: center; padding: 40px; border: 1px dashed #334155; color: #64748b; font-size: 12px; text-transform: uppercase; }
 
 .worker-card {
-  background: #1e293b; border: 1px solid #475569; border-radius: 8px; overflow: hidden;
-  transition: 0.3s; position: relative; display: flex; flex-direction: column;
+  background: #1e293b; 
+  border: 1px solid #475569; 
+  border-radius: 8px; 
+  /* REMOVIDO: overflow: hidden; <--- Isso era o culpado pelo corte! */
+  
+  transition: 0.3s; 
+  position: relative; 
+  display: flex; 
+  flex-direction: column;
+  
+  /* NOVO: Garante que o card com tooltip ativo fique por cima dos vizinhos */
+  z-index: 1;
 }
 
-.card-visual { height: 140px; position: relative; background: #000; }
+/* NOVO: Ao passar o mouse/tocar, traz o card para frente de todos */
+.worker-card:hover { 
+  transform: translateY(-5px); 
+  border-color: #38bdf8; 
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  z-index: 20; 
+}
+
+.card-visual { 
+  height: 140px; 
+  position: relative; 
+  background: #000;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  overflow: hidden; 
+}
 .card-visual img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: 0.3s; }
 
 .card-rank-badge {
@@ -1004,6 +1204,87 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
     letter-spacing: 0;
     border-radius: 2px;
   }
+  /* MODAL DE PROBABILIDADES*/
+  /* 1. Ajuste da Janela */
+  .tactical-card {
+    width: 95% !important;
+    max-height: 80vh;
+    overflow-y: auto;
+    margin: 0 auto;
+  }
+
+  /* 2. Esconder o cabeçalho original (pois ele não alinha com o layout flexível) */
+  .grid-row.header-row {
+    display: none; 
+  }
+
+  /* 3. Transformar a linha em um "Mini Cartão" */
+  .grid-row.data-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around; /* Espalha bem os itens */
+    align-items: flex-end;         /* Alinha pela base */
+    padding: 12px 5px;
+    gap: 10px;
+    border-bottom: 2px solid #0f172a; /* Separação mais forte entre ranks */
+  }
+
+  /* 4. Coluna do RANK (O destaque) */
+  .col-rank {
+    width: 100%;             /* O Rank ocupa uma linha inteira no topo */
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+    background: rgba(0,0,0,0.2);
+    padding: 4px;
+    border-radius: 4px;
+  }
+
+  /* 5. Colunas de DADOS (Base, Mod, Final) */
+  .col-base, .col-mod, .col-final {
+    width: auto;
+    display: flex;
+    flex-direction: column;  /* Empilha o Título em cima do Número */
+    align-items: center;
+    font-size: 13px;         /* Número um pouco maior */
+  }
+
+  /* === AQUI ESTÁ A MÁGICA: INSERIR TÍTULOS VIA CSS === */
+  
+  .col-base::before {
+    content: "BASE";         /* O texto que aparece */
+    font-size: 8px;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .col-mod::before {
+    content: "MOD";
+    font-size: 8px;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .col-final::before {
+    content: "CHANCE FINAL";
+    font-size: 8px;
+    color: #94a3b8;          /* Cor um pouco mais clara */
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  /* 6. A Barra Visual vai para o rodapé do cartão */
+  .col-vis {
+    width: 100%;
+    margin-top: 8px;
+    order: 99;
+  }
+  
+  .vis-track {
+    height: 10px;            /* Barra mais grossa para ver melhor no touch */
+  }
 
 }
 /* Ajuste do Slot Vazio para caber o botão */
@@ -1210,5 +1491,231 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
     white-space: nowrap;  /* Impede que o texto "DESIGNAR" quebre */
     height: fit-content;
   }
+}
+/* === ESTILOS DO MODAL DE DEMISSÃO (DANGER MODE) === */
+/* Borda vermelha piscando ou fixa */
+.bio-card.danger-mode {
+  border-color: #ef4444;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+}
+
+.danger-text { color: #ef4444 !important; }
+
+/* Caixa de aviso amarela/laranja */
+.warning-box {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+  color: #fca5a5;
+  margin-bottom: 10px;
+}
+.warn-icon { font-size: 18px; }
+
+/* Botões do rodapé */
+.danger-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: auto;
+}
+.t-btn {
+  flex: 1;
+  padding: 15px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.btn-cancel {
+  background: #0f172a;
+  border-color: #475569;
+  color: #94a3b8;
+}
+.btn-cancel:hover {
+  background: #1e293b;
+  border-color: #94a3b8;
+  color: #fff;
+}
+/* Botão Confirmar (Estilo Perigo) */
+.btn-confirm {
+  background: rgba(239, 68, 68, 0.1); /* Vermelho transparente */
+  border-color: #ef4444;
+  color: #ef4444;
+  position: relative;
+  overflow: hidden;
+}
+.btn-confirm:hover {
+  background: #ef4444;
+  color: #000;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+/* === ESTILO DO MODAL DE ERRO/AVISO === */
+.error-card {
+  width: 90%;
+  max-width: 400px;
+  /* Troca o Laranja pelo Vermelho do jogo e Fundo Cinza Padrão */
+  border: 1px solid #ef4444; 
+  background: #1e293b;       
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+/* Opcional: Linha decorativa no topo para dar um ar "Tech" */
+.error-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+.error-header {
+  background: #0f172a;       /* Fundo mais escuro (igual aos outros headers) */
+  border-bottom: 1px solid #334155;
+  padding: 12px 15px;
+}
+
+.tc-title { 
+  color: #ef4444;            /* Texto Vermelho Neon */
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+}
+
+.error-body {
+  padding: 30px 20px;
+  text-align: center;
+  color: #cbd5e1;            /* Cinza Claro (Texto Padrão) */
+  font-size: 14px;
+  font-family: 'Chakra Petch', sans-serif;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.error-footer {
+  padding: 15px;
+  background: #0f172a;       /* Rodapé escuro */
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #334155;
+}
+
+/* Botão OK no estilo "Outline" (Borda) para não brigar com o modal de demissão */
+.btn-ok {
+  min-width: 120px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-ok:hover {
+  background: #ef4444;
+  color: #fff; /* Texto fica branco e fundo vermelho ao passar o mouse */
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* Efeitos visuais na imagem */
+.grayscale-effect {
+  filter: grayscale(100%) contrast(1.2); /* Deixa a foto preto e branco */
+}
+.red-overlay {
+  background: linear-gradient(90deg, 
+    #0f172a 0%, 
+    rgba(239, 68, 68, 0.1) 50%, 
+    transparent 100%
+  ) !important;
+}
+/* === TOOLTIP DE EFICIÊNCIA === */
+.stat-tooltip-container {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dashed #475569; /* Linha pontilhada para indicar interação */
+}
+
+.stat-tooltip-box {
+  visibility: hidden;
+  width: 180px;
+  background-color: #0f172a;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 100;
+  bottom: 125%; /* Aparece acima */
+  left: 50%;
+  margin-left: -90px; /* Centraliza */
+  border: 1px solid #ef4444;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+/* Seta do tooltip */
+.stat-tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #ef4444 transparent transparent transparent;
+}
+
+.stat-tooltip-container:hover .stat-tooltip-box {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Texto de Greve */
+.strike-text { color: #ef4444; font-weight: bold; }
+.strike-detail { display: block; margin-top: 4px; font-size: 9px; color: #fca5a5; }
+
+/* === CARD EM GREVE === */
+.worker-card.is-striking {
+  border-color: #ef4444;
+  animation: pulse-red 2s infinite;
+}
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Badge visual de Greve na foto */
+.strike-badge {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: #ef4444;
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 5px 15px;
+  border: 2px solid #fff;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 </style>

@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useGameStore } from './stores/gameStore'
+import { useMiningStore } from './stores/miningStore' // <--- NOVO IMPORT
 import HeaderHUD from './components/HeaderHUD.vue'
 import VilaView from './components/VilaView.vue'
 import RecrutamentoView from './components/RecrutamentoView.vue' 
+import MineracaoView from './components/MineracaoView.vue' // <--- NOVO IMPORT
 
 const store = useGameStore()
+const miningStore = useMiningStore() // <--- INSTÂNCIA
 window.game = store
 const currentScreen = ref('vila')
 
@@ -13,13 +16,18 @@ onMounted(() => {
   store.loadGame()
   // Salários a cada 1 min
   setInterval(() => { store.paySalaries() }, 60000)
-  // Renda Passiva de Teste
-  setInterval(() => { store.resources.goldCoin += 10 }, 1000)
+  
+  // LOOP PRINCIPAL (1 SEGUNDO)
+  setInterval(() => { 
+    store.resources.goldCoin += 10 // Renda Passiva Antiga
+    miningStore.miningTick()       // <--- O "MOTOR" DA MINERAÇÃO
+  }, 1000)
 })
 
 const menuItems = [
   { id: 'vila', label: 'BASE', icon: '🏰' },
   { id: 'recrutamento', label: 'RECRUTAR', icon: '🤝' },
+  { id: 'mineracao', label: 'MINA', icon: '⛏️' }, // <--- BOTÃO NOVO
   { id: 'lab', label: 'LAB', icon: '⚗️' },
   { id: 'guilda', label: 'CLÃ', icon: '⚔️' },
   { id: 'arena', label: 'PVP', icon: '🏆' }
@@ -52,8 +60,10 @@ const menuItems = [
           <VilaView v-if="currentScreen === 'vila'" />
           
           <RecrutamentoView v-if="currentScreen === 'recrutamento'" />
+
+          <MineracaoView v-if="currentScreen === 'mineracao'" />
           
-          <div v-if="!['vila', 'recrutamento'].includes(currentScreen)" class="locked-sector">
+          <div v-if="!['vila', 'recrutamento', 'mineracao'].includes(currentScreen)" class="locked-sector">
             <h2>{{ currentScreen }}</h2><p>SECTOR LOCKED</p>
           </div>
         </div>
@@ -63,6 +73,7 @@ const menuItems = [
 </template>
 
 <style>
+/* ... (MANTENHA O CSS DO APP.VUE EXATAMENTE IGUAL AO ANTERIOR) ... */
 /* Reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -70,17 +81,13 @@ body {
   font-family: 'Chakra Petch', sans-serif;
   color: #e2e8f0;
   min-height: 100vh;
-
-  /* Fundo com imagem fixa */
   background-image: 
   linear-gradient(to bottom, rgba(15,23,42,0.5), rgba(30,41,59,0.6)),
   url('/assets/ui/fundo-mapa.png');
-  background-size: cover;        /* ocupa 100% da tela */
-  background-position: center;   /* centraliza */
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;  
-  background-attachment: fixed;  /* <- deixa fixo ao rolar */
-  
-  /* opcional: cor base caso a imagem demore a carregar */
+  background-attachment: fixed;
   background-color: #0f172a;
 }
 
@@ -103,16 +110,16 @@ body {
   padding: 10px 20px 0 20px;
   gap: 5px;
   border-bottom: 1px solid #334155;
-  overflow-x: auto; /* Garante scroll no mobile se tiver muitos itens */
+  overflow-x: auto;
 }
 
 .skew-btn {
   flex: 1;
-  min-width: 70px; /* Garante tamanho mínimo */
+  min-width: 70px;
   background: #334155;
   border: none;
   height: 45px;
-  transform: skewX(-20deg); /* Botão inclinado */
+  transform: skewX(-20deg);
   cursor: pointer;
   margin: 0 5px;
   transition: 0.2s;
@@ -123,7 +130,7 @@ body {
 .skew-btn:hover { background: #475569; }
 
 .skew-content {
-  transform: skewX(20deg); /* Des-inclina texto */
+  transform: skewX(20deg);
   display: flex; align-items: center; justify-content: center; gap: 8px;
   height: 100%;
   color: #94a3b8;
@@ -132,9 +139,8 @@ body {
 .sk-icon { font-size: 16px; }
 .sk-lbl { font-weight: 700; font-size: 12px; letter-spacing: 1px; }
 
-/* Botão Ativo */
 .skew-btn.active {
-  background: #38bdf8; /* Azul Neon */
+  background: #38bdf8;
   border-top-color: #e0f2fe;
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
   z-index: 2;
@@ -167,7 +173,6 @@ body {
 .locked-sector { text-align: center; color: #64748b; margin-top: 50px; border: 1px dashed #334155; padding: 40px; }
 .locked-sector h2 { color: #f43f5e; letter-spacing: 2px; text-transform: uppercase; }
 
-/* === MOBILE MODE (APENAS ÍCONES) === */
 @media (max-width: 600px) {
   .skew-nav { padding: 10px 5px 0 5px; gap: 2px; }
   .skew-btn { margin: 0 2px; }

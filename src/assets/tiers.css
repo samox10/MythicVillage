@@ -1,0 +1,26 @@
+/* === CORES DE RANK (TIERS) === */
+/* Definimos variáveis para facilitar mudanças futuras */
+
+.tier-F  { --rk-c: #64748b; --rk-bg: #1e293b; background: #64748b; color: #000; }
+.tier-E  { --rk-c: #b45309; --rk-bg: #451a03; background: #b45309; color: #fff; } /* Bronze */
+.tier-D  { --rk-c: #10b981; --rk-bg: #064e3b; background: #10b981; color: #000; } /* Verde */
+.tier-C  { --rk-c: #06b6d4; --rk-bg: #164e63; background: #06b6d4; color: #000; } /* Ciano */
+.tier-B  { --rk-c: #3b82f6; --rk-bg: #1e3a8a; background: #3b82f6; color: #fff; } /* Azul */
+.tier-A  { --rk-c: #a855f7; --rk-bg: #581c87; background: #a855f7; color: #fff; } /* Roxo */
+.tier-S  { --rk-c: #eab308; --rk-bg: #713f12; background: #eab308; color: #000; } /* Dourado */
+.tier-SS { --rk-c: #ef4444; --rk-bg: #7f1d1d; background: #ef4444; color: #fff; } /* Vermelho */
+
+/* Utilitários de Texto */
+.text-gold { color: #facc15; }
+.text-purple { color: #c084fc; }
+.text-blue { color: #38bdf8; }
+.text-green { color: #10b981; }
+.text-gray { color: #94a3b8; }
+.text-red { color: #f43f5e; }
+.text-buff { color: #38bdf8; }
+.text-nerf { color: #ef4444; }
+.text-neut { color: #475569; }
+
+.highlight { color: #fff; font-weight: 700; }
+.capitalize { text-transform: capitalize; }
+.teal { color: #2dd4bf; text-shadow: 0 0 2px #000; font-weight: 700; }

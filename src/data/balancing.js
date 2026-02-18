@@ -73,3 +73,31 @@ export const SOBRENOMES = [
   'Fireforge', 'Moonwhisper', 'Starfall', 'Windrunner', 'Stonefist', 'Bloodraven', 
   'Goldleaf', 'Silverhand', 'Blackwood', 'Whitehawk', 'Deepwalker', 'Skydancer'
 ]
+// === 7. SISTEMA DE MINERAÇÃO ===
+export const RECURSOS_MINERACAO = {
+  // TIER F & E (Básicos - Liberam rápido com 2 slots)
+  pedra:      { nome: 'Pedra',      tier: 'F', valor: 1,   dureza: 1,   cor: '#64748b', unlockLvl: 1,  fullUnlockLvl: 1 },
+  ferro:      { nome: 'Ferro',      tier: 'E', valor: 5,   dureza: 2,   cor: '#78716c', unlockLvl: 2,  fullUnlockLvl: 2 },
+  cobre:      { nome: 'Cobre',      tier: 'E', valor: 4,   dureza: 2,   cor: '#b45309', unlockLvl: 3,  fullUnlockLvl: 3 },
+  
+  // TIER D & C (Intermediários - Craft Mágico)
+  ouro_min:   { nome: 'Ouro Bruto', tier: 'D', valor: 50,  dureza: 5,   cor: '#eab308', unlockLvl: 5,  fullUnlockLvl: 5 },
+  cristal:    { nome: 'Cristal',    tier: 'D', valor: 40,  dureza: 4,   cor: '#06b6d4', unlockLvl: 6,  fullUnlockLvl: 7 }, // Delay de 1 nivel
+  obsidiana:  { nome: 'Obsidiana',  tier: 'C', valor: 80,  dureza: 8,   cor: '#312e81', unlockLvl: 8,  fullUnlockLvl: 9 },
+  
+  // TIER B & A (Jóias e Ligas Fortes)
+  rubi:       { nome: 'Rubi',       tier: 'B', valor: 150, dureza: 12,  cor: '#ef4444', unlockLvl: 10, fullUnlockLvl: 11 },
+  safira:     { nome: 'Safira',     tier: 'B', valor: 150, dureza: 12,  cor: '#3b82f6', unlockLvl: 12, fullUnlockLvl: 13 },
+  esmeralda:  { nome: 'Esmeralda',  tier: 'B', valor: 150, dureza: 12,  cor: '#10b981', unlockLvl: 14, fullUnlockLvl: 15 },
+  
+  // TIER S & SS (Lendários - Progressão Lenta)
+  mithril:    { nome: 'Mithril',    tier: 'S', valor: 300, dureza: 20,  cor: '#94a3b8', unlockLvl: 16, fullUnlockLvl: 17 },
+  adamantium: { nome: 'Adamantium', tier: 'S', valor: 400, dureza: 30,  cor: '#0f766e', unlockLvl: 18, fullUnlockLvl: 19 },
+  oricalco:   { nome: 'Oricalco',   tier: 'SS',valor: 1000,dureza: 50,  cor: '#f59e0b', unlockLvl: 20, fullUnlockLvl: 20 } // O último libera full no 20
+}
+
+export const MINING_CONFIG = {
+  baseCartCapacity: 200,
+  travelTime: 10,
+  tickRate: 1000
+}

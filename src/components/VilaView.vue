@@ -9,7 +9,8 @@ const buildingDefinitions = [
   { id: 1, key: 'castelo', name: 'Castelo', type: 'COMANDO', desc: 'Gera Ouro Passivo', img: '🏰', baseCost: 500, baseTime: 5, effectDesc: (lvl) => `+${lvl * 10 + 100} Ouro/s` },
   { id: 2, key: 'armazem', name: 'Armazém', type: 'ESTOQUE', desc: 'Armazena Materiais', img: '📦', baseCost: 800, baseTime: 10, effectDesc: (lvl) => `Cap: ${1000 + (lvl * 500)}` },
   { id: 3, key: 'hospedagem', name: 'Estalagem', type: 'HABITAÇÃO', desc: 'Limite de População', img: '🛏️', baseCost: 300, baseTime: 8, effectDesc: (lvl) => `Pop: ${10 + (lvl * 2)}` },
-  { id: 4, key: 'centrorecrutamento', name: 'Centro de Recrutamento', type: 'RECURSO', desc: 'Recrutar novos funcionários', img: '🔮', baseCost: 5000, baseTime: 30, reqId: 1, reqLvl: 1, effectDesc: (lvl) => `Nível ${lvl}` }
+  { id: 4, key: 'centrorecrutamento', name: 'Centro de Recrutamento', type: 'RECURSO', desc: 'Recrutar novos funcionários', img: '🔮', baseCost: 5000, baseTime: 30, reqId: 1, reqLvl: 1, effectDesc: (lvl) => `Nível ${lvl}` },
+  { id: 5, key: 'mina', name: 'Minas Profundas', type: 'PRODUÇÃO', desc: 'Desbloqueia novos veios de minério', img: '⛏️', baseCost: 1500, baseTime: 1, reqId: 4, reqLvl: 1, effectDesc: (lvl) => lvl >= 20 ? 'Profundidade Máxima' : `Profundidade ${lvl}` },
 ]
 
 // Merge dos dados com o Store (Cérebro)

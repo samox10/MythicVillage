@@ -6,12 +6,20 @@ export const useGameStore = defineStore('game', () => {
   
   // === ESTADO (Dados do Jogo) ===
   const resources = ref({ mythicCoin: 100, goldCoin: 10000000 })
+  const dailyHires = ref(0)
+  const recruitmentLevel = ref(1)
+
+  const inventory = ref({
+    pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0,
+    rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0
+  })
   const workers = ref([]) 
   const buildings = ref([
     { id: 1, key: 'castelo', level: 1 },
     { id: 2, key: 'armazem', level: 1 },
     { id: 3, key: 'hospedagem', level: 1 },
-    { id: 4, key: 'centrorecrutamento', level: 1 }
+    { id: 4, key: 'centrorecrutamento', level: 1 },
+    { id: 5, key: 'mina', level: 1 }
   ])
   const adminId = ref(null)
 
@@ -21,10 +29,10 @@ export const useGameStore = defineStore('game', () => {
     return workers.value.find(w => w.id === adminId.value) || null
   })
 
-  const recruitmentLevel = computed(() => {
+  /*const recruitmentLevel = computed(() => {
     const b = buildings.value.find(x => x.key === 'centrorecrutamento')
     return b ? b.level : 0
-  })
+  })*/
 
   const maxPopulation = computed(() => {
     // Procura o prédio 'hospedagem' (ID 3 ou key 'hospedagem')
@@ -37,6 +45,10 @@ export const useGameStore = defineStore('game', () => {
     const b = buildings.value.find(x => x.key === 'armazem')
     const lvl = b ? b.level : 1
     return 1000 + (lvl * 500) // Fórmula do Armazém (Base 1000 + 500 por nível)
+  })
+  const miningLevel = computed(() => {
+    const b = buildings.value.find(x => x.key === 'mina')
+    return b ? b.level : 1
   })
 
   // === HELPER: Cálculo de Eficiência Dinâmica ===
@@ -81,6 +93,7 @@ export const useGameStore = defineStore('game', () => {
     if (resources.value.goldCoin < 500) return false
     resources.value.goldCoin -= 500
     workers.value.unshift(worker)
+    dailyHires.value++
     return true
   }
 
@@ -122,6 +135,7 @@ export const useGameStore = defineStore('game', () => {
   // 4. Salário (Sistema Inteligente com Greve)
   // 4. Salário (Atualizado com Acúmulo de Dívida - Teto 5 Dias)
   function paySalaries() {
+    dailyHires.value = 0
     let budget = resources.value.goldCoin
     let totalPaid = 0
 
@@ -199,28 +213,50 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // === SAVE SYSTEM ===
+  // === SAVE SYSTEM ===
   function loadGame() {
-    const saved = localStorage.getItem('mythic_save_v2') // Mudei para v2 para limpar dados velhos
+    const saved = localStorage.getItem('mythic_save_v2')
     if (saved) {
       const data = JSON.parse(saved)
+      
+      // Carrega recursos e inventário normalmente
       resources.value = data.resources
+      inventory.value = data.inventory || { pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0, rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0 }
       workers.value = data.workers
-      buildings.value = data.buildings
       adminId.value = data.adminId
+      dailyHires.value = data.dailyHires || 0
+
+      // === CORREÇÃO DO BUG DA MINA AQUI ===
+      // Em vez de 'buildings.value = data.buildings', fazemos um merge:
+      if (data.buildings) {
+        data.buildings.forEach(savedBuilding => {
+          // Procura o prédio na lista ATUAL do código
+          const existingBuilding = buildings.value.find(b => b.id === savedBuilding.id)
+          
+          // Se ele existir, atualiza o nível
+          if (existingBuilding) {
+            existingBuilding.level = savedBuilding.level
+          }
+        })
+        // Prédios novos (como a Mina ID 5) não serão apagados,
+        // eles manterão o nível 1 definido no início do arquivo.
+      }
     }
   }
 
-  watch([resources, workers, buildings, adminId], () => {
+  watch([resources, workers, buildings, adminId, dailyHires, inventory], () => {
     localStorage.setItem('mythic_save_v2', JSON.stringify({
       resources: resources.value,
       workers: workers.value,
       buildings: buildings.value,
-      adminId: adminId.value
+      adminId: adminId.value,
+      inventory: inventory.value,
+      dailyHires: dailyHires.value
     }))
   }, { deep: true })
 
   return {
-    resources, workers, buildings, adminId,
+    resources, inventory, workers, buildings, adminId, dailyHires, miningLevel,
     currentAdmin, recruitmentLevel, maxPopulation, maxStorage,
     hireWorker, fireWorker, setAdmin, paySalaries, manualPay,
     spendResources, upgradeBuilding, loadGame, getWorkerStats

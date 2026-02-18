@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useGameStore } from './gameStore'
 import { RECURSOS_MINERACAO, MINING_CONFIG } from '../data/balancing'
 
@@ -182,6 +182,45 @@ export const useMiningStore = defineStore('mining', () => {
       }
     })
   }
+  // === SAVE SYSTEM DA MINA ===
+function loadMining() {
+  const saved = localStorage.getItem('mythic_mining_save')
+  if (saved) {
+    const data = JSON.parse(saved)
+
+    // Procura cada mina salva e devolve os trabalhadores e carrinhos para ela
+    data.forEach(savedMine => {
+      const mine = mines.value.find(m => m.id === savedMine.id)
+      if (mine) {
+        mine.slots = savedMine.slots
+        mine.cartLoad = savedMine.cartLoad || 0
+        mine.cartStatus = savedMine.cartStatus || 'MINING'
+        mine.travelTimer = savedMine.travelTimer || 0
+      }
+    })
+  } else {
+    // CURATIVO PARA O SEU BUG ATUAL: 
+    // Se o jogo recarregou e não achou o save da mina, ele varre os trabalhadores 
+    // e arranca o crachá de minerador deles, liberando para demissão.
+    gameStore.workers.forEach(w => {
+      if (w.assignment === 'Minerador') {
+        w.assignment = null
+      }
+    })
+  }
+}
+
+// O 'watch' fica vigiando a mina. Se algum carrinho encher ou trabalhador entrar, ele salva!
+watch(mines, () => {
+  const dataToSave = mines.value.map(m => ({
+    id: m.id,
+    slots: m.slots,
+    cartLoad: m.cartLoad,
+    cartStatus: m.cartStatus,
+    travelTimer: m.travelTimer
+  }))
+  localStorage.setItem('mythic_mining_save', JSON.stringify(dataToSave))
+}, { deep: true })
 
   return {
     mines,
@@ -190,6 +229,7 @@ export const useMiningStore = defineStore('mining', () => {
     removeWorker,
     sendCartToVillage,
     collectAndReturnCart,
-    miningTick
+    miningTick,
+    loadMining
   }
 })

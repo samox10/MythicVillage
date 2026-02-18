@@ -14,6 +14,7 @@ const currentScreen = ref('vila')
 
 onMounted(() => {
   store.loadGame()
+  miningStore.loadMining()
   // Salários a cada 1 min
   setInterval(() => { store.paySalaries() }, 60000)
   

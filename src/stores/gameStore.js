@@ -7,7 +7,6 @@ export const useGameStore = defineStore('game', () => {
   // === ESTADO (Dados do Jogo) ===
   const resources = ref({ mythicCoin: 100, goldCoin: 10000000 })
   const dailyHires = ref(0)
-  const recruitmentLevel = ref(1)
 
   const inventory = ref({
     pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0,
@@ -29,10 +28,10 @@ export const useGameStore = defineStore('game', () => {
     return workers.value.find(w => w.id === adminId.value) || null
   })
 
-  /*const recruitmentLevel = computed(() => {
+  const recruitmentLevel = computed(() => {
     const b = buildings.value.find(x => x.key === 'centrorecrutamento')
     return b ? b.level : 0
-  })*/
+  })
 
   const maxPopulation = computed(() => {
     // Procura o prédio 'hospedagem' (ID 3 ou key 'hospedagem')

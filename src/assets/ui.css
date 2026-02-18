@@ -116,31 +116,6 @@
   transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
 }
 .btn-ok:hover { background: #ef4444; color: #fff; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-/* === MODAL DE SELEÇÃO (GLOBAL) === */
-.select-modal { width: 400px; }
-.select-list { max-height: 400px; overflow-y: auto; background: #0f172a; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-.empty-list { text-align: center; color: #64748b; font-size: 11px; padding: 30px; border: 1px dashed #334155; }
-
-.select-item { 
-  display: flex; justify-content: space-between; align-items: center; 
-  background: #1e293b; padding: 10px; border: 1px solid #334155; 
-  border-radius: 4px; cursor: pointer; transition: 0.2s; 
-}
-.select-item:hover { border-color: #38bdf8; background: #252f42; }
-
-.si-left { display: flex; gap: 10px; align-items: center; }
-.si-avatar { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; border: 1px solid #475569; }
-.si-info { display: flex; flex-direction: column; }
-.si-name { color: #fff; font-weight: 700; font-size: 12px; }
-.si-rank { font-size: 9px; font-weight: 800; }
-.si-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.si-eff { font-size: 10px; color: #38bdf8; }
-
-.btn-pick { 
-  background: #38bdf8; color: #000; border: none; 
-  font-size: 9px; font-weight: 800; padding: 4px 8px; 
-  border-radius: 2px; cursor: pointer; 
-}
 
 /* Mobile Adaptations */
 @media (max-width: 600px) {

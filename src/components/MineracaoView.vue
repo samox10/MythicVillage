@@ -3,7 +3,8 @@ import { computed, ref } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import { useMiningStore } from '../stores/miningStore'
 import BuildingLayout from './BuildingLayout.vue'
-import { RECURSOS_MINERACAO } from '../data/balancing'
+import WorkerSelectModal from './WorkerSelectModal.vue'
+import { RECURSOS_MINERACAO, TIER_ORDER } from '../data/balancing'
 
 // Verifica se o slot específico está liberado
 const isSlotLocked = (mineId, slotIndex) => {
@@ -28,11 +29,19 @@ const selectedSlotIndex = ref(null)
 
 // Filtra mineradores livres
 const availableMiners = computed(() => {
-  return store.workers.filter(w => 
+  // 1. Primeiro a gente filtra quem pode trabalhar
+  const miners = store.workers.filter(w => 
     w.jobKey === 'minerador' && 
     (w.strikeDays || 0) === 0 && 
     !miningStore.assignedWorkerIds.includes(w.id)
   )
+
+  // 2. Depois a gente organiza a lista do maior Tier para o menor
+  return miners.sort((a, b) => {
+    const pesoA = TIER_ORDER.indexOf(a.tier)
+    const pesoB = TIER_ORDER.indexOf(b.tier)
+    return pesoB - pesoA
+  })
 })
 
 // Ações
@@ -133,29 +142,15 @@ const getWorkerAvatar = (id) => {
         </div>
       </div>
     </div>
-
-    <div class="modal-overlay" v-if="showWorkerSelect" @click.self="showWorkerSelect = false">
-      <div class="tactical-card select-modal">
-        <div class="tc-header"><span class="tc-title">SELECIONAR MINERADOR</span><button class="tc-close" @click="showWorkerSelect = false">✕</button></div>
-        <div class="select-list">
-          <div v-for="w in availableMiners" :key="w.id" class="select-item" @click="selectMiner(w.id)">
-            <div class="si-left">
-              <img :src="w.avatarUrl" class="si-avatar">
-              <div class="si-info">
-                <span class="si-name">{{ w.name }}</span>
-                <span class="si-rank">TIER {{ w.tier }}</span>
-              </div>
-            </div>
-            <span class="si-eff">{{ w.efficiency }}% EFIC.</span>
-          </div>
-          <div v-if="availableMiners.length === 0" class="empty-list">
-            Nenhum minerador disponível.<br>
-            <small>Contrate a classe "Minerador" no Recrutamento.</small>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <WorkerSelectModal 
+      v-if="showWorkerSelect"
+      title="SELECIONAR MINERADOR"
+      :workers="availableMiners"
+      emptyMessage1="Nenhum minerador disponível."
+      emptyMessage2="Contrate a classe 'Minerador' no Recrutamento."
+      @close="showWorkerSelect = false"
+      @select="selectMiner"
+    />
   </BuildingLayout>
 </template>
 

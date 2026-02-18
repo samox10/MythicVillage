@@ -4,7 +4,8 @@ import { useGameStore } from '../stores/gameStore'
 import { useRecruitmentStore } from '../stores/recruitmentStore'
 import { useMiningStore } from '../stores/miningStore'
 import { PROFISSOES, TIER_CONFIG, TIER_ORDER } from '../data/balancing'
-import BuildingLayout from './BuildingLayout.vue' // <--- Importando nosso Layout Mestre
+import BuildingLayout from './BuildingLayout.vue'
+import WorkerSelectModal from './WorkerSelectModal.vue'
 
 const store = useGameStore()
 const recruitmentStore = useRecruitmentStore()
@@ -41,7 +42,15 @@ const filteredWorkers = computed(() => {
 })
 
 const availableAdmins = computed(() => {
-  return store.workers.filter(w => w.jobKey === 'administrador' && w.id !== store.adminId)
+  // 1. Filtra quem é administrador e não está no cargo
+  const admins = store.workers.filter(w => w.jobKey === 'administrador' && w.id !== store.adminId)
+
+  // 2. Organiza do maior Tier para o menor
+  return admins.sort((a, b) => {
+    const pesoA = TIER_ORDER.indexOf(a.tier)
+    const pesoB = TIER_ORDER.indexOf(b.tier)
+    return pesoB - pesoA
+  })
 })
 
 // === AÇÕES ===
@@ -264,34 +273,15 @@ const getDebtCost = (worker) => {
          </div>
       </div>
     </div>
-
-    <div class="modal-overlay" v-if="showAdminSelect" @click.self="showAdminSelect = false">
-      <div class="tactical-card select-modal">
-        <div class="tc-header">
-          <span class="tc-title">SELECIONAR ADMINISTRADOR</span>
-          <button class="tc-close" @click="showAdminSelect = false">✕</button>
-        </div>
-        <div class="select-list">
-          <div v-if="availableAdmins.length === 0" class="empty-list">
-            NENHUM ADMINISTRADOR DISPONÍVEL NA VILA.<br><small>Contrate um funcionário da classe "Administrador" primeiro.</small>
-          </div>
-          <div v-else v-for="admin in availableAdmins" :key="admin.id" class="select-item" @click="selectAdmin(admin.id)">
-            <div class="si-left">
-              <img :src="admin.avatarUrl" class="si-avatar">
-              <div class="si-info">
-                <span class="si-name">{{ admin.name }}</span>
-                <span class="si-rank" :class="`text-${TIER_CONFIG[admin.tier].color}`">RANK {{ admin.tier }}</span>
-              </div>
-            </div>
-            <div class="si-stats">
-              <span class="si-eff">{{ admin.efficiency }}% EFIC.</span>
-              <button class="btn-pick">ESCOLHER</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <WorkerSelectModal 
+      v-if="showAdminSelect"
+      title="SELECIONAR ADMINISTRADOR"
+      :workers="availableAdmins"
+      emptyMessage1="NENHUM ADMINISTRADOR DISPONÍVEL NA VILA."
+      emptyMessage2="Contrate um funcionário da classe 'Administrador' primeiro."
+      @close="showAdminSelect = false"
+      @select="selectAdmin"
+    />
     <div class="modal-overlay" v-if="showProbModal" @click.self="showProbModal = false">
       <div class="tactical-card">
         <div class="tc-header"><span class="tc-title">LOG DE PROBABILIDADE DO SISTEMA</span><button class="tc-close" @click="showProbModal = false">✕</button></div>
@@ -466,21 +456,6 @@ const getDebtCost = (worker) => {
 .btn-action.admin-toggle.is-active { background: #facc15; border-color: #facc15; color: #000; }
 .btn-action.fire { background: #0f172a; border: 1px solid #ef4444; color: #ef4444; max-width: 60px; }
 .btn-action.fire:hover { background: #ef4444; color: #fff; }
-
-/* Slot Vazio & Admin Select */
-.select-modal { width: 400px; }
-.select-list { max-height: 400px; overflow-y: auto; background: #0f172a; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-.empty-list { text-align: center; color: #64748b; font-size: 11px; padding: 30px; border: 1px dashed #334155; }
-.select-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px; border: 1px solid #334155; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-.select-item:hover { border-color: #38bdf8; background: #252f42; }
-.si-left { display: flex; gap: 10px; align-items: center; }
-.si-avatar { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; border: 1px solid #475569; }
-.si-info { display: flex; flex-direction: column; }
-.si-name { color: #fff; font-weight: 700; font-size: 12px; }
-.si-rank { font-size: 9px; font-weight: 800; }
-.si-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.si-eff { font-size: 10px; color: #38bdf8; }
-.btn-pick { background: #38bdf8; color: #000; border: none; font-size: 9px; font-weight: 800; padding: 4px 8px; border-radius: 2px; cursor: pointer; }
 
 /* Tabela de Probabilidades (Estilo Local) */
 .tc-admin-bar { background: #1e293b; padding: 10px 15px; display: flex; gap: 20px; border-bottom: 1px solid #334155; }

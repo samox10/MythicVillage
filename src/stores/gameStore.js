@@ -112,10 +112,23 @@ export const useGameStore = defineStore('game', () => {
     return { success: true, msg: "Funcionário demitido." }
   }
   function setAdmin(id) {
-    if (adminId.value === id) adminId.value = null
-    else adminId.value = id
-  }
+    // 1. Se já existe alguém no cargo, tira o crachá dele primeiro
+    if (adminId.value) {
+      const currentAdmin = workers.value.find(w => w.id === adminId.value)
+      if (currentAdmin) currentAdmin.assignment = null
+    }
 
+    // 2. Lógica de Troca
+    if (adminId.value === id) {
+      // Se clicou no mesmo cara, está demitindo (já tiramos o crachá acima)
+      adminId.value = null
+    } else {
+      // Se é um novo, define o ID e entrega o crachá
+      adminId.value = id
+      const newAdmin = workers.value.find(w => w.id === id)
+      if (newAdmin) newAdmin.assignment = 'Administrador'
+    }
+  }
   // 3. Sistema de Construção (NOVO)
   function spendResources(cost) {
     // Verifica se tem dinheiro
@@ -213,7 +226,6 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // === SAVE SYSTEM ===
-  // === SAVE SYSTEM ===
   function loadGame() {
     const saved = localStorage.getItem('mythic_save_v2')
     if (saved) {
@@ -224,6 +236,10 @@ export const useGameStore = defineStore('game', () => {
       inventory.value = data.inventory || { pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0, rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0 }
       workers.value = data.workers
       adminId.value = data.adminId
+      if (adminId.value) {
+        const adminWorker = workers.value.find(w => w.id === adminId.value)
+        if (adminWorker) adminWorker.assignment = 'Administrador'
+      }
       dailyHires.value = data.dailyHires || 0
 
       // === CORREÇÃO DO BUG DA MINA AQUI ===

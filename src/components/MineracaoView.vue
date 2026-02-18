@@ -30,7 +30,7 @@ const selectedSlotIndex = ref(null)
 const availableMiners = computed(() => {
   return store.workers.filter(w => 
     w.jobKey === 'minerador' && 
-    w.strikeDays === 0 &&
+    (w.strikeDays || 0) === 0 && 
     !miningStore.assignedWorkerIds.includes(w.id)
   )
 })
@@ -77,7 +77,7 @@ const getWorkerAvatar = (id) => {
 <template>
   <BuildingLayout
     title="Minas Profundas"
-    :level="1"
+    :level="store.miningLevel"
     icon="⛏️"
     :hide-admin-panel="true"
     :hide-help="true"

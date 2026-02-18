@@ -2,11 +2,13 @@
 import { ref, computed } from 'vue'
 import { useGameStore } from '../stores/gameStore'
 import { useRecruitmentStore } from '../stores/recruitmentStore'
+import { useMiningStore } from '../stores/miningStore'
 import { PROFISSOES, TIER_CONFIG, TIER_ORDER } from '../data/balancing'
 import BuildingLayout from './BuildingLayout.vue' // <--- Importando nosso Layout Mestre
 
 const store = useGameStore()
 const recruitmentStore = useRecruitmentStore()
+const miningStore = useMiningStore()
 
 // === ESTADO VISUAL ===
 const filterJob = ref('')
@@ -60,13 +62,17 @@ const closeModal = () => {
 }
 
 const requestFire = (worker) => {
-  if (store.adminId === worker.id) {
-    recruitmentStore.errorMessage = "Este habitante é o Administrador vigente. Remova-o do cargo antes de demitir."
+  // SISTEMA UNIFICADO DE PROTEÇÃO
+  // Verifica se o funcionário tem QUALQUER atribuição (Mina, Admin, etc.)
+  if (worker.assignment) {
+    recruitmentStore.errorMessage = `Este funcionário está ocupado como ${worker.assignment}. Remova-o da função antes de demitir.`
     showErrorModal.value = true
-  } else {
-    workerToFire.value = worker
-    showFireModal.value = true
+    return
   }
+
+  // Se não tem atribuição (assignment é null), libera a demissão
+  workerToFire.value = worker
+  showFireModal.value = true
 }
 
 const confirmFire = () => {

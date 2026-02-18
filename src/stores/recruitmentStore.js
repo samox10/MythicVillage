@@ -141,6 +141,8 @@ export const useRecruitmentStore = defineStore('recruitment', () => {
       sex: sex === 'm' ? 'Masculino' : 'Feminino', 
       jobKey, jobTitle, tier: selectedTier, efficiency, 
       happiness: 100,
+      strikeDays: 0,
+      assignment: null,
       salary: config.salary, 
       avatarUrl
     }

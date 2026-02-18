@@ -53,13 +53,30 @@ export const useMiningStore = defineStore('mining', () => {
       }
     })
 
+    // Tira o crachá do trabalhador antigo (se a gente estiver substituindo alguém no slot)
+    const oldWorkerId = mine.slots[slotIndex]
+    if (oldWorkerId) {
+      const oldWorker = gameStore.workers.find(w => w.id === oldWorkerId)
+      if (oldWorker) oldWorker.assignment = null
+    }
+
+    // Coloca o trabalhador novo no slot e anota o crachá dele
     mine.slots[slotIndex] = workerId
+    worker.assignment = 'Minerador' // <--- DEU O CRACHÁ
   }
 
   // 2. Remover Trabalhador
   function removeWorker(mineId, slotIndex) {
     const mine = mines.value.find(m => m.id === mineId)
-    if (mine) mine.slots[slotIndex] = null
+    if (mine) {
+      // Limpa o crachá do trabalhador antes de tirar ele do slot
+      const oldWorkerId = mine.slots[slotIndex]
+      if (oldWorkerId) {
+        const oldWorker = gameStore.workers.find(w => w.id === oldWorkerId)
+        if (oldWorker) oldWorker.assignment = null // <--- TIROU O CRACHÁ
+      }
+      mine.slots[slotIndex] = null
+    }
   }
 
   // 3. Controle do Carrinho (Jogador clica para enviar/receber)

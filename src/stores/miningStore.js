@@ -1,51 +1,41 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useGameStore } from './gameStore'
-import { RECURSOS_MINERACAO, MINING_CONFIG } from '../data/balancing'
+import { RECURSOS_MINERACAO } from '../data/balancing'
 
 export const useMiningStore = defineStore('mining', () => {
   const gameStore = useGameStore()
 
-  // === ESTADO ===
-  // Gera a lista de minas baseado no balancing.js
-  const mines = ref(Object.keys(RECURSOS_MINERACAO).map(key => ({
+  // === ESTADO (MINAS E SILOS LOCAIS) ===
+  const mines = ref(Object.keys(RECURSOS_MINERACAO).map((key, index) => ({
     id: key,
     name: RECURSOS_MINERACAO[key].nome,
     color: RECURSOS_MINERACAO[key].cor,
-    slots: [null, null], // ID dos trabalhadores (null se vazio)
-    
-    // Estado do Carrinho
-    cartLoad: 0,
-    cartMax: MINING_CONFIG.baseCartCapacity,
-    cartStatus: 'MINING', // Estados: MINING, FULL, TO_VILLAGE, READY, TO_MINE
-    travelTimer: 0 // Tempo restante de viagem
+    slots: [null, null], 
+    depthIndex: index, 
+    reservoirLoad: 0,
+    reservoirMax: 200
   })))
-  // Retorna uma lista de IDs de todos que já estão nas minas
+
+  // === ESTADO (FROTA DE ELEVADORES/CARRINHOS INDEPENDENTES) ===
+  const elevators = ref([
+    { id: 1, status: 'IDLE', targetMineId: null, currentLoad: 0, cartCapacity: 200, resourceId: null, travelTimer: 0, totalTravelTime: 0 },
+    { id: 2, status: 'IDLE', targetMineId: null, currentLoad: 0, cartCapacity: 200, resourceId: null, travelTimer: 0, totalTravelTime: 0 }
+  ])
+
   const assignedWorkerIds = computed(() => {
     const ids = []
-    mines.value.forEach(m => {
-      m.slots.forEach(slot => {
-        if (slot) ids.push(slot)
-      })
-    })
+    mines.value.forEach(m => { m.slots.forEach(slot => { if (slot) ids.push(slot) }) })
     return ids
   })
 
-  // === ACTIONS ===
-
-  // 1. Alocar Trabalhador (Só aceita profissão 'minerador')
+  // === ACTIONS: TRABALHADORES ===
   function assignWorker(mineId, slotIndex, workerId) {
     const mine = mines.value.find(m => m.id === mineId)
     if (!mine) return
-
-    // Verifica se o trabalhador existe e é minerador
     const worker = gameStore.workers.find(w => w.id === workerId)
-    if (!worker) return
-    if (worker.jobKey !== 'minerador') {
-      throw new Error("Apenas Mineradores podem trabalhar aqui.")
-    }
+    if (!worker || worker.jobKey !== 'minerador') return
 
-    // Remove de outras minas se já estiver alocado
     mines.value.forEach(m => {
       if (m.slots.includes(workerId)) {
         const idx = m.slots.indexOf(workerId)
@@ -53,183 +43,158 @@ export const useMiningStore = defineStore('mining', () => {
       }
     })
 
-    // Tira o crachá do trabalhador antigo (se a gente estiver substituindo alguém no slot)
     const oldWorkerId = mine.slots[slotIndex]
     if (oldWorkerId) {
       const oldWorker = gameStore.workers.find(w => w.id === oldWorkerId)
       if (oldWorker) oldWorker.assignment = null
     }
 
-    // Coloca o trabalhador novo no slot e anota o crachá dele
     mine.slots[slotIndex] = workerId
-    worker.assignment = 'Minerador' // <--- DEU O CRACHÁ
+    worker.assignment = 'Minerador'
   }
 
-  // 2. Remover Trabalhador
   function removeWorker(mineId, slotIndex) {
     const mine = mines.value.find(m => m.id === mineId)
     if (mine) {
-      // Limpa o crachá do trabalhador antes de tirar ele do slot
       const oldWorkerId = mine.slots[slotIndex]
       if (oldWorkerId) {
         const oldWorker = gameStore.workers.find(w => w.id === oldWorkerId)
-        if (oldWorker) oldWorker.assignment = null // <--- TIROU O CRACHÁ
+        if (oldWorker) oldWorker.assignment = null
       }
       mine.slots[slotIndex] = null
     }
   }
 
-  // 3. Controle do Carrinho (Jogador clica para enviar/receber)
-  function sendCartToVillage(mineId) {
+  // === ACTIONS: DESPACHO DOS CARRINHOS ===
+  function dispatchElevator(mineId) {
     const mine = mines.value.find(m => m.id === mineId)
-    // Só pode enviar se estiver minerando ou cheio
-    if (mine.cartStatus === 'MINING' || mine.cartStatus === 'FULL') {
-      mine.cartStatus = 'TO_VILLAGE'
-      mine.travelTimer = MINING_CONFIG.travelTime
-    }
+    if (!mine || mine.reservoirLoad < 1) return
+
+    const currentStock = gameStore.inventory[mineId] || 0
+    if (currentStock >= gameStore.maxStorage) return
+
+    // Verifica se JÁ EXISTE algum carrinho com destino a esta mina
+    const isAlreadyOnWay = elevators.value.some(e => e.targetMineId === mineId)
+    if (isAlreadyOnWay) return // Se já tem um indo, carregando ou voltando de lá, cancela!
+
+    const freeElevator = elevators.value.find(e => e.status === 'IDLE')
+    if (!freeElevator) return 
+
+    freeElevator.targetMineId = mineId
+    freeElevator.status = 'MOVING_DOWN'
+    const travelTime = (mine.depthIndex + 1) * 10 
+    freeElevator.travelTimer = travelTime
+    freeElevator.totalTravelTime = travelTime
   }
 
-  function collectAndReturnCart(mineId) {
-    const mine = mines.value.find(m => m.id === mineId)
-    if (mine.cartStatus === 'READY') {
-      
-      // Lógica de Limite do Armazém
-      const resourceKey = mine.id
-      const currentStock = gameStore.inventory[resourceKey] || 0
-      const maxStorage = gameStore.maxStorage
-      
-      // Quanto cabe no armazém?
-      const spaceLeft = maxStorage - currentStock
-      
-      if (spaceLeft <= 0) {
-        throw new Error("Armazém lotado! Evolua o Armazém ou gaste recursos.")
+  function collectElevators() {
+    elevators.value.forEach(el => {
+      if (el.status === 'READY') {
+        const resourceKey = el.resourceId
+        const currentStock = gameStore.inventory[resourceKey] || 0
+        const spaceLeft = Math.max(0, gameStore.maxStorage - currentStock)
+        
+        // Coleta apenas o que cabe na vila
+        const amountToCollect = Math.min(el.currentLoad, spaceLeft)
+        gameStore.inventory[resourceKey] += amountToCollect
+        
+        // SEGURANÇA 3: Reseta a carga do carrinho SEMPRE, descartando qualquer excesso
+        el.currentLoad = 0
+        el.status = 'IDLE'
+        el.targetMineId = null
+        el.resourceId = null
       }
-
-      // Calcula quanto realmente vai ser coletado
-      const amountToCollect = Math.min(mine.cartLoad, spaceLeft)
-      
-      // Adiciona ao inventário global
-      gameStore.inventory[resourceKey] += amountToCollect
-      
-      // Esvazia o carrinho (ou deixa o resto se não coube tudo)
-      mine.cartLoad -= amountToCollect
-
-      if (mine.cartLoad > 0) {
-        // Se sobrou item, avisa que não deu pra levar tudo
-        throw new Error(`Armazém cheio! Coletado: ${amountToCollect}. Restante no carrinho: ${mine.cartLoad}`)
-      } else {
-        // Se esvaziou tudo, manda de volta
-        mine.cartStatus = 'TO_MINE'
-        mine.travelTimer = MINING_CONFIG.travelTime
-      }
-    }
+    })
   }
 
   // === O LOOP PRINCIPAL (TICK) ===
-  // Esta função deve ser chamada a cada 1 segundo pelo App.vue
   function miningTick() {
     mines.value.forEach(mine => {
-      
-      // A) Lógica de Viagem
-      if (mine.cartStatus === 'TO_VILLAGE') {
-        mine.travelTimer--
-        if (mine.travelTimer <= 0) mine.cartStatus = 'READY'
-        return // Se está viajando, não minera
-      }
-      if (mine.cartStatus === 'TO_MINE') {
-        mine.travelTimer--
-        if (mine.travelTimer <= 0) mine.cartStatus = 'MINING'
-        return
-      }
-      if (mine.cartStatus === 'READY') return // Esperando jogador coletar
+      if (mine.reservoirLoad >= mine.reservoirMax) return
 
-      // B) Lógica de Mineração (Só se estiver na mina e não estiver cheio)
-      if (mine.cartStatus === 'MINING') {
-        // Verifica se encheu
-        if (mine.cartLoad >= mine.cartMax) {
-          mine.cartLoad = mine.cartMax
-          mine.cartStatus = 'FULL'
-          return
+      let production = 0
+      const resourceInfo = RECURSOS_MINERACAO[mine.id]
+      const hardness = resourceInfo ? resourceInfo.dureza : 1
+
+      mine.slots.forEach((workerId, index) => {
+        if (!workerId) return
+        const requiredLvl = index === 0 ? resourceInfo.unlockLvl : resourceInfo.fullUnlockLvl
+        if (gameStore.miningLevel < requiredLvl) return
+
+        const worker = gameStore.workers.find(w => w.id === workerId)
+        if (worker && worker.strikeDays === 0) {
+           production += (worker.efficiency / 10) / hardness
         }
+      })
 
-        // Calcula produção dos trabalhadores
-        let production = 0
-        const resourceInfo = RECURSOS_MINERACAO[mine.id] // Pega dados do balancing
-        const hardness = resourceInfo ? resourceInfo.dureza : 1
+      mine.reservoirLoad += production
+      if (mine.reservoirLoad > mine.reservoirMax) mine.reservoirLoad = mine.reservoirMax
+    })
 
-        mine.slots.forEach((workerId, index) => {
-          if (!workerId) return
-          
-          // VERIFICA SE O SLOT ESTÁ DESBLOQUEADO PELO NÍVEL
-          // Slot 0 = unlockLvl, Slot 1 = fullUnlockLvl
-          const requiredLvl = index === 0 ? resourceInfo.unlockLvl : resourceInfo.fullUnlockLvl
-          if (gameStore.miningLevel < requiredLvl) return // Slot bloqueado não produz
+    elevators.value.forEach(el => {
+      if (el.status === 'MOVING_DOWN') {
+        el.travelTimer--
+        if (el.travelTimer <= 0) el.status = 'LOADING'
+      } 
+      else if (el.status === 'LOADING') {
+        const mine = mines.value.find(m => m.id === el.targetMineId)
+        if (mine) {
+           const currentStock = gameStore.inventory[mine.id] || 0
+           const spaceLeftInVillage = Math.max(0, gameStore.maxStorage - currentStock)
+           
+           const spaceInElevator = el.cartCapacity - el.currentLoad
+           const effectiveSpaceForThisCart = Math.max(0, spaceLeftInVillage - el.currentLoad)
 
-          const worker = gameStore.workers.find(w => w.id === workerId)
-          if (worker && worker.strikeDays === 0) {
-             // FÓRMULA: (Eficiência / 10) dividido pela Dureza
-             // Ex: Worker 100% em Pedra (Dureza 1) = 10 unid/seg
-             // Ex: Worker 100% em Oricalco (Dureza 50) = 0.2 unid/seg
-             production += (worker.efficiency / 10) / hardness
+           // SEGURANÇA 2: O carrinho só pega o mínimo entre: 
+           // 40 (velocidade), o que tem no silo, o que cabe no carrinho E o que cabe na vila!
+           const amountToTake = Math.min(40, mine.reservoirLoad, spaceInElevator, effectiveSpaceForThisCart)
+           
+           mine.reservoirLoad -= amountToTake
+           el.currentLoad += amountToTake
+           el.resourceId = mine.id
+           
+           // Sobe se o carrinho encher, o silo secar, ou a capacidade da vila atingir o limite
+           if (el.currentLoad >= el.cartCapacity || mine.reservoirLoad <= 0 || el.currentLoad >= spaceLeftInVillage) {
+              el.status = 'MOVING_UP'
+              el.travelTimer = el.totalTravelTime
+           }
+        } else {
+           el.status = 'MOVING_UP'
+           el.travelTimer = el.totalTravelTime
+        }
+      }
+      else if (el.status === 'MOVING_UP') {
+        el.travelTimer--
+        if (el.travelTimer <= 0) el.status = 'READY'
+      }
+    })
+  }
+
+  function loadMining() {
+    const saved = localStorage.getItem('mythic_mining_save')
+    if (saved) {
+      const data = JSON.parse(saved)
+      if (data.mines) {
+        data.mines.forEach(savedMine => {
+          const mine = mines.value.find(m => m.id === savedMine.id)
+          if (mine) {
+            mine.slots = savedMine.slots
+            mine.reservoirLoad = savedMine.reservoirLoad || 0
           }
         })
-
-        mine.cartLoad += production
-        if (mine.cartLoad >= mine.cartMax) {
-          mine.cartLoad = mine.cartMax
-          mine.cartStatus = 'FULL'
-        }
       }
-    })
+      if (data.elevators) elevators.value = data.elevators
+    } else {
+      gameStore.workers.forEach(w => { if (w.assignment === 'Minerador') w.assignment = null })
+    }
   }
-  // === SAVE SYSTEM DA MINA ===
-function loadMining() {
-  const saved = localStorage.getItem('mythic_mining_save')
-  if (saved) {
-    const data = JSON.parse(saved)
 
-    // Procura cada mina salva e devolve os trabalhadores e carrinhos para ela
-    data.forEach(savedMine => {
-      const mine = mines.value.find(m => m.id === savedMine.id)
-      if (mine) {
-        mine.slots = savedMine.slots
-        mine.cartLoad = savedMine.cartLoad || 0
-        mine.cartStatus = savedMine.cartStatus || 'MINING'
-        mine.travelTimer = savedMine.travelTimer || 0
-      }
-    })
-  } else {
-    // CURATIVO PARA O SEU BUG ATUAL: 
-    // Se o jogo recarregou e não achou o save da mina, ele varre os trabalhadores 
-    // e arranca o crachá de minerador deles, liberando para demissão.
-    gameStore.workers.forEach(w => {
-      if (w.assignment === 'Minerador') {
-        w.assignment = null
-      }
-    })
-  }
-}
-
-// O 'watch' fica vigiando a mina. Se algum carrinho encher ou trabalhador entrar, ele salva!
-watch(mines, () => {
-  const dataToSave = mines.value.map(m => ({
-    id: m.id,
-    slots: m.slots,
-    cartLoad: m.cartLoad,
-    cartStatus: m.cartStatus,
-    travelTimer: m.travelTimer
-  }))
-  localStorage.setItem('mythic_mining_save', JSON.stringify(dataToSave))
-}, { deep: true })
+  watch(() => ({ mines: mines.value, elevators: elevators.value }), (newState) => {
+    localStorage.setItem('mythic_mining_save', JSON.stringify(newState))
+  }, { deep: true })
 
   return {
-    mines,
-    assignedWorkerIds,
-    assignWorker,
-    removeWorker,
-    sendCartToVillage,
-    collectAndReturnCart,
-    miningTick,
-    loadMining
+    mines, elevators, assignedWorkerIds,
+    assignWorker, removeWorker, dispatchElevator, collectElevators, miningTick, loadMining
   }
 })

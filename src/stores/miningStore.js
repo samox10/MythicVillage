@@ -110,6 +110,12 @@ export const useMiningStore = defineStore('mining', () => {
   // === O LOOP PRINCIPAL (TICK) ===
   function miningTick() {
     mines.value.forEach(mine => {
+      // SEGURANÇA: Desbuga saves antigos caso a produção tenha ficado 'NaN' ou nula
+      if (isNaN(mine.reservoirLoad) || mine.reservoirLoad === null) {
+        mine.reservoirLoad = 0;
+      }
+
+      // Se o silo da mina já está cheio, ignora o cálculo
       if (mine.reservoirLoad >= mine.reservoirMax) return
 
       let production = 0
@@ -118,19 +124,31 @@ export const useMiningStore = defineStore('mining', () => {
 
       mine.slots.forEach((workerId, index) => {
         if (!workerId) return
+        
         const requiredLvl = index === 0 ? resourceInfo.unlockLvl : resourceInfo.fullUnlockLvl
         if (gameStore.miningLevel < requiredLvl) return
 
         const worker = gameStore.workers.find(w => w.id === workerId)
-        if (worker && worker.strikeDays === 0) {
-           production += (worker.efficiency / 10) / hardness
+        
+        if (worker) {
+          // AÇÃO CONTRA GREVE: Se estiver de greve, tira ele do slot da mina!
+          if (worker.strikeDays > 0) {
+            mine.slots[index] = null
+            worker.assignment = null // Tira o crachá de trabalhador
+            return
+          }
+          
+          // SE ESTÁ TUDO BEM: Calcula a produção normalmente
+          production += (worker.efficiency / 10) / hardness
         }
       })
 
+      // Adiciona o que foi produzido ao silo e trava no máximo
       mine.reservoirLoad += production
       if (mine.reservoirLoad > mine.reservoirMax) mine.reservoirLoad = mine.reservoirMax
     })
 
+    // LÓGICA DE MOVIMENTAÇÃO DOS ELEVADORES
     elevators.value.forEach(el => {
       if (el.status === 'MOVING_DOWN') {
         el.travelTimer--
@@ -146,8 +164,8 @@ export const useMiningStore = defineStore('mining', () => {
            const effectiveSpaceForThisCart = Math.max(0, spaceLeftInVillage - el.currentLoad)
 
            // SEGURANÇA 2: O carrinho só pega o mínimo entre: 
-           // 40 (velocidade), o que tem no silo, o que cabe no carrinho E o que cabe na vila!
-           const amountToTake = Math.min(40, mine.reservoirLoad, spaceInElevator, effectiveSpaceForThisCart)
+           // 10 (velocidade), o que tem no silo, o que cabe no carrinho E o que cabe na VILA!
+           const amountToTake = Math.min(10, mine.reservoirLoad, spaceInElevator, effectiveSpaceForThisCart)
            
            mine.reservoirLoad -= amountToTake
            el.currentLoad += amountToTake

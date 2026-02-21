@@ -18,8 +18,19 @@ export const useGameStore = defineStore('game', () => {
     { id: 2, key: 'armazem', level: 1 },
     { id: 3, key: 'hospedagem', level: 1 },
     { id: 4, key: 'centrorecrutamento', level: 1 },
-    { id: 5, key: 'mina', level: 1 }
+    { id: 5, key: 'mina', level: 1 },
+    { id: 6, key: 'hospital', level: 0 }
   ])
+  const medicalInventory = ref({
+    plasma: [10, 0, 0, 0], 
+    soro_reg: [10, 0, 0, 0],
+    solucao: [10, 0, 0, 0],
+    resina: [10, 0, 0, 0],
+    derme: [10, 0, 0, 0],
+    neutralizador: [10, 0, 0, 0],
+    estimulante: [10, 0, 0, 0],
+    soro_psi: [10, 0, 0, 0]
+  })
   const adminId = ref(null)
 
   // === GETTERS (Cálculos) ===
@@ -94,21 +105,6 @@ export const useGameStore = defineStore('game', () => {
     workers.value.unshift(worker)
     dailyHires.value++
     return true
-  }
-
-  // 2. Demitir (Com Verificação de Segurança)
-  function fireWorker(id) {
-    // REGRA 1: Verificar se é Administrador
-    if (adminId.value === id) {
-      return { success: false, msg: "Este funcionário é o Administrador! Remova-o do cargo antes de demitir." }
-    }
-
-    // REGRA 2 (Futuro): Aqui você poderá adicionar verificações se ele está trabalhando em prédio, em missão, etc.
-    // Exemplo: if (isWorkingInBuilding(id)) return { success: false, msg: "Trabalhando..." }
-
-    // Se passou pelas regras, executa a demissão
-    workers.value = workers.value.filter(w => w.id !== id)
-    return { success: true, msg: "Funcionário demitido." }
   }
   function setAdmin(id) {
     // 1. Se já existe alguém no cargo, tira o crachá dele primeiro
@@ -219,6 +215,10 @@ export const useGameStore = defineStore('game', () => {
     if (w && w.strikeDays > 0) {
       return { success: false, msg: "GREVE ATIVA: As leis trabalhistas da vila proíbem demitir funcionários em greve. Pague os salários atrasados primeiro." }
     }
+    // REGRA 3: Pacientes (NOVO)
+    if (w && w.injury) {
+      return { success: false, msg: "HOSPITALIZADO: As leis da vila proíbem demitir funcionários que sofreram acidentes ou estão doentes. Trate-os primeiro." }
+    }
 
     workers.value = workers.value.filter(w => w.id !== id)
     return { success: true, msg: "Funcionário demitido." }
@@ -271,7 +271,7 @@ export const useGameStore = defineStore('game', () => {
   }, { deep: true })
 
   return {
-    resources, inventory, workers, buildings, adminId, dailyHires, miningLevel,
+    resources, inventory, medicalInventory, workers, buildings, adminId, dailyHires, miningLevel,
     currentAdmin, recruitmentLevel, maxPopulation, maxStorage,
     hireWorker, fireWorker, setAdmin, paySalaries, manualPay,
     spendResources, upgradeBuilding, loadGame, getWorkerStats

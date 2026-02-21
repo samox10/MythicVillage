@@ -137,7 +137,12 @@ export const useMiningStore = defineStore('mining', () => {
             worker.assignment = null // Tira o crachá de trabalhador
             return
           }
-          
+          // AÇÃO CONTRA GREVE OU ACIDENTE: Se estiver de greve ou no hospital, tira ele do slot da mina!
+          if (worker.strikeDays > 0 || worker.injury) {
+            mine.slots[index] = null
+            worker.assignment = null // Tira o crachá de trabalhador
+            return
+          }          
           // SE ESTÁ TUDO BEM: Calcula a produção normalmente
           production += (worker.efficiency / 10) / hardness
         }

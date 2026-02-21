@@ -11,6 +11,13 @@ const buildingDefinitions = [
   { id: 3, key: 'hospedagem', name: 'Estalagem', type: 'HABITAÇÃO', desc: 'Limite de População', img: '🛏️', baseCost: 300, baseTime: 8, effectDesc: (lvl) => `Pop: ${10 + (lvl * 2)}` },
   { id: 4, key: 'centrorecrutamento', name: 'Centro de Recrutamento', type: 'RECURSO', desc: 'Recrutar novos funcionários', img: '🔮', baseCost: 5000, baseTime: 30, reqId: 1, reqLvl: 1, effectDesc: (lvl) => `Nível ${lvl}` },
   { id: 5, key: 'mina', name: 'Minas Profundas', type: 'PRODUÇÃO', desc: 'Desbloqueia novos veios de minério', img: '⛏️', baseCost: 1500, baseTime: 1, reqId: 4, reqLvl: 1, effectDesc: (lvl) => lvl >= 20 ? 'Profundidade Máxima' : `Profundidade ${lvl}` },
+  { id: 6, key: 'hospital', name: 'Centro Médico', type: 'SAÚDE', desc: 'Trata funcionários feridos e doentes', img: '🏥', baseCost: 2000, baseTime: 20, reqId: 4, reqLvl: 2, 
+    effectDesc: (lvl) => {
+      if (lvl === 0) return 'Fechado'
+      if (lvl <= 4) return `${lvl} Leito(s), Meds T1`
+      return `4 Leitos, Meds T${Math.min(lvl - 3, 4)}`
+    }
+  },
 ]
 
 // Merge dos dados com o Store (Cérebro)

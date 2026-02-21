@@ -101,3 +101,21 @@ export const MINING_CONFIG = {
   travelTime: 10,
   tickRate: 1000
 }
+// === 8. SISTEMA MÉDICO ===
+export const MEDICAMENTOS = {
+  plasma: { id: 'plasma', nome: 'Plasma Selante', desc: 'Estanca sangramentos severos e hemorragias físicas.' },
+  soro_reg: { id: 'soro_reg', nome: 'Soro Regenerador', desc: 'Acelera a regeneração celular em ferimentos leves.' },
+  solucao: { id: 'solucao', nome: 'Solução Estéril', desc: 'Combate infecções, bactérias e patógenos biológicos.' },
+  resina: { id: 'resina', nome: 'Resina Calcária', desc: 'Reconstrói fraturas ósseas e microfissuras graves.' },
+  derme: { id: 'derme', nome: 'Derme Sintética', desc: 'Trata queimaduras graves, corrosão e acidentes químicos.' },
+  neutralizador: { id: 'neutralizador', nome: 'Neutralizador', desc: 'Elimina toxinas, venenos e gases do organismo.' },
+  estimulante: { id: 'estimulante', nome: 'Estimulante', desc: 'Restaura vigor e cura exaustão extrema de combatentes.' },
+  soro_psi: { id: 'soro_psi', nome: 'Soro Psíquico', desc: 'Trata traumas psíquicos e sobrecarga mental em combates ou missões.' }
+}
+
+export const MULTIPLICADOR_TIER_MEDICO = {
+  1: 1.0,
+  2: 1.2,
+  3: 1.5,
+  4: 2.0
+}

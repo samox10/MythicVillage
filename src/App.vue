@@ -1,20 +1,24 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useGameStore } from './stores/gameStore'
-import { useMiningStore } from './stores/miningStore' // <--- NOVO IMPORT
+import { useMiningStore } from './stores/miningStore' // STORE MINERAÇÃO
+import { useHospitalStore } from './stores/hospitalStore' // HOSPITAL STORE
 import HeaderHUD from './components/HeaderHUD.vue'
 import VilaView from './components/VilaView.vue'
 import RecrutamentoView from './components/RecrutamentoView.vue' 
-import MineracaoView from './components/MineracaoView.vue' // <--- NOVO IMPORT
+import HospitalView from './components/HospitalView.vue' // HOSPITAL VIEW
+import MineracaoView from './components/MineracaoView.vue' // MINERAÇAO VIEW
 
 const store = useGameStore()
-const miningStore = useMiningStore() // <--- INSTÂNCIA
+const miningStore = useMiningStore() // <--- INSTÂNCIA MINERAÇÃO
+const hospitalStore = useHospitalStore() // <--- INSTÂNCIA HOSPITAL
 window.game = store
 const currentScreen = ref('vila')
 
 onMounted(() => {
   store.loadGame()
-  miningStore.loadMining()
+  miningStore.loadMining() // <--- CARREGA DADOS DA MINERAÇÃO
+  hospitalStore.loadHospital() // <--- CARREGA DADOS DO HOSPITAL
   // Salários a cada 1 min
   setInterval(() => { store.paySalaries() }, 60000)
   
@@ -22,16 +26,19 @@ onMounted(() => {
   setInterval(() => { 
     store.resources.goldCoin += 10 // Renda Passiva Antiga
     miningStore.miningTick()       // <--- O "MOTOR" DA MINERAÇÃO
+    hospitalStore.hospitalTick()   // <--- O "MOTOR" DO HOSPITAL
   }, 1000)
 })
 
 const menuItems = [
   { id: 'vila', label: 'BASE', icon: '🏰' },
   { id: 'recrutamento', label: 'RECRUTAR', icon: '🤝' },
-  { id: 'mineracao', label: 'MINA', icon: '⛏️' }, // <--- BOTÃO NOVO
+  { id: 'mineracao', label: 'MINA', icon: '⛏️' }, 
+  { id: 'hospital', label: 'HOSPITAL', icon: '🏥' },
   { id: 'lab', label: 'LAB', icon: '⚗️' },
   { id: 'guilda', label: 'CLÃ', icon: '⚔️' },
-  { id: 'arena', label: 'PVP', icon: '🏆' }
+  { id: 'arena', label: 'PVP', icon: '🏆' },
+
 ]
 </script>
 
@@ -63,8 +70,9 @@ const menuItems = [
           <RecrutamentoView v-if="currentScreen === 'recrutamento'" />
 
           <MineracaoView v-if="currentScreen === 'mineracao'" />
+          <HospitalView v-if="currentScreen === 'hospital'" />
           
-          <div v-if="!['vila', 'recrutamento', 'mineracao'].includes(currentScreen)" class="locked-sector">
+          <div v-if="!['vila', 'recrutamento', 'mineracao', 'hospital'].includes(currentScreen)" class="locked-sector">
             <h2>{{ currentScreen }}</h2><p>SECTOR LOCKED</p>
           </div>
         </div>

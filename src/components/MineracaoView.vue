@@ -33,6 +33,7 @@ const availableMiners = computed(() => {
   const miners = store.workers.filter(w => 
     w.jobKey === 'minerador' && 
     (w.strikeDays || 0) === 0 && 
+    !w.injury && // <--- NOVA REGRA: Funcionários feridos ou doentes não aparecem na lista
     !miningStore.assignedWorkerIds.includes(w.id)
   )
 

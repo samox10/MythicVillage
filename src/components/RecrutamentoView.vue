@@ -71,10 +71,15 @@ const closeModal = () => {
 }
 
 const requestFire = (worker) => {
-  // SISTEMA UNIFICADO DE PROTEÇÃO
   // Verifica se o funcionário tem QUALQUER atribuição (Mina, Admin, etc.)
   if (worker.assignment) {
     recruitmentStore.errorMessage = `Este funcionário está ocupado como ${worker.assignment}. Remova-o da função antes de demitir.`
+    showErrorModal.value = true
+    return
+  }
+  // Verifica se o funcionário está no hospital
+  if (worker.injury) {
+    recruitmentStore.errorMessage = `Aguarde a recuperação de ${worker.name} por ${worker.injury}.`
     showErrorModal.value = true
     return
   }

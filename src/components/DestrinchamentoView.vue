@@ -5,21 +5,21 @@ import { useButcheryStore } from '../stores/butcheryStore'
 import { CARCACAS_INFO, RECURSOS_ANIMAIS, TIER_ORDER } from '../data/balancing'
 import BuildingLayout from './BuildingLayout.vue'
 import WorkerSelectModal from './WorkerSelectModal.vue'
-
+import ModalAnaliseBiologica from './ModalAnaliseBiologica.vue' // Import do modal de detalhes
+import ModalDescarte from './ModalDescarte.vue' // Import do modal de descarte
 
 const store = useGameStore()
 const butcheryStore = useButcheryStore()
 
 const showWorkerSelect = ref(false)
-const detailedCarcass = ref(null) // Controla qual carcaça o modal está mostrando
+const detailedCarcass = ref(null) 
+
 // Controles do Modal de Descarte
 const showDiscardModal = ref(false)
 const carcassToDiscard = ref(null)
-const discardAmount = ref(1)
 
 const openDiscardModal = (carcass) => {
   carcassToDiscard.value = carcass
-  discardAmount.value = 1
   showDiscardModal.value = true
 }
 
@@ -28,9 +28,10 @@ const closeDiscardModal = () => {
   carcassToDiscard.value = null
 }
 
-const confirmDiscard = () => {
-  if (carcassToDiscard.value && discardAmount.value > 0) {
-    butcheryStore.discardCarcass(carcassToDiscard.value.key, discardAmount.value)
+// AQUI: A função agora recebe o "amount" do nosso novo ficheiro!
+const confirmDiscard = (amount) => {
+  if (carcassToDiscard.value && amount > 0) {
+    butcheryStore.discardCarcass(carcassToDiscard.value.key, amount)
     closeDiscardModal()
   }
 }
@@ -225,51 +226,19 @@ onUnmounted(() => { delete window.darCarcacas })
         </div>
       </div>
     </div>
-    <div class="modal-overlay" v-if="showDiscardModal" @click.self="closeDiscardModal">
-      <div class="tactical-card discard-modal">
-        
-        <div class="md-header bg-red">
-           <span class="md-title text-white">⚠️ ALERTA DE DESCARTE</span>
-           <button class="tc-close" @click="closeDiscardModal">✕</button>
-        </div>
-        
-        <div class="md-body flex-col text-center">
-           <p class="warning-text">
-              Atenção! O descarte é <strong>PERMANENTE</strong>. A carcaça será incinerada e não gerará recursos para a vila.
-           </p>
+    <ModalAnaliseBiologica 
+        v-if="detailedCarcass" 
+        :carcass="detailedCarcass" 
+        @close="closeDetails" 
+        />
 
-           <div class="discard-item-info">
-              <img :src="`/assets/monstros/${carcassToDiscard.img}`" class="discard-img" @error="$event.target.style.opacity='0.3'">
-              <h2>{{ carcassToDiscard.nome }}</h2>
-              <p>Disponível na Câmara: <strong>{{ getInventoryCount(carcassToDiscard.key) }}</strong></p>
-           </div>
-
-           <div class="discard-loot-lost">
-              <span>Recursos perdidos no processo:</span>
-              <div class="lost-items-row">
-                 <span v-for="(qtd, itemKey) in carcassToDiscard.drops" :key="itemKey" class="lost-badge" :style="{ color: RECURSOS_ANIMAIS[itemKey].cor }">
-                   {{ RECURSOS_ANIMAIS[itemKey].nome }}
-                 </span>
-              </div>
-           </div>
-
-           <div class="discard-controls">
-              <label>Quantidade a descartar:</label>
-              <input type="number" v-model.number="discardAmount" min="1" :max="getInventoryCount(carcassToDiscard.key)" class="discard-input">
-              <button class="btn-max-discard" @click="discardAmount = getInventoryCount(carcassToDiscard.key)">MÁX</button>
-           </div>
-
-           <div class="discard-buttons">
-              <button class="btn-cancel" @click="closeDiscardModal">CANCELAR</button>
-              <button class="btn-confirm-discard" @click="confirmDiscard" :disabled="discardAmount < 1 || discardAmount > getInventoryCount(carcassToDiscard.key)">
-                CONFIRMAR DESCARTE
-              </button>
-           </div>
-        </div>
-
-      </div>
-    </div>
-    
+        <ModalDescarte 
+        v-if="showDiscardModal" 
+        :carcass="carcassToDiscard" 
+        :inventoryCount="getInventoryCount(carcassToDiscard.key)"
+        @close="closeDiscardModal" 
+        @confirm="confirmDiscard" 
+        />
 
   </BuildingLayout>
 </template>
@@ -342,27 +311,6 @@ onUnmounted(() => { delete window.darCarcacas })
 .cc-visual:hover .info-hover-icon { opacity: 1; }
 
 .cc-name { font-size: 9px; color: #e2e8f0; text-align: center; font-weight: 700; height: 22px; display: flex; align-items: center; }
-.btn-add-queue { width: 100%; padding: 6px 0; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; transition: 0.2s; font-family: 'Chakra Petch', sans-serif; }
-.btn-add-queue:hover:not(:disabled) { background: #38bdf8; color: #000; }
-.btn-add-queue:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* === NOVO MODAL DE DETALHES === */
-.monster-detail-card { max-width: 550px; background: #0f172a; border-top: 4px solid #38bdf8; }
-.md-header { background: #1e293b; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
-.md-title { font-size: 11px; font-weight: 900; color: #38bdf8; letter-spacing: 2px; }
-.md-body { display: flex; gap: 20px; padding: 20px; }
-.md-visual { width: 150px; height: 150px; background: #020617; border: 1px solid #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 10px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); flex-shrink: 0; }
-.md-big-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8)); }
-.md-info { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.md-monster-name { margin: 0; font-size: 18px; color: #fff; text-transform: uppercase; font-weight: 800; border-bottom: 1px solid #1e293b; padding-bottom: 5px; }
-.md-habitat, .md-time { font-size: 11px; color: #cbd5e1; background: #1e293b; padding: 6px 10px; border-radius: 4px; border-left: 2px solid #475569; }
-.md-loot-section { margin-top: auto; }
-.md-loot-title { font-size: 10px; color: #94a3b8; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px; }
-.md-loot-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.md-loot-item { display: flex; align-items: center; background: #1e293b; padding: 4px 8px; border-radius: 4px; gap: 6px; border: 1px solid #334155; }
-.loot-color-bar { width: 4px; height: 12px; border-radius: 2px; }
-.loot-q { font-size: 11px; font-weight: 900; color: #fff; }
-.loot-n { font-size: 9px; font-weight: 700; color: #cbd5e1; text-transform: uppercase; }
 
 /* === BOTÕES DO CARTÃO (Adicionar + Lixeira) === */
 .card-actions { display: flex; gap: 4px; width: 100%; }
@@ -373,45 +321,6 @@ onUnmounted(() => { delete window.darCarcacas })
 .btn-trash { width: 30px; background: #1e293b; border: 1px solid #334155; color: #ef4444; border-radius: 4px; padding: 0; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 .btn-trash:hover:not(:disabled) { background: #450a0a; border-color: #ef4444; }
 .btn-trash:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
-
-/* === NOVO MODAL DE DESCARTE === */
-.discard-modal { max-width: 380px; border-top: 4px solid #ef4444; background: #0f172a; }
-.bg-red { background: #7f1d1d; border-bottom: 1px solid #ef4444; }
-.text-white { color: #fff; }
-.flex-col { display: flex; flex-direction: column; }
-.text-center { text-align: center; }
-
-.warning-text { color: #fca5a5; font-size: 11px; margin: 0 0 15px 0; background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 4px; border: 1px dashed #ef4444; line-height: 1.4; }
-
-.discard-item-info { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 15px; }
-.discard-img { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.8)); }
-.discard-item-info h2 { font-size: 16px; color: #fff; margin: 0; text-transform: uppercase; font-weight: 900; }
-.discard-item-info p { font-size: 11px; color: #94a3b8; margin: 0; }
-.discard-item-info strong { color: #38bdf8; }
-
-.discard-loot-lost { background: #020617; border: 1px solid #1e293b; padding: 8px; border-radius: 4px; margin-bottom: 20px; }
-.discard-loot-lost > span { font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase; display: block; margin-bottom: 6px; }
-.lost-items-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.lost-badge { font-size: 10px; font-weight: 800; background: #0f172a; padding: 2px 6px; border-radius: 4px; border: 1px solid #334155; }
-
-.discard-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; background: #1e293b; padding: 10px; border-radius: 6px; }
-.discard-controls label { font-size: 11px; color: #cbd5e1; font-weight: bold; }
-.discard-input { width: 60px; background: #020617; border: 1px solid #475569; color: #fff; padding: 6px; text-align: center; border-radius: 4px; font-family: 'Chakra Petch', sans-serif; font-size: 14px; font-weight: bold; }
-.discard-input:focus { outline: 1px solid #ef4444; }
-.btn-max-discard { background: #0f172a; border: 1px solid #334155; color: #38bdf8; padding: 6px 10px; border-radius: 4px; font-size: 10px; font-weight: 900; cursor: pointer; transition: 0.2s; }
-.btn-max-discard:hover { border-color: #38bdf8; background: #0284c7; color: #fff; }
-
-.discard-buttons { display: flex; gap: 10px; width: 100%; }
-.btn-cancel, .btn-confirm-discard { flex: 1; padding: 12px; border-radius: 4px; font-family: 'Chakra Petch', sans-serif; font-weight: 900; font-size: 11px; cursor: pointer; transition: 0.2s; }
-.btn-cancel { background: #1e293b; border: 1px solid #475569; color: #cbd5e1; }
-.btn-cancel:hover { background: #334155; color: #fff; }
-.btn-confirm-discard { background: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; }
-.btn-confirm-discard:hover:not(:disabled) { background: #b91c1c; color: #fff; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-.btn-confirm-discard:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* Para remover as setinhas indesejadas do input type number em alguns navegadores */
-input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-input[type=number] { -moz-appearance: textfield; }
 
 @media (max-width: 550px) {
   .md-body { flex-direction: column; align-items: center; text-align: center; }

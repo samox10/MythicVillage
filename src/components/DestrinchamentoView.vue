@@ -119,75 +119,100 @@ onUnmounted(() => { delete window.darCarcacas })
     @remove-leader="butcheryStore.assignWorker(null)"
     @assign-leader="showWorkerSelect = true"
   >
-    <div v-if="buildingLevel > 0" class="butchery-complex">
+    <div v-if="buildingLevel > 0" class="tactical-slaughter-layout">
       
-      <button @click="addTestCarcasses" class="debug-btn">🚨 RECEBER CARCAÇAS (TESTE)</button>
+      <button @click="addTestCarcasses" class="btn-sys-override">
+        [!] SOBRESCREVER SISTEMA: INJETAR CARCAÇAS
+      </button>
 
-      <div class="table-area">
-        <div class="arcane-table">
-          
-          <div class="arcane-grid"></div>
-          <div v-if="butcheryStore.activeSlot.carcacaId" class="arcane-scanner"></div>
-
-          <div v-if="butcheryStore.activeSlot.carcacaId" class="active-carcass-wrapper">
-             <img :src="getCarcassImg(butcheryStore.activeSlot.carcacaId)" class="carcass-on-table">
-          </div>
-          <div v-else class="empty-table-text">MESA INATIVA</div>
-
-          <div v-for="ft in floatingTexts" :key="ft.id" class="floating-loot-container">
-             <div v-for="(loot, index) in ft.drops" :key="index" class="loot-pop" :style="{ animationDelay: `${index * 0.1}s` }">
-                +{{ loot.qtd }} {{ RECURSOS_ANIMAIS[loot.item]?.nome }}
-             </div>
-          </div>
-        </div>
+      <div class="facility-core">
         
-        <div class="progress-container">
-           <div class="progress-bar"><div class="progress-fill" :style="{ width: getProgressPct() + '%' }"></div></div>
-        </div>
-      </div>
+        <div class="facility-panel cryo-vault">
+          <div class="panel-header">
+            <span class="ph-title">❄️ COFRE CRIOGÊNICO</span>
+            <span class="ph-capacity">{{ butcheryStore.totalCarcassesInStorage }} / {{ store.maxCarcassStorage }}</span>
+          </div>
+          
+          <div class="vault-grid">
+            <div v-for="carcass in sortedUnlockedCarcasses" :key="carcass.key" 
+                 class="cryo-locker" :class="{'is-empty': carcass.count <= 0}">
+               
+               <div class="locker-window" @click="openDetails(carcass)" title="Ver Dados da Carcaça">
+                  <div class="frost-fx"></div>
+                  <img :src="`/assets/monstros/${carcass.img}`" class="locker-entity" @error="$event.target.style.opacity='0.3'">
+                  <div class="locker-qty">{{ carcass.count }}</div>
+               </div>
 
-      <div class="queue-section">
-        <div class="section-title">FILA DE PROCESSAMENTO ({{ butcheryStore.queue.length }}/10)</div>
-        <div class="queue-slots">
-          <div v-for="n in 10" :key="n" class="q-slot" 
-               :class="{'has-item': butcheryStore.queue[n-1]}"
-               @click="butcheryStore.removeFromQueue(n-1)"
-               title="Clique para remover e devolver à Câmara Fria">
-            <img v-if="butcheryStore.queue[n-1]" :src="getCarcassImg(butcheryStore.queue[n-1])" class="q-img">
-            <div class="remove-overlay">✕</div>
+              <div class="locker-actions">
+                 <button class="btn-tactical btn-suspend" 
+                    @click="butcheryStore.addToQueue(carcass.key)"
+                    :disabled="carcass.count <= 0 || butcheryStore.queue.length >= 10">
+                   PENDURAR
+                 </button>
+                 <button class="btn-tactical btn-incinerate" 
+                    @click="openDiscardModal(carcass)"
+                    :disabled="carcass.count <= 0"
+                    title="Incinerar">
+                   ✕
+                 </button>
+               </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="inventory-section">
-        <div class="section-title">
-            CÂMARA FRIA ({{ butcheryStore.totalCarcassesInStorage }} / {{ store.maxCarcassStorage }})
-        </div>
-        <div class="carcass-grid">
-          <div v-for="carcass in sortedUnlockedCarcasses" :key="carcass.key" 
-               class="carcass-card" :class="{'is-empty': carcass.count <= 0}">
-             
-             <div class="cc-visual" @click="openDetails(carcass)" title="Ver Detalhes do Monstro">
-                <img :src="`/assets/monstros/${carcass.img}`" class="cc-img" @error="$event.target.style.opacity='0.3'">
-                <div class="cc-badge" :class="{'bg-red': carcass.count <= 0}">{{ carcass.count }}</div>
-                <div class="info-hover-icon">🔍</div>
-             </div>
-
-            <div class="card-actions">
-               <button class="btn-add-queue" 
-                  @click="butcheryStore.addToQueue(carcass.key)"
-                  :disabled="carcass.count <= 0 || butcheryStore.queue.length >= 10">
-                 ADICIONAR
-               </button>
-               <button class="btn-trash" 
-                  @click="openDiscardModal(carcass)"
-                  :disabled="carcass.count <= 0"
-                  title="Descartar">
-                 🗑️
-               </button>
-             </div>
+        <div class="facility-panel slaughter-floor">
+          
+          <div class="magnetic-rail-system">
+            <div class="panel-header border-none">
+              <span class="ph-title">⛓️ MONOTRILHO DE SUSPENSÃO ({{ butcheryStore.queue.length }}/10)</span>
+            </div>
+            
+            <div class="rail-track">
+              <div v-for="n in 10" :key="n" class="mag-hook" 
+                   :class="{'has-carcass': butcheryStore.queue[n-1]}"
+                   @click="butcheryStore.removeFromQueue(n-1)"
+                   title="Devolver ao Cofre">
+                
+                <div class="rail-glider"></div> <div class="hook-cable"></div>
+                <img v-if="butcheryStore.queue[n-1]" :src="getCarcassImg(butcheryStore.queue[n-1])" class="hanging-carcass">
+                <div v-else class="hook-empty"></div>
+                
+                <div class="hook-remove-label">SOLTAR</div>
+              </div>
+            </div>
           </div>
+
+          <div class="dissection-slab-area">
+            
+            <div class="heavy-slab">
+               
+               <div class="drainage-grate"></div>
+
+               <div v-if="butcheryStore.activeSlot.carcacaId" class="laser-scalpel" :style="{ left: getProgressPct() + '%' }">
+                  <div class="laser-emitter top"></div>
+                  <div class="cutting-beam"></div>
+                  <div class="beam-impact"></div> <div class="laser-emitter bottom"></div>
+               </div>
+
+               <div v-if="butcheryStore.activeSlot.carcacaId" class="carcass-on-slab">
+                  <img :src="getCarcassImg(butcheryStore.activeSlot.carcacaId)" class="slab-entity">
+               </div>
+               <div v-else class="slab-idle">MESA DE DISSECAÇÃO AGUARDANDO ALVO</div>
+
+               <div class="loot-burst-zone">
+                 <div v-for="ft in floatingTexts" :key="ft.id" class="epic-loot-burst">
+                    <div v-for="(loot, index) in ft.drops" :key="index" class="burst-item" :style="{ animationDelay: `${index * 0.05}s` }">
+                       <span class="loot-icon" :style="{ backgroundColor: RECURSOS_ANIMAIS[loot.item]?.cor }"></span>
+                       <span class="loot-text" :style="{ color: RECURSOS_ANIMAIS[loot.item]?.cor }">+{{ loot.qtd }} {{ RECURSOS_ANIMAIS[loot.item]?.nome }}</span>
+                    </div>
+                 </div>
+               </div>
+
+            </div>
+          </div>
+
         </div>
+
       </div>
     </div>
 
@@ -244,87 +269,140 @@ onUnmounted(() => { delete window.darCarcacas })
 </template>
 
 <style scoped>
-.butchery-complex { display: flex; flex-direction: column; gap: 20px; font-family: 'Chakra Petch', sans-serif; }
-.section-title { font-size: 11px; color: #64748b; font-weight: 900; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 10px; text-transform: uppercase; }
+/* =========================================
+   AÇOUGUE TÁTICO 2.0 (ARCANEPUNK)
+========================================== */
+.tactical-slaughter-layout { display: flex; flex-direction: column; gap: 15px; font-family: 'Chakra Petch', sans-serif; }
 
-/* Botão de Teste */
-.debug-btn { background: #eab308; color: #000; border: 2px solid #ca8a04; padding: 10px; font-family: 'Chakra Petch', sans-serif; font-weight: 900; font-size: 12px; border-radius: 4px; cursor: pointer; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.4); text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
-.debug-btn:hover { background: #facc15; transform: translateY(-2px); }
+.btn-sys-override { background: #0f172a; border: 1px dashed #ef4444; color: #ef4444; padding: 10px; font-weight: 900; font-size: 11px; cursor: pointer; border-radius: 4px; transition: 0.2s; letter-spacing: 1px; }
+.btn-sys-override:hover { background: rgba(239, 68, 68, 0.1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
 
-/* Mesa */
-/* Mesa Arcana Limpa */
-.table-area { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 10px; position: relative; }
-.arcane-table { width: 100%; max-width: 320px; height: 180px; background-color: #020617; border: 4px solid #1e293b; border-radius: 8px; position: relative; overflow: hidden; box-shadow: inset 0 0 30px rgba(56, 189, 248, 0.1), 0 10px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.facility-core { display: flex; gap: 15px; align-items: flex-start; }
 
-/* Grade tecnomágica no fundo */
-.arcane-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.1) 1px, transparent 1px); background-size: 20px 20px; opacity: 0.5; }
+/* Painéis de Alta Segurança */
+.facility-panel { background: #0f172a; border: 2px solid #1e293b; border-radius: 6px; padding: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5); }
+.cryo-vault { flex: 1; }
+.slaughter-floor { flex: 1.2; display: flex; flex-direction: column; gap: 20px; }
 
-/* Laser Scanner subindo e descendo */
-.arcane-scanner { position: absolute; width: 100%; height: 2px; background: #38bdf8; box-shadow: 0 0 15px #38bdf8, 0 0 5px #fff; z-index: 5; animation: scan 3s linear infinite alternate; opacity: 0.8; }
-@keyframes scan { 0% { top: 10%; opacity: 0.2; } 50% { opacity: 1; } 100% { top: 90%; opacity: 0.2; } }
+/* Cabeçalhos */
+.panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-bottom: 15px; }
+.panel-header.border-none { border: none; padding-bottom: 0; margin-bottom: 10px; }
+.ph-title { color: #e2e8f0; font-size: 12px; font-weight: 900; letter-spacing: 1px; }
+.ph-capacity { background: #020617; color: #38bdf8; font-size: 10px; font-weight: 900; padding: 2px 8px; border: 1px solid #1e293b; border-radius: 4px; }
 
-.empty-table-text { color: rgba(56, 189, 248, 0.3); font-size: 16px; font-weight: 900; letter-spacing: 4px; z-index: 2; }
-.active-carcass-wrapper { position: relative; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; z-index: 3; }
+/* =========================================
+   COFRE CRIOGÊNICO (ESQUERDA)
+========================================== */
+.vault-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 10px; }
 
-/* A carcaça ganha um tom azulado quando está na mesa arcana */
-.carcass-on-table { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.4)) contrast(1.1); }
+.cryo-locker { display: flex; flex-direction: column; gap: 4px; background: #020617; border: 1px solid #1e293b; border-radius: 4px; padding: 4px; transition: 0.2s; }
+.cryo-locker:hover:not(.is-empty) { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); }
+.cryo-locker.is-empty { filter: grayscale(1); opacity: 0.3; }
 
-/* Barra de progresso Arcana */
-.progress-container { width: 100%; max-width: 320px; }
-.progress-bar { width: 100%; height: 8px; background: #020617; border: 1px solid #1e293b; border-radius: 4px; overflow: hidden; }
-.progress-fill { height: 100%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; transition: width 0.2s linear; }
+.locker-window { height: 75px; background: #0f172a; border: 2px solid #334155; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+.frost-fx { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(224, 242, 254, 0.05), rgba(56, 189, 248, 0.1)); pointer-events: none; z-index: 3; border-top: 2px solid rgba(255,255,255,0.1); }
+.locker-entity { width: 75%; height: 75%; object-fit: contain; z-index: 2; filter: drop-shadow(0 2px 4px #000); transition: 0.2s; }
+.cryo-locker:hover:not(.is-empty) .locker-entity { transform: scale(1.1); }
+.locker-qty { position: absolute; top: 4px; right: 4px; background: #020617; color: #e2e8f0; font-size: 10px; font-weight: 900; padding: 1px 5px; border: 1px solid #334155; z-index: 4; border-radius: 2px; }
 
-/* Animação do Loot Flutuante */
-.floating-loot-container { position: absolute; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 10; pointer-events: none; }
-.loot-pop { background: rgba(2, 6, 23, 0.9); border: 1px solid #22c55e; color: #4ade80; font-size: 12px; font-weight: 900; padding: 2px 8px; border-radius: 4px; opacity: 0; transform: translateY(0); animation: floatUp 2s ease-out forwards; font-family: 'Chakra Petch', sans-serif; box-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+.locker-actions { display: flex; gap: 4px; }
+.btn-tactical { background: #1e293b; border: 1px solid #334155; font-size: 9px; font-weight: 900; cursor: pointer; padding: 6px 0; border-radius: 2px; font-family: 'Chakra Petch', sans-serif; transition: 0.2s; }
+.btn-suspend { flex: 1; color: #cbd5e1; }
+.btn-suspend:hover:not(:disabled) { background: #38bdf8; color: #000; border-color: #38bdf8; }
+.btn-incinerate { width: 28px; color: #ef4444; }
+.btn-incinerate:hover:not(:disabled) { background: #ef4444; color: #fff; border-color: #ef4444; }
+.btn-tactical:disabled { opacity: 0.4; cursor: not-allowed; }
 
-@keyframes floatUp {
-  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
-  20% { opacity: 1; transform: translateY(-5px) scale(1.1); }
-  30% { transform: translateY(-10px) scale(1); }
-  80% { opacity: 1; transform: translateY(-30px); }
-  100% { opacity: 0; transform: translateY(-40px); }
+/* =========================================
+   MONOTRILHO DE GANCHOS (A FILA)
+========================================== */
+.magnetic-rail-system { background: #020617; border: 1px solid #1e293b; padding: 12px; border-radius: 4px; box-shadow: inset 0 0 15px #000; }
+
+.rail-track { 
+  display: flex; justify-content: center; gap: 8px; position: relative; 
+  padding-top: 15px; margin-top: 5px; border-top: 4px solid #1e293b; 
+}
+/* O trilho de metal metálico */
+.rail-track::before { content: ''; position: absolute; top: -2px; left: 0; right: 0; height: 2px; background: #475569; }
+
+.mag-hook { width: 35px; height: 50px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; }
+.rail-glider { width: 12px; height: 6px; background: #38bdf8; border-radius: 2px; position: absolute; top: -18px; box-shadow: 0 0 5px #38bdf8; } /* Luz do gancho ativo */
+.hook-cable { width: 2px; height: 10px; background: #475569; margin-top: -10px; z-index: 1; }
+.hanging-carcass { width: 100%; height: 35px; object-fit: contain; z-index: 2; filter: drop-shadow(0 4px 4px #000); transition: 0.2s; }
+
+/* Interação ao tentar remover da fila */
+.hook-remove-label { position: absolute; bottom: -15px; font-size: 8px; font-weight: bold; color: #ef4444; opacity: 0; transition: 0.2s; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; }
+.mag-hook.has-carcass:hover .hanging-carcass { filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(5); }
+.mag-hook.has-carcass:hover .hook-remove-label { opacity: 1; bottom: 0; z-index: 10; }
+
+.hook-empty { width: 10px; height: 15px; border: 2px solid #334155; border-top: none; border-radius: 0 0 10px 10px; margin-top: 5px; } /* Desenho de um gancho vazio */
+
+/* =========================================
+   LAJE DE DISSECAÇÃO (MESA PRINCIPAL)
+========================================== */
+.dissection-slab-area { display: flex; flex-direction: column; align-items: center; padding: 10px 0; }
+
+.heavy-slab { 
+  width: 100%; max-width: 360px; height: 160px; 
+  background: #020617; border: 4px solid #1e293b; border-radius: 6px; 
+  position: relative; display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 40px #000, 0 10px 20px rgba(0,0,0,0.6);
+  border-bottom-width: 12px; /* Espessura da laje */
 }
 
-/* Fila */
-.queue-slots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #1e293b; }
-.q-slot { width: 35px; height: 35px; background: #020617; border: 1px dashed #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-.q-img { width: 80%; height: 80%; object-fit: contain; z-index: 1; }
-/* Interação de Remoção na Fila */
-.q-slot.has-item { cursor: pointer; border-style: solid; border-color: #475569; }
-.remove-overlay { position: absolute; inset: 0; background: rgba(239, 68, 68, 0.8); color: #fff; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 2; opacity: 0; transition: 0.2s; }
-.q-slot.has-item:hover .remove-overlay { opacity: 1; }
-.q-slot.has-item:hover { border-color: #ef4444; }
+/* Grade de escoamento no fundo */
+.drainage-grate {
+  position: absolute; inset: 6px;
+  background-image: repeating-linear-gradient(45deg, #0f172a 0, #0f172a 2px, transparent 2px, transparent 8px);
+  border: 1px solid #1e293b; z-index: 1; opacity: 0.8;
+}
 
-/* Inventário / Câmara Fria */
-.carcass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
-.carcass-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: 0.2s; }
-.carcass-card:hover:not(.is-empty) { border-color: #38bdf8; }
-.carcass-card.is-empty { filter: grayscale(0.8); opacity: 0.5; } /* Apaga visualmente as cartas vazias */
+.slab-idle { font-size: 11px; font-weight: 900; color: #334155; z-index: 2; letter-spacing: 2px; text-shadow: 0 1px 1px #000; }
 
-.cc-visual { position: relative; width: 60px; height: 60px; background: #1e293b; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid #334155; box-shadow: inset 0 0 10px #000; cursor: pointer; transition: 0.2s; }
-.cc-visual:hover { border-color: #38bdf8; transform: scale(1.05); }
-.cc-img { width: 80%; height: 80%; object-fit: contain; filter: drop-shadow(0 2px 2px #000); }
-.cc-badge { position: absolute; bottom: -5px; right: -5px; background: #38bdf8; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 10px; border: 1px solid #000; z-index: 2; }
-.cc-badge.bg-red { background: #ef4444; color: #fff; }
-.info-hover-icon { position: absolute; top: -5px; left: -5px; font-size: 12px; opacity: 0; transition: 0.2s; filter: drop-shadow(0 2px 2px #000); }
-.cc-visual:hover .info-hover-icon { opacity: 1; }
+.carcass-on-slab { position: relative; z-index: 2; width: 120px; height: 120px; }
+.slab-entity { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px #000); }
 
-.cc-name { font-size: 9px; color: #e2e8f0; text-align: center; font-weight: 700; height: 22px; display: flex; align-items: center; }
+/* === O LASER DE DISSECAÇÃO (Barra de Progresso) === */
+.laser-scalpel {
+  position: absolute; top: -6px; bottom: -6px; width: 4px;
+  display: flex; flex-direction: column; align-items: center;
+  z-index: 10; transition: left 0.1s linear; pointer-events: none;
+}
+.laser-emitter { width: 16px; height: 8px; background: #0f172a; border: 2px solid #38bdf8; border-radius: 2px; box-shadow: 0 0 10px #38bdf8; }
+.cutting-beam { flex: 1; width: 2px; background: #fff; box-shadow: 0 0 15px 4px #0ea5e9, 0 0 5px 1px #fff; }
+.beam-impact { position: absolute; top: 50%; width: 25px; height: 25px; background: radial-gradient(circle, #fff 10%, #38bdf8 40%, transparent 70%); opacity: 0.8; transform: translateY(-50%); animation: flash-cut 0.05s infinite alternate; mix-blend-mode: screen; }
 
-/* === BOTÕES DO CARTÃO (Adicionar + Lixeira) === */
-.card-actions { display: flex; gap: 4px; width: 100%; }
-.btn-add-queue { flex: 1; padding: 6px 0; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 9px; font-weight: 800; border-radius: 4px; cursor: pointer; transition: 0.2s; font-family: 'Chakra Petch', sans-serif; }
-.btn-add-queue:hover:not(:disabled) { background: #38bdf8; color: #000; }
-.btn-add-queue:disabled { opacity: 0.4; cursor: not-allowed; }
+@keyframes flash-cut { 0% { transform: translateY(-50%) scale(0.8); opacity: 0.6; } 100% { transform: translateY(-50%) scale(1.2); opacity: 1; } }
 
-.btn-trash { width: 30px; background: #1e293b; border: 1px solid #334155; color: #ef4444; border-radius: 4px; padding: 0; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.btn-trash:hover:not(:disabled) { background: #450a0a; border-color: #ef4444; }
-.btn-trash:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+/* =========================================
+   O LOOT EXPLOSIVO (FIM DA BANDEJA!)
+========================================== */
+.loot-burst-zone { position: absolute; inset: 0; z-index: 20; pointer-events: none; display: flex; justify-content: center; align-items: center; }
 
-@media (max-width: 550px) {
-  .md-body { flex-direction: column; align-items: center; text-align: center; }
-  .md-habitat, .md-time { text-align: left; }
-  .md-loot-grid { justify-content: center; }
+.epic-loot-burst { display: flex; flex-direction: column; align-items: center; gap: 4px; position: absolute; }
+
+.burst-item { 
+  display: flex; align-items: center; gap: 6px; 
+  background: rgba(2, 6, 23, 0.95); padding: 4px 12px; border-radius: 20px;
+  border: 1px solid #334155; box-shadow: 0 5px 15px rgba(0,0,0,0.9);
+  opacity: 0; transform: scale(0.5) translateY(0);
+  animation: dynamic-burst 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.loot-icon { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; }
+.loot-text { font-size: 13px; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 4px #000; }
+
+/* A animação fantástica do Loot subindo da mesa */
+@keyframes dynamic-burst {
+  0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+  20% { opacity: 1; transform: scale(1.2) translateY(-40px); }
+  80% { opacity: 1; transform: scale(1) translateY(-60px); }
+  100% { opacity: 0; transform: scale(0.8) translateY(-100px); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .facility-core { flex-direction: column; }
+  .facility-panel { width: 100%; }
 }
 </style>

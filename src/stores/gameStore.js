@@ -10,7 +10,15 @@ export const useGameStore = defineStore('game', () => {
 
   const inventory = ref({
     pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0,
-    rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0
+    rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0,
+
+    // Recursos do Destrinchamento
+    carne: 0, couro: 0, osso: 0, sangue: 0, presa: 0, escama: 0,
+    
+    // Carcaças para teste (5 de cada)
+    javali_da_vila: 5, carcaca_coelhogigante: 5, tatu_pedra: 5, salamandra: 5,
+    javali_de_granito: 5, snow_fox: 5, magma_hyena: 5, lagarto_de_brasa: 5,
+    sand_scorpion: 5, besouro_rinoceronte: 5, basilisco: 5, fire_serpe: 5
   })
   const workers = ref([]) 
   const buildings = ref([
@@ -19,7 +27,8 @@ export const useGameStore = defineStore('game', () => {
     { id: 3, key: 'hospedagem', level: 1 },
     { id: 4, key: 'centrorecrutamento', level: 1 },
     { id: 5, key: 'mina', level: 1 },
-    { id: 6, key: 'hospital', level: 0 }
+    { id: 6, key: 'hospital', level: 0 },
+    { id: 7, key: 'destrinchador', level: 0 } 
   ])
   const medicalInventory = ref({
     plasma: [10, 10, 10, 10], 
@@ -55,6 +64,12 @@ export const useGameStore = defineStore('game', () => {
     const b = buildings.value.find(x => x.key === 'armazem')
     const lvl = b ? b.level : 1
     return 1000 + (lvl * 500) // Fórmula do Armazém (Base 1000 + 500 por nível)
+  })
+  const maxCarcassStorage = computed(() => { // Capacidade de Carcaças no Destrinchamento
+    const b = buildings.value.find(x => x.key === 'destrinchador')
+    const lvl = b ? b.level : 0
+    // Fórmula: 20 de espaço base + 10 por nível do prédio. (Nível 1 = 30 espaços)
+    return 20 + (lvl * 10) 
   })
   const miningLevel = computed(() => {
     const b = buildings.value.find(x => x.key === 'mina')
@@ -232,7 +247,7 @@ export const useGameStore = defineStore('game', () => {
       
       // Carrega recursos e inventário normalmente
       resources.value = data.resources
-      inventory.value = data.inventory || { pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0, rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0 }
+      inventory.value = data.inventory || { pedra: 0, ferro: 0, cobre: 0, ouro_min: 0, cristal: 0, obsidiana: 0, rubi: 0, safira: 0, esmeralda: 0, mithril: 0, adamantium: 0, oricalco: 0, carne: 0, couro: 0, osso: 0, sangue: 0, presa: 0, escama: 0, javali_da_vila: 5, carcaca_coelhogigante: 5, tatu_pedra: 5, salamandra: 5, javali_de_granito: 5, snow_fox: 5, magma_hyena: 5, lagarto_de_brasa: 5, sand_scorpion: 5, besouro_rinoceronte: 5, basilisco: 5, fire_serpe: 5 }
       workers.value = data.workers
       adminId.value = data.adminId
       if (adminId.value) {
@@ -272,7 +287,7 @@ export const useGameStore = defineStore('game', () => {
 
   return {
     resources, inventory, medicalInventory, workers, buildings, adminId, dailyHires, miningLevel,
-    currentAdmin, recruitmentLevel, maxPopulation, maxStorage,
+    currentAdmin, recruitmentLevel, maxPopulation, maxStorage, maxCarcassStorage,
     hireWorker, fireWorker, setAdmin, paySalaries, manualPay,
     spendResources, upgradeBuilding, loadGame, getWorkerStats
   }

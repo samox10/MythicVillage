@@ -119,3 +119,30 @@ export const MULTIPLICADOR_TIER_MEDICO = {
   3: 1.5,
   4: 2.0
 }
+
+// === 9. SISTEMA DE DESTRINCHAMENTO ===
+// Define os itens que podem ser obtidos (Adicione mais no futuro se precisar)
+export const RECURSOS_ANIMAIS = {
+  carne: { nome: 'Carne Crua', cor: '#ef4444' },
+  couro: { nome: 'Couro Rústico', cor: '#8b5cf6' },
+  osso: { nome: 'Osso Resistente', cor: '#f8fafc' },
+  sangue: { nome: 'Sangue Mágico', cor: '#991b1b' },
+  presa: { nome: 'Presa Afiada', cor: '#eab308' },
+  escama: { nome: 'Escama Térmica', cor: '#f97316' }
+}
+
+// Lista das 12 carcaças na ordem de liberação (1 por nível do prédio)
+export const CARCACAS_INFO = {
+  javali_da_vila: { nome: 'Javali da Vila', habitat: 'Campos e Arredores', unlockLvl: 1, tempoBase: 10, dureza: 1, img: 'javali_da_vila.png', drops: { carne: 2, couro: 1 } },
+  carcaca_coelhogigante: { nome: 'Coelho Gigante', habitat: 'Bosques Sombrios', unlockLvl: 2, tempoBase: 12, dureza: 1.2, img: 'carcaca_coelhogigante.png', drops: { carne: 1, osso: 2 } },
+  tatu_pedra: { nome: 'Tatu de Pedra', habitat: 'Cavernas Úmidas', unlockLvl: 3, tempoBase: 15, dureza: 1.5, img: 'tatu_pedra.png', drops: { carne: 1, osso: 3 } },
+  salamandra: { nome: 'Salamandra', habitat: 'Pântanos Nebulosos', unlockLvl: 4, tempoBase: 18, dureza: 2, img: 'salamandra.png', drops: { carne: 1, escama: 1, sangue: 1 } },
+  javali_de_granito: { nome: 'Javali de Granito', habitat: 'Encostas das Montanhas', unlockLvl: 5, tempoBase: 20, dureza: 2.5, img: 'javali_de_granito.png', drops: { carne: 3, couro: 2, presa: 1 } },
+  snow_fox: { nome: 'Raposa das Neves', habitat: 'Tundras Congeladas', unlockLvl: 6, tempoBase: 25, dureza: 3, img: 'snow_fox.png', drops: { couro: 3, sangue: 1 } },
+  magma_hyena: { nome: 'Hiena de Magma', habitat: 'Rios de Lava', unlockLvl: 7, tempoBase: 30, dureza: 3.5, img: 'magma_hyena.png', drops: { carne: 2, presa: 2, sangue: 1 } },
+  lagarto_de_brasa: { nome: 'Lagarto de Brasa', habitat: 'Desertos Escaldantes', unlockLvl: 8, tempoBase: 35, dureza: 4, img: 'lagarto_de_brasa.png', drops: { carne: 2, escama: 3 } },
+  sand_scorpion: { nome: 'Escorpião de Areia', habitat: 'Areia Movediça', unlockLvl: 9, tempoBase: 40, dureza: 4.5, img: 'sand_scorpion.png', drops: { osso: 2, presa: 3 } },
+  besouro_rinoceronte: { nome: 'Besouro Rinoceronte', habitat: 'Selvas Profundas', unlockLvl: 10, tempoBase: 50, dureza: 5, img: 'besouro_rinoceronte.png', drops: { osso: 4, couro: 2 } },
+  basilisco: { nome: 'Basilisco', habitat: 'Ruínas Antigas', unlockLvl: 11, tempoBase: 60, dureza: 6, img: 'basilisco.png', drops: { escama: 4, sangue: 3, presa: 2 } },
+  fire_serpe: { nome: 'Serpe de Fogo', habitat: 'Picos Vulcânicos', unlockLvl: 12, tempoBase: 80, dureza: 8, img: 'fire_serpe.png', drops: { carne: 5, escama: 5, sangue: 5 } }
+}

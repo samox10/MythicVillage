@@ -3,15 +3,18 @@ import { ref, onMounted } from 'vue'
 import { useGameStore } from './stores/gameStore'
 import { useMiningStore } from './stores/miningStore' // STORE MINERAÇÃO
 import { useHospitalStore } from './stores/hospitalStore' // HOSPITAL STORE
+import { useButcheryStore } from './stores/butcheryStore' // BUTCHERY STORE ( DESTRINCHAMENTO )
 import HeaderHUD from './components/HeaderHUD.vue'
 import VilaView from './components/VilaView.vue'
 import RecrutamentoView from './components/RecrutamentoView.vue' 
 import HospitalView from './components/HospitalView.vue' // HOSPITAL VIEW
 import MineracaoView from './components/MineracaoView.vue' // MINERAÇAO VIEW
+import DestrinchamentoView from './components/DestrinchamentoView.vue' // DESTRINCHAMENTO VIEW
 
 const store = useGameStore()
 const miningStore = useMiningStore() // <--- INSTÂNCIA MINERAÇÃO
 const hospitalStore = useHospitalStore() // <--- INSTÂNCIA HOSPITAL
+const butcheryStore = useButcheryStore() // <--- INSTÂNCIA DESTRINCHAMENTO
 window.game = store
 const currentScreen = ref('vila')
 
@@ -19,6 +22,7 @@ onMounted(() => {
   store.loadGame()
   miningStore.loadMining() // <--- CARREGA DADOS DA MINERAÇÃO
   hospitalStore.loadHospital() // <--- CARREGA DADOS DO HOSPITAL
+  butcheryStore.loadButchery() // <--- CARREGA OS DADOS DA MESA DE DESTRINCHAMENTO
   // Salários a cada 1 min
   setInterval(() => { store.paySalaries() }, 60000)
   
@@ -27,6 +31,7 @@ onMounted(() => {
     store.resources.goldCoin += 10 // Renda Passiva Antiga
     miningStore.miningTick()       // <--- O "MOTOR" DA MINERAÇÃO
     hospitalStore.hospitalTick()   // <--- O "MOTOR" DO HOSPITAL
+    butcheryStore.butcheryTick()  // <--- O "MOTOR" DO DESTRINCHAMENTO
   }, 1000)
 })
 
@@ -36,7 +41,7 @@ const menuItems = [
   { id: 'mineracao', label: 'MINA', icon: '⛏️' }, 
   { id: 'hospital', label: 'HOSPITAL', icon: '🏥' },
   { id: 'lab', label: 'LAB', icon: '⚗️' },
-  { id: 'guilda', label: 'CLÃ', icon: '⚔️' },
+  { id: 'destrinchador', label: 'CORTES', icon: '🔪' },
   { id: 'arena', label: 'PVP', icon: '🏆' },
 
 ]
@@ -71,8 +76,9 @@ const menuItems = [
 
           <MineracaoView v-if="currentScreen === 'mineracao'" />
           <HospitalView v-if="currentScreen === 'hospital'" />
+          <DestrinchamentoView v-if="currentScreen === 'destrinchador'" />
           
-          <div v-if="!['vila', 'recrutamento', 'mineracao', 'hospital'].includes(currentScreen)" class="locked-sector">
+          <div v-if="!['vila', 'recrutamento', 'mineracao', 'hospital', 'destrinchador'].includes(currentScreen)" class="locked-sector">
             <h2>{{ currentScreen }}</h2><p>SECTOR LOCKED</p>
           </div>
         </div>

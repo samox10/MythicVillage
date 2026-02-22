@@ -18,6 +18,13 @@ const buildingDefinitions = [
       return `4 Leitos, Meds T${Math.min(lvl - 3, 4)}`
     }
   },
+  { id: 7, key: 'destrinchador', name: 'Mesa de Dissecação', type: 'PRODUÇÃO', desc: 'Extrai recursos valiosos de carcaças', img: '🔪', baseCost: 2500, baseTime: 1, reqId: 4, reqLvl: 2, 
+    effectDesc: (lvl) => {
+      if (lvl === 0) return 'Desativada'
+      if (lvl >= 12) return '12 Carcaças (Máximo)'
+      return `Libera ${lvl} Carcaça(s)`
+    }
+  }
 ]
 
 // Merge dos dados com o Store (Cérebro)

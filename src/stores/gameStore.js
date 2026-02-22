@@ -22,14 +22,14 @@ export const useGameStore = defineStore('game', () => {
     { id: 6, key: 'hospital', level: 0 }
   ])
   const medicalInventory = ref({
-    plasma: [10, 0, 0, 0], 
-    soro_reg: [10, 0, 0, 0],
-    solucao: [10, 0, 0, 0],
-    resina: [10, 0, 0, 0],
-    derme: [10, 0, 0, 0],
-    neutralizador: [10, 0, 0, 0],
-    estimulante: [10, 0, 0, 0],
-    soro_psi: [10, 0, 0, 0]
+    plasma: [10, 10, 10, 10], 
+    soro_reg: [10, 10, 10, 10],
+    solucao: [10, 10, 10, 10],
+    resina: [10, 10, 10, 10],
+    derme: [10, 10, 10, 10],
+    neutralizador: [10, 10, 10, 10],
+    estimulante: [10, 10, 10, 10],
+    soro_psi: [10, 10, 10, 10]
   })
   const adminId = ref(null)
 

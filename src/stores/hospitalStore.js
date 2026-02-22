@@ -23,6 +23,10 @@ export const useHospitalStore = defineStore('hospital', () => {
   // Fila de Triagem (Pacientes esperando)
   // Formato: { workerId, medicamentRequired, baseTime, reason }
   const triageQueue = ref([])
+  // Preferência de Tier escolhida pelo usuário para cada medicamento
+  const defaultTiers = ref({
+    plasma: 1, soro_reg: 1, solucao: 1, resina: 1, derme: 1, neutralizador: 1, estimulante: 1, soro_psi: 1
+  })
 
   // === GETTERS (Cálculos e Buscas) ===
   
@@ -63,43 +67,57 @@ export const useHospitalStore = defineStore('hospital', () => {
   }
 
 // 2. Processar a Triagem (Passar da fila para o leito)
+  // 2. Processar a Triagem (Passar da fila para o leito)
   function processQueue() {
     const hospitalLevel = gameStore.buildings.find(b => b.key === 'hospital')?.level || 0
     if (hospitalLevel === 0) return
 
     if (!currentMedic.value || (currentMedic.value.strikeDays || 0) > 0 || currentMedic.value.injury) return
 
-    
-    const activeBedsCount = Math.min(hospitalLevel, 4) // Nível 1=1, 2=2, 3=3, 4+=4.
+    const activeBedsCount = Math.min(hospitalLevel, 4)
 
     for (let i = 0; i < triageQueue.value.length; i++) {
       const patient = triageQueue.value[i]
-      
-      // Procura cama vazia APENAS DENTRO DAS CAMAS QUE JÁ FORAM CONSTRUÍDAS
       const emptyBed = beds.value.slice(0, activeBedsCount).find(b => b.patientId === null)
       
-      if (!emptyBed) break // Se não tem cama construída/livre, para de olhar a fila
+      if (!emptyBed) break 
 
       let selectedTier = null
-      
-      // Se nível <= 4, o máximo é Tier 1. Se nível 5, Tier 2. Nível 6, Tier 3. Nível 7, Tier 4.
       const maxTierAllowed = hospitalLevel <= 4 ? 1 : Math.min(hospitalLevel - 3, 4)
+      const reqMed = patient.medicamentRequired
+
+      // === NOVA LÓGICA INTELIGENTE DE CONSUMO ===
       
-      for (let t = maxTierAllowed - 1; t >= 0; t--) {
-        if (gameStore.medicalInventory[patient.medicamentRequired][t] > 0) {  
-          selectedTier = t + 1 
-          gameStore.medicalInventory[patient.medicamentRequired][t]--
-          break
+      // 1. Descobre a exigência do ferimento (Preparado para o futuro. Hoje assume 1)
+      const minTierReq = patient.minTier || 1 
+      
+      // 2. Pega a configuração do usuário e garante que seja no mínimo o que o ferimento exige
+      let prefTier = defaultTiers.value[reqMed] || 1
+      if (prefTier < minTierReq) prefTier = minTierReq
+      if (prefTier > maxTierAllowed) prefTier = maxTierAllowed
+
+      // 3. TENTA USAR O ESCOLHIDO PELO USUÁRIO PRIMEIRO
+      if (gameStore.medicalInventory[reqMed][prefTier - 1] > 0) {
+        selectedTier = prefTier
+      } else {
+        // 4. SE NÃO TEM O PREFERIDO, tenta achar o MAIS BARATO disponível que sirva
+        for (let t = minTierReq - 1; t < maxTierAllowed; t++) {
+          if (gameStore.medicalInventory[reqMed][t] > 0) {
+            selectedTier = t + 1
+            break
+          }
         }
       }
 
+      // Se achou um remédio válido, interna o paciente
       if (selectedTier !== null) {
         emptyBed.patientId = patient.workerId
-        emptyBed.medicament = patient.medicamentRequired
+        emptyBed.medicament = reqMed
         emptyBed.tier = selectedTier
         emptyBed.progress = 0
         emptyBed.totalTime = patient.baseTime
         
+        gameStore.medicalInventory[reqMed][selectedTier - 1]--
         triageQueue.value.splice(i, 1)
         i-- // Recua o contador pois a fila andou
       }
@@ -175,8 +193,6 @@ export const useHospitalStore = defineStore('hospital', () => {
     }
     processQueue()
   }
-  
-
   // === SISTEMA DE SAVE ===
   function loadHospital() {
     const saved = localStorage.getItem('mythic_hospital_save')
@@ -184,6 +200,7 @@ export const useHospitalStore = defineStore('hospital', () => {
       const data = JSON.parse(saved)
       if (data.beds) beds.value = data.beds
       if (data.triageQueue) triageQueue.value = data.triageQueue
+      if (data.defaultTiers) defaultTiers.value = data.defaultTiers // <--- LINHA NOVA
       if (data.medicId) {
         medicId.value = data.medicId
         const medic = gameStore.workers.find(w => w.id === medicId.value)
@@ -191,13 +208,13 @@ export const useHospitalStore = defineStore('hospital', () => {
       }
     }
   }
-
-  watch(() => ({ beds: beds.value, triageQueue: triageQueue.value, medicId: medicId.value }), (newState) => {
+  // Salva automaticamente sempre que algo importante mudar
+  watch(() => ({ beds: beds.value, triageQueue: triageQueue.value, medicId: medicId.value, defaultTiers: defaultTiers.value }), (newState) => {
     localStorage.setItem('mythic_hospital_save', JSON.stringify(newState))
   }, { deep: true })
 
   return {
-    medicId, beds, triageQueue, currentMedic,
+    medicId, beds, triageQueue, currentMedic, defaultTiers, 
     admitPatient, processQueue, hospitalTick, assignMedic, loadHospital
   }
 })

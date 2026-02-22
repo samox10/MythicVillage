@@ -51,10 +51,11 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
         <div class="ph-line"></div>
       </div>
       
-      <div class="admin-card hud-style" v-if="leader">
+      <div class="admin-card hud-style" v-if="leader" :class="{ 'is-striking': leader.strikeDays > 0 }">
         <div class="hud-left">
           <div class="h-frame" :class="getTierClass(leader.tier)">
-            <img :src="leader.avatarUrl">
+            <img :src="leader.avatarUrl" :class="{'grayscale-img': leader.strikeDays > 0}">
+            <div v-if="leader.strikeDays > 0" class="leader-strike-badge">GREVE</div>
           </div>
           <div class="h-tier-label" :class="getTierClass(leader.tier)">TIER {{ leader.tier }}</div>
         </div>
@@ -66,7 +67,11 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
                 REMOVER
              </button>
           </div>
-          <div class="admin-race-tag tactical-plate">{{ leader.race }}</div>
+          
+          <div class="admin-race-tag tactical-plate">
+            <span v-if="leader.strikeDays > 0" class="strike-alert">⚠️ EM GREVE ({{ leader.strikeDays }}D)</span>
+            <span v-else>{{ leader.race }}</span>
+          </div>
           
           <div class="h-metrics">
             <div class="metric">
@@ -248,6 +253,31 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); /* Brilho Neon */
   transform: translateY(-1px);
 }
+/* === ESTILOS DE GREVE (Painel do Líder) === */
+.h-frame { position: relative; } /* Garante que o selo não escape da caixa da foto */
+
+.grayscale-img { filter: grayscale(1) opacity(0.8); }
+
+.leader-strike-badge {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: #ef4444; color: #fff;
+  font-weight: 900; font-size: 10px;
+  padding: 2px 6px; border: 1px solid #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+  z-index: 10; letter-spacing: 1px;
+}
+
+.strike-alert {
+  color: #ef4444;
+  font-weight: 900;
+  animation: blink-alert 1.5s infinite;
+}
+
+@keyframes blink-alert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
 
 /* === MOBILE ADAPTATION === */
 @media (max-width: 600px) {
@@ -269,6 +299,18 @@ const formatNum = (n) => new Intl.NumberFormat('pt-BR').format(n)
   .metric { padding-left: 5px; }
   .m-val { font-size: 11px; }
   .m-lbl { font-size: 7px; }
+
+  /* === NOVAS REGRAS DA GREVE NO CELULAR === */
+  .leader-strike-badge {
+    font-size: 7px; /* Diminui o selo para caber na foto pequena */
+    padding: 1px 3px;
+    border-width: 1px;
+  }
+  .tactical-plate .strike-alert {
+    font-size: 8px; /* Texto menor */
+    letter-spacing: 0;
+    white-space: nowrap; /* Impede que quebre de linha e estrague a altura */
+  }
 }
 
 @media (max-width: 500px) {

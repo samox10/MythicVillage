@@ -17,6 +17,10 @@ const detailedCarcass = ref(null)
 // Controles do Modal de Descarte
 const showDiscardModal = ref(false)
 const carcassToDiscard = ref(null)
+// O filtro atual do cofre (Padrão: mostra tudo)
+const filterResource = ref('todos')
+// O texto digitado na barra de pesquisa
+const searchQuery = ref('')
 
 const openDiscardModal = (carcass) => {
   carcassToDiscard.value = carcass
@@ -43,19 +47,49 @@ const buildingLevel = computed(() => {
 
 const getInventoryCount = (id) => store.inventory[id] || 0
 
-// LÓGICA DE ORDENAÇÃO: Quem tem (count > 0) vem primeiro. O resto vai pro final ordenado por nível.
-const sortedUnlockedCarcasses = computed(() => {
-  const list = []
+// Lista de carcaças desbloqueadas, já filtrada e ordenada
+const sortedUnlockedCarcasses = computed(() => { 
+  const list = [] 
+  // Pegamos o que o usuário digitou, deixamos minúsculo e tiramos os espaços das pontas
+  const query = searchQuery.value.toLowerCase().trim()
+
   for (const [key, info] of Object.entries(CARCACAS_INFO)) {
     if (info.unlockLvl <= buildingLevel.value) {
+      
+      // 1. Filtro da Caixa Suspensa (Select)
+      if (filterResource.value !== 'todos') {
+        if (!info.drops[filterResource.value]) {
+          continue // Se não tiver o recurso, pula para o próximo
+        }
+      }
+
+      // 2. Filtro da Barra de Pesquisa (Texto)
+      if (query) {
+        const matchName = info.nome.toLowerCase().includes(query)
+        const matchHabitat = info.habitat.toLowerCase().includes(query)
+        
+        // Verifica se a palavra digitada bate com o nome de algum loot (ex: "carne", "osso")
+        const matchResource = Object.keys(info.drops).some(dropKey => {
+           const resourceName = RECURSOS_ANIMAIS[dropKey]?.nome.toLowerCase() || ''
+           return resourceName.includes(query) || dropKey.includes(query)
+        })
+
+        // Se o que o cara digitou não está no nome, nem no habitat, nem no loot... pula!
+        if (!matchName && !matchHabitat && !matchResource) {
+          continue
+        }
+      }
+      
       list.push({ key, ...info, count: getInventoryCount(key) })
     }
   }
+  
+  // A ordenação: quem tem no inventário aparece primeiro
   return list.sort((a, b) => {
     const hasA = a.count > 0 ? 1 : 0
     const hasB = b.count > 0 ? 1 : 0
-    if (hasA !== hasB) return hasB - hasA // 1 (tem) vem antes de 0 (não tem)
-    return a.unlockLvl - b.unlockLvl // Se ambos tem ou não tem, organiza pelo nível de desbloqueio
+    if (hasA !== hasB) return hasB - hasA 
+    return a.unlockLvl - b.unlockLvl 
   })
 })
 
@@ -114,295 +148,300 @@ onUnmounted(() => { delete window.darCarcacas })
     leader-label="DISSECADOR"
     leader-stat-label="EFICIÊNCIA"
     empty-title="MESA VAZIA"
-    empty-desc="Nenhum profissional na mesa. O processo de destrinchamento está parado."
+    empty-desc="Nenhum profissional na mesa. O processo está parado."
     :hide-help="true"
     @remove-leader="butcheryStore.assignWorker(null)"
     @assign-leader="showWorkerSelect = true"
   >
-    <div v-if="buildingLevel > 0" class="tactical-slaughter-layout">
+    <div v-if="buildingLevel > 0" class="mythic-butchery-layout">
       
-      <button @click="addTestCarcasses" class="btn-sys-override">
-        [!] SOBRESCREVER SISTEMA: INJETAR CARCAÇAS
+      <button @click="addTestCarcasses" class="btn-dev-override">
+        [ DEV ] INJETAR ESPÉCIMES
       </button>
 
-      <div class="facility-core">
+      <div class="workspace-panel">
         
-        <div class="facility-panel cryo-vault">
-          <div class="panel-header">
-            <span class="ph-title">❄️ COFRE CRIOGÊNICO</span>
-            <span class="ph-capacity">{{ butcheryStore.totalCarcassesInStorage }} / {{ store.maxCarcassStorage }}</span>
-          </div>
+        <div class="queue-section">
+          <div class="section-title text-center">FILA DE PROCESSAMENTO ({{ butcheryStore.queue.length }}/10)</div>
           
-          <div class="vault-grid">
-            <div v-for="carcass in sortedUnlockedCarcasses" :key="carcass.key" 
-                 class="cryo-locker" :class="{'is-empty': carcass.count <= 0}">
-               
-               <div class="locker-window" @click="openDetails(carcass)" title="Ver Dados da Carcaça">
-                  <div class="frost-fx"></div>
-                  <img :src="`/assets/monstros/${carcass.img}`" class="locker-entity" @error="$event.target.style.opacity='0.3'">
-                  <div class="locker-qty">{{ carcass.count }}</div>
-               </div>
-
-              <div class="locker-actions">
-                 <button class="btn-tactical btn-suspend" 
-                    @click="butcheryStore.addToQueue(carcass.key)"
-                    :disabled="carcass.count <= 0 || butcheryStore.queue.length >= 10">
-                   PENDURAR
-                 </button>
-                 <button class="btn-tactical btn-incinerate" 
-                    @click="openDiscardModal(carcass)"
-                    :disabled="carcass.count <= 0"
-                    title="Incinerar">
-                   ✕
-                 </button>
-               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="facility-panel slaughter-floor">
-          
-          <div class="magnetic-rail-system">
-            <div class="panel-header border-none">
-              <span class="ph-title">⛓️ MONOTRILHO DE SUSPENSÃO ({{ butcheryStore.queue.length }}/10)</span>
-            </div>
-            
-            <div class="rail-track">
-              <div v-for="n in 10" :key="n" class="mag-hook" 
-                   :class="{'has-carcass': butcheryStore.queue[n-1]}"
+          <div class="queue-tray">
+            <div class="queue-hotbar">
+              <div v-for="n in 10" :key="n" class="hotbar-slot" 
+                   :class="{'is-filled': butcheryStore.queue[n-1]}"
                    @click="butcheryStore.removeFromQueue(n-1)"
-                   title="Devolver ao Cofre">
+                   title="Remover da fila">
                 
-                <div class="rail-glider"></div> <div class="hook-cable"></div>
-                <img v-if="butcheryStore.queue[n-1]" :src="getCarcassImg(butcheryStore.queue[n-1])" class="hanging-carcass">
-                <div v-else class="hook-empty"></div>
-                
-                <div class="hook-remove-label">SOLTAR</div>
+                <img v-if="butcheryStore.queue[n-1]" :src="getCarcassImg(butcheryStore.queue[n-1])" class="slot-img">
+                <div v-else class="slot-empty"></div>
+                <div v-if="butcheryStore.queue[n-1]" class="slot-remove-hover">✕</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="dissection-slab-area">
+        <div class="slab-section">
+          
+          <div class="heavy-operation-table">
             
-            <div class="heavy-slab">
+            <div class="drain-channel left"></div>
+            <div class="drain-channel right"></div>
+
+            <div v-if="butcheryStore.activeSlot.carcacaId" class="table-active-state">
                
-               <div class="drainage-grate"></div>
-
-               <div v-if="butcheryStore.activeSlot.carcacaId" class="laser-scalpel" :style="{ left: getProgressPct() + '%' }">
-                  <div class="laser-emitter top"></div>
-                  <div class="cutting-beam"></div>
-                  <div class="beam-impact"></div> <div class="laser-emitter bottom"></div>
+               <img :src="getCarcassImg(butcheryStore.activeSlot.carcacaId)" class="table-specimen">
+               
+               <div class="laser-bridge" :style="{ left: getProgressPct() + '%' }">
+                  <div class="bridge-top"></div>
+                  <div class="bridge-beam"></div>
+                  <div class="bridge-bottom"></div>
                </div>
 
-               <div v-if="butcheryStore.activeSlot.carcacaId" class="carcass-on-slab">
-                  <img :src="getCarcassImg(butcheryStore.activeSlot.carcacaId)" class="slab-entity">
-               </div>
-               <div v-else class="slab-idle">MESA DE DISSECAÇÃO AGUARDANDO ALVO</div>
-
-               <div class="loot-burst-zone">
-                 <div v-for="ft in floatingTexts" :key="ft.id" class="epic-loot-burst">
-                    <div v-for="(loot, index) in ft.drops" :key="index" class="burst-item" :style="{ animationDelay: `${index * 0.05}s` }">
-                       <span class="loot-icon" :style="{ backgroundColor: RECURSOS_ANIMAIS[loot.item]?.cor }"></span>
-                       <span class="loot-text" :style="{ color: RECURSOS_ANIMAIS[loot.item]?.cor }">+{{ loot.qtd }} {{ RECURSOS_ANIMAIS[loot.item]?.nome }}</span>
-                    </div>
+               <div class="embedded-hud">
+                 <div class="hud-label">PROCESSO: {{ Math.floor(getProgressPct()) }}%</div>
+                 <div class="hud-progress-container">
+                   <div class="hud-progress-fill" :style="{ width: getProgressPct() + '%' }"></div>
                  </div>
                </div>
-
             </div>
+            
+            <div v-else class="table-idle-state">
+               <span class="idle-text">MESA LIVRE</span>
+               <div class="idle-subtext">Aguardando espécime biológico</div>
+            </div>
+
+            <div class="loot-zone">
+               <div v-for="ft in floatingTexts" :key="ft.id" class="loot-burst">
+                  <div v-for="(loot, index) in ft.drops" :key="index" class="loot-tag" 
+                       :style="{ borderColor: RECURSOS_ANIMAIS[loot.item]?.cor, animationDelay: `${index * 0.05}s` }">
+                     <span class="loot-dot" :style="{ backgroundColor: RECURSOS_ANIMAIS[loot.item]?.cor }"></span>
+                     <span class="loot-text" :style="{ color: RECURSOS_ANIMAIS[loot.item]?.cor }">+{{ loot.qtd }} {{ RECURSOS_ANIMAIS[loot.item]?.nome }}</span>
+                  </div>
+               </div>
+            </div>
+
           </div>
 
         </div>
 
       </div>
-    </div>
 
-    <WorkerSelectModal v-if="showWorkerSelect" title="SELECIONAR DISSECADOR" :workers="availableWorkers" @close="showWorkerSelect = false" @select="selectWorker" />
+      <div class="vault-panel">
+        <div class="vault-header">
+          <div class="vault-info">
+            <span class="section-title">COFRE CRIOGÊNICO</span>
+            <span class="capacity-tag">{{ butcheryStore.totalCarcassesInStorage }} / {{ store.maxCarcassStorage }} ARMAZENADO</span>
+          </div>
 
-    <div class="modal-overlay" v-if="detailedCarcass" @click.self="closeDetails">
-      <div class="tactical-card monster-detail-card">
-        
-        <div class="md-header">
-           <span class="md-title">ANÁLISE BIOLÓGICA</span>
-           <button class="tc-close" @click="closeDetails">✕</button>
+          <div class="vault-filters">
+            <input type="text" v-model="searchQuery" class="game-input" placeholder="Pesquisar monstro ou loot...">
+            <select v-model="filterResource" class="game-select">
+              <option value="todos">FILTRO: TODOS</option>
+              <option value="carne">CARNE</option>
+              <option value="osso">OSSO</option>
+              <option value="couro">COURO</option>
+              <option value="escama">ESCAMA</option>
+              <option value="sangue">SANGUE</option>
+              <option value="presa">PRESA</option>
+            </select>
+          </div>
         </div>
+        
+        <div class="card-grid">
+          <div v-for="carcass in sortedUnlockedCarcasses" :key="carcass.key" 
+               class="game-card" :class="{'out-of-stock': carcass.count <= 0}">
+             
+             <div class="card-img-area" @click="openDetails(carcass)" title="Ver Dados Biológicos">
+                <img :src="`/assets/monstros/${carcass.img}`" class="card-monster" @error="$event.target.style.opacity='0.1'">
+                <div class="card-qty">{{ carcass.count }}</div>
+             </div>
 
-        <div class="md-body">
-           <div class="md-visual">
-              <img :src="`/assets/monstros/${detailedCarcass.img}`" class="md-big-img">
-           </div>
-           
-           <div class="md-info">
-              <h2 class="md-monster-name">{{ detailedCarcass.nome }}</h2>
-              <div class="md-habitat">📍 <strong>Habitat:</strong> {{ detailedCarcass.habitat }}</div>
-              <div class="md-time">⏱️ <strong>Tempo Base de Corte:</strong> {{ detailedCarcass.tempoBase }} Segundos</div>
-              <div class="md-time">🛡️ <strong>Dureza Estrutural:</strong> Nível {{ detailedCarcass.dureza }}</div>
-              
-              <div class="md-loot-section">
-                 <div class="md-loot-title">MATERIAIS EXTRAÍDOS</div>
-                 <div class="md-loot-grid">
-                    <div v-for="(qtd, itemKey) in detailedCarcass.drops" :key="itemKey" class="md-loot-item">
-                       <div class="loot-color-bar" :style="{ backgroundColor: RECURSOS_ANIMAIS[itemKey].cor }"></div>
-                       <span class="loot-q">{{ qtd }}x</span>
-                       <span class="loot-n">{{ RECURSOS_ANIMAIS[itemKey].nome }}</span>
-                    </div>
-                 </div>
-              </div>
-           </div>
+             <div class="card-buttons">
+               <button class="btn-game btn-action" 
+                  @click="butcheryStore.addToQueue(carcass.key)"
+                  :disabled="carcass.count <= 0 || butcheryStore.queue.length >= 10">
+                 PENDURAR
+               </button>
+               <button class="btn-game btn-delete" 
+                  @click="openDiscardModal(carcass)"
+                  :disabled="carcass.count <= 0"
+                  title="Descartar">
+                 ✕
+               </button>
+             </div>
+          </div>
+          
+          <div v-if="sortedUnlockedCarcasses.length === 0" class="empty-search">
+             Nenhum espécime encontrado com estes filtros.
+          </div>
         </div>
       </div>
+
     </div>
-    <ModalAnaliseBiologica 
-        v-if="detailedCarcass" 
-        :carcass="detailedCarcass" 
-        @close="closeDetails" 
-        />
 
-        <ModalDescarte 
-        v-if="showDiscardModal" 
-        :carcass="carcassToDiscard" 
-        :inventoryCount="getInventoryCount(carcassToDiscard.key)"
-        @close="closeDiscardModal" 
-        @confirm="confirmDiscard" 
-        />
-
+    <WorkerSelectModal v-if="showWorkerSelect" title="ESCOLHER DISSECADOR" :workers="availableWorkers" @close="showWorkerSelect = false" @select="selectWorker" />
+    <ModalAnaliseBiologica v-if="detailedCarcass" :carcass="detailedCarcass" @close="closeDetails" />
+    <ModalDescarte v-if="showDiscardModal" :carcass="carcassToDiscard" :inventoryCount="getInventoryCount(carcassToDiscard.key)" @close="closeDiscardModal" @confirm="confirmDiscard" />
   </BuildingLayout>
 </template>
 
 <style scoped>
 /* =========================================
-   AÇOUGUE TÁTICO 2.0 (ARCANEPUNK)
+   VISUAL OFICIAL MYTHIC VILLAGE
 ========================================== */
-.tactical-slaughter-layout { display: flex; flex-direction: column; gap: 15px; font-family: 'Chakra Petch', sans-serif; }
+.mythic-butchery-layout { display: flex; flex-direction: column; gap: 20px; font-family: 'Chakra Petch', sans-serif; }
+.btn-dev-override { align-self: flex-start; background: #0f172a; color: #ef4444; border: 1px dashed #ef4444; padding: 6px 12px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-dev-override:hover { background: #ef4444; color: #fff; }
 
-.btn-sys-override { background: #0f172a; border: 1px dashed #ef4444; color: #ef4444; padding: 10px; font-weight: 900; font-size: 11px; cursor: pointer; border-radius: 4px; transition: 0.2s; letter-spacing: 1px; }
-.btn-sys-override:hover { background: rgba(239, 68, 68, 0.1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
-
-.facility-core { display: flex; gap: 15px; align-items: flex-start; }
-
-/* Painéis de Alta Segurança */
-.facility-panel { background: #0f172a; border: 2px solid #1e293b; border-radius: 6px; padding: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5); }
-.cryo-vault { flex: 1; }
-.slaughter-floor { flex: 1.2; display: flex; flex-direction: column; gap: 20px; }
-
-/* Cabeçalhos */
-.panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 8px; margin-bottom: 15px; }
-.panel-header.border-none { border: none; padding-bottom: 0; margin-bottom: 10px; }
-.ph-title { color: #e2e8f0; font-size: 12px; font-weight: 900; letter-spacing: 1px; }
-.ph-capacity { background: #020617; color: #38bdf8; font-size: 10px; font-weight: 900; padding: 2px 8px; border: 1px solid #1e293b; border-radius: 4px; }
+.section-title { color: #94a3b8; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+.text-center { text-align: center; width: 100%; }
 
 /* =========================================
-   COFRE CRIOGÊNICO (ESQUERDA)
+   PAINEL SUPERIOR (Trabalho)
 ========================================== */
-.vault-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 10px; }
+.workspace-panel {
+  background: #0f172a; border: 1px solid #1e293b; border-radius: 8px;
+  padding: 20px; display: flex; flex-direction: column; gap: 30px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
 
-.cryo-locker { display: flex; flex-direction: column; gap: 4px; background: #020617; border: 1px solid #1e293b; border-radius: 4px; padding: 4px; transition: 0.2s; }
-.cryo-locker:hover:not(.is-empty) { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.1); }
-.cryo-locker.is-empty { filter: grayscale(1); opacity: 0.3; }
+/* Fila (Agora centralizada na Bandeja) */
+.queue-section { display: flex; flex-direction: column; align-items: center; }
+.queue-tray {
+  background: #020617; padding: 10px 15px; border-radius: 8px;
+  border: 1px solid #1e293b; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  display: inline-block;
+}
+.queue-hotbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
-.locker-window { height: 75px; background: #0f172a; border: 2px solid #334155; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
-.frost-fx { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(224, 242, 254, 0.05), rgba(56, 189, 248, 0.1)); pointer-events: none; z-index: 3; border-top: 2px solid rgba(255,255,255,0.1); }
-.locker-entity { width: 75%; height: 75%; object-fit: contain; z-index: 2; filter: drop-shadow(0 2px 4px #000); transition: 0.2s; }
-.cryo-locker:hover:not(.is-empty) .locker-entity { transform: scale(1.1); }
-.locker-qty { position: absolute; top: 4px; right: 4px; background: #020617; color: #e2e8f0; font-size: 10px; font-weight: 900; padding: 1px 5px; border: 1px solid #334155; z-index: 4; border-radius: 2px; }
-
-.locker-actions { display: flex; gap: 4px; }
-.btn-tactical { background: #1e293b; border: 1px solid #334155; font-size: 9px; font-weight: 900; cursor: pointer; padding: 6px 0; border-radius: 2px; font-family: 'Chakra Petch', sans-serif; transition: 0.2s; }
-.btn-suspend { flex: 1; color: #cbd5e1; }
-.btn-suspend:hover:not(:disabled) { background: #38bdf8; color: #000; border-color: #38bdf8; }
-.btn-incinerate { width: 28px; color: #ef4444; }
-.btn-incinerate:hover:not(:disabled) { background: #ef4444; color: #fff; border-color: #ef4444; }
-.btn-tactical:disabled { opacity: 0.4; cursor: not-allowed; }
+.hotbar-slot {
+  width: 50px; height: 50px; background: #0f172a; border: 1px solid #334155;
+  border-radius: 6px; display: flex; justify-content: center; align-items: center;
+  position: relative; transition: 0.2s; cursor: pointer;
+}
+.hotbar-slot.is-filled { background: #1e293b; border-color: #475569; }
+.hotbar-slot:hover.is-filled { border-color: #ef4444; }
+.slot-empty { width: 15px; height: 2px; background: #1e293b; border-radius: 2px; }
+.slot-img { max-width: 80%; max-height: 80%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.slot-remove-hover {
+  position: absolute; inset: 0; background: rgba(239, 68, 68, 0.9); border-radius: 5px;
+  color: white; display: flex; justify-content: center; align-items: center;
+  font-size: 14px; font-weight: bold; opacity: 0; transition: 0.2s;
+}
+.hotbar-slot:hover .slot-remove-hover { opacity: 1; }
 
 /* =========================================
-   MONOTRILHO DE GANCHOS (A FILA)
+   A MESA DE CORTE (Formato Pesado / Real)
 ========================================== */
-.magnetic-rail-system { background: #020617; border: 1px solid #1e293b; padding: 12px; border-radius: 4px; box-shadow: inset 0 0 15px #000; }
+.slab-section { display: flex; justify-content: center; padding-bottom: 20px; }
 
-.rail-track { 
-  display: flex; justify-content: center; gap: 8px; position: relative; 
-  padding-top: 15px; margin-top: 5px; border-top: 4px solid #1e293b; 
-}
-/* O trilho de metal metálico */
-.rail-track::before { content: ''; position: absolute; top: -2px; left: 0; right: 0; height: 2px; background: #475569; }
-
-.mag-hook { width: 35px; height: 50px; display: flex; flex-direction: column; align-items: center; cursor: pointer; position: relative; }
-.rail-glider { width: 12px; height: 6px; background: #38bdf8; border-radius: 2px; position: absolute; top: -18px; box-shadow: 0 0 5px #38bdf8; } /* Luz do gancho ativo */
-.hook-cable { width: 2px; height: 10px; background: #475569; margin-top: -10px; z-index: 1; }
-.hanging-carcass { width: 100%; height: 35px; object-fit: contain; z-index: 2; filter: drop-shadow(0 4px 4px #000); transition: 0.2s; }
-
-/* Interação ao tentar remover da fila */
-.hook-remove-label { position: absolute; bottom: -15px; font-size: 8px; font-weight: bold; color: #ef4444; opacity: 0; transition: 0.2s; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 2px; }
-.mag-hook.has-carcass:hover .hanging-carcass { filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(5); }
-.mag-hook.has-carcass:hover .hook-remove-label { opacity: 1; bottom: 0; z-index: 10; }
-
-.hook-empty { width: 10px; height: 15px; border: 2px solid #334155; border-top: none; border-radius: 0 0 10px 10px; margin-top: 5px; } /* Desenho de um gancho vazio */
-
-/* =========================================
-   LAJE DE DISSECAÇÃO (MESA PRINCIPAL)
-========================================== */
-.dissection-slab-area { display: flex; flex-direction: column; align-items: center; padding: 10px 0; }
-
-.heavy-slab { 
-  width: 100%; max-width: 360px; height: 160px; 
-  background: #020617; border: 4px solid #1e293b; border-radius: 6px; 
-  position: relative; display: flex; align-items: center; justify-content: center;
-  box-shadow: inset 0 0 40px #000, 0 10px 20px rgba(0,0,0,0.6);
-  border-bottom-width: 12px; /* Espessura da laje */
+.heavy-operation-table {
+  position: relative;
+  width: 320px; height: 160px; /* Formato retangular de mesa */
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 3px solid #334155;
+  border-radius: 12px;
+  /* O segredo para parecer pesada: um box-shadow sólido embaixo imitando espessura 3D */
+  box-shadow: 
+    0 12px 0 #020617,
+    0 18px 20px rgba(0,0,0,0.8),
+    inset 0 0 20px rgba(0,0,0,0.6);
+  margin-bottom: 12px; /* Compensar a sombra 3D */
+  display: flex; justify-content: center; align-items: center;
 }
 
-/* Grade de escoamento no fundo */
-.drainage-grate {
-  position: absolute; inset: 6px;
-  background-image: repeating-linear-gradient(45deg, #0f172a 0, #0f172a 2px, transparent 2px, transparent 8px);
-  border: 1px solid #1e293b; z-index: 1; opacity: 0.8;
+/* Calhas de Drenagem */
+.drain-channel {
+  position: absolute; top: 10px; bottom: 10px; width: 15px;
+  background: repeating-linear-gradient(0deg, transparent, transparent 4px, #020617 4px, #020617 6px);
+  border: 1px solid #020617; border-radius: 4px; opacity: 0.4;
 }
+.drain-channel.left { left: 15px; }
+.drain-channel.right { right: 15px; }
 
-.slab-idle { font-size: 11px; font-weight: 900; color: #334155; z-index: 2; letter-spacing: 2px; text-shadow: 0 1px 1px #000; }
+/* ESTADO ATIVO */
+.table-active-state { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 5; }
 
-.carcass-on-slab { position: relative; z-index: 2; width: 120px; height: 120px; }
-.slab-entity { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 15px #000); }
+.table-specimen { max-width: 160px; max-height: 110px; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8)); z-index: 6; }
 
-/* === O LASER DE DISSECAÇÃO (Barra de Progresso) === */
-.laser-scalpel {
-  position: absolute; top: -6px; bottom: -6px; width: 4px;
+/* Braço do Laser (Ponte de Scanner) */
+.laser-bridge {
+  position: absolute; top: -10px; bottom: -10px; width: 10px;
+  background: #334155; border: 1px solid #020617; border-radius: 4px;
   display: flex; flex-direction: column; align-items: center;
   z-index: 10; transition: left 0.1s linear; pointer-events: none;
+  box-shadow: 0 0 10px rgba(0,0,0,0.9);
 }
-.laser-emitter { width: 16px; height: 8px; background: #0f172a; border: 2px solid #38bdf8; border-radius: 2px; box-shadow: 0 0 10px #38bdf8; }
-.cutting-beam { flex: 1; width: 2px; background: #fff; box-shadow: 0 0 15px 4px #0ea5e9, 0 0 5px 1px #fff; }
-.beam-impact { position: absolute; top: 50%; width: 25px; height: 25px; background: radial-gradient(circle, #fff 10%, #38bdf8 40%, transparent 70%); opacity: 0.8; transform: translateY(-50%); animation: flash-cut 0.05s infinite alternate; mix-blend-mode: screen; }
+.bridge-top, .bridge-bottom { width: 14px; height: 10px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 2px; }
+.bridge-beam { flex: 1; width: 2px; background: #fff; box-shadow: 0 0 10px 2px #38bdf8; }
 
-@keyframes flash-cut { 0% { transform: translateY(-50%) scale(0.8); opacity: 0.6; } 100% { transform: translateY(-50%) scale(1.2); opacity: 1; } }
+/* HUD da Mesa */
+.embedded-hud {
+  position: absolute; bottom: 10px;
+  background: #020617; border: 1px solid #38bdf8; border-radius: 4px;
+  padding: 4px 10px; width: 160px; text-align: center;
+  box-shadow: 0 5px 10px rgba(0,0,0,0.8); z-index: 20;
+}
+.hud-label { font-size: 9px; color: #38bdf8; font-weight: bold; margin-bottom: 4px; letter-spacing: 1px; }
+.hud-progress-container { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden; }
+.hud-progress-fill { height: 100%; background: #38bdf8; box-shadow: 0 0 5px #38bdf8; transition: width 0.1s linear; }
+
+/* ESTADO INATIVO */
+.table-idle-state { display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 2; }
+.idle-text { color: #475569; font-size: 14px; font-weight: bold; letter-spacing: 2px; }
+.idle-subtext { color: #334155; font-size: 9px; text-transform: uppercase; }
+
+/* Loot Flutuante Restrito */
+.loot-zone { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); pointer-events: none; z-index: 30; display: flex; flex-direction: column; align-items: center; }
+.loot-burst { display: flex; flex-direction: column; align-items: center; gap: 4px; position: absolute; bottom: 0; }
+.loot-tag {
+  display: flex; align-items: center; gap: 6px; background: #020617;
+  padding: 4px 10px; border-radius: 20px; border: 1px solid;
+  opacity: 0; animation: float-tag 1.2s ease-out forwards;
+}
+.loot-dot { width: 6px; height: 6px; border-radius: 50%; }
+.loot-text { font-size: 11px; font-weight: bold; text-transform: uppercase; white-space: nowrap; }
+@keyframes float-tag {
+  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+  20% { opacity: 1; transform: translateY(-10px) scale(1); }
+  80% { opacity: 1; transform: translateY(-30px) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.9); }
+}
 
 /* =========================================
-   O LOOT EXPLOSIVO (FIM DA BANDEJA!)
+   PAINEL INFERIOR (Cofre / Inventário)
 ========================================== */
-.loot-burst-zone { position: absolute; inset: 0; z-index: 20; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+.vault-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+.vault-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
+.vault-info { display: flex; flex-direction: column; gap: 4px; }
+.capacity-tag { background: #020617; color: #38bdf8; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #1e293b; align-self: flex-start; }
 
-.epic-loot-burst { display: flex; flex-direction: column; align-items: center; gap: 4px; position: absolute; }
+.vault-filters { display: flex; gap: 8px; flex: 1; max-width: 400px; justify-content: flex-end; }
+.game-input, .game-select { background: #020617; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 4px; outline: none; font-family: 'Chakra Petch', sans-serif; font-size: 11px; transition: 0.2s; }
+.game-input { flex: 1; }
+.game-input:focus, .game-select:focus { border-color: #38bdf8; }
 
-.burst-item { 
-  display: flex; align-items: center; gap: 6px; 
-  background: rgba(2, 6, 23, 0.95); padding: 4px 12px; border-radius: 20px;
-  border: 1px solid #334155; box-shadow: 0 5px 15px rgba(0,0,0,0.9);
-  opacity: 0; transform: scale(0.5) translateY(0);
-  animation: dynamic-burst 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
+/* Grade de Cartões */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.game-card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; transition: 0.2s; }
+.game-card:hover { border-color: #38bdf8; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: translateY(-2px); }
+.game-card.out-of-stock { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
 
-.loot-icon { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; }
-.loot-text { font-size: 13px; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 4px #000; }
+.card-img-area { position: relative; height: 90px; background: #020617; display: flex; justify-content: center; align-items: center; cursor: pointer; border-bottom: 1px solid #334155; }
+.card-monster { max-width: 80%; max-height: 80%; object-fit: contain; transition: 0.2s; }
+.card-img-area:hover .card-monster { transform: scale(1.1); }
+.card-qty { position: absolute; top: 5px; right: 5px; background: #0f172a; color: #38bdf8; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #1e293b; }
 
-/* A animação fantástica do Loot subindo da mesa */
-@keyframes dynamic-burst {
-  0% { opacity: 0; transform: scale(0.5) translateY(20px); }
-  20% { opacity: 1; transform: scale(1.2) translateY(-40px); }
-  80% { opacity: 1; transform: scale(1) translateY(-60px); }
-  100% { opacity: 0; transform: scale(0.8) translateY(-100px); }
-}
+.card-buttons { display: flex; gap: 2px; padding: 4px; background: #0f172a; }
+.btn-game { font-family: 'Chakra Petch', sans-serif; font-size: 10px; font-weight: bold; padding: 6px 0; border-radius: 4px; cursor: pointer; border: none; transition: 0.2s; }
+.btn-action { flex: 1; background: #334155; color: #f8fafc; }
+.btn-action:hover:not(:disabled) { background: #38bdf8; color: #020617; }
+.btn-delete { flex: 0 0 30px; background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+.btn-delete:hover:not(:disabled) { background: #ef4444; color: #fff; }
 
-/* Responsividade */
-@media (max-width: 768px) {
-  .facility-core { flex-direction: column; }
-  .facility-panel { width: 100%; }
+.empty-search { grid-column: 1 / -1; padding: 20px; text-align: center; color: #64748b; font-size: 12px; font-style: italic; border: 1px dashed #334155; border-radius: 6px; }
+
+@media (max-width: 600px) {
+  .vault-filters { max-width: 100%; flex-direction: column; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }
 </style>

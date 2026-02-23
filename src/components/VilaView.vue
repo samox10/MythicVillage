@@ -24,6 +24,12 @@ const buildingDefinitions = [
       if (lvl >= 12) return '12 Carcaças (Máximo)'
       return `Libera ${lvl} Carcaça(s)`
     }
+  },
+  { id: 8, key: 'laboratorio', name: 'Laboratório de Alquimia', type: 'PRODUÇÃO', desc: 'Sintetiza medicamentos e poções', img: '⚗️', baseCost: 3500, baseTime: 1, reqId: 6, reqLvl: 1, 
+    effectDesc: (lvl) => {
+      if (lvl === 0) return 'Fechado'
+      return `Meds até Tier ${Math.min(lvl, 4)}`
+    }
   }
 ]
 

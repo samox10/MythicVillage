@@ -146,3 +146,23 @@ export const CARCACAS_INFO = {
   basilisco: { nome: 'Basilisco', habitat: 'Ruínas Antigas', unlockLvl: 11, tempoBase: 60, dureza: 6, img: 'basilisco.png', drops: { escama: 4, sangue: 3, presa: 2 } },
   fire_serpe: { nome: 'Serpe de Fogo', habitat: 'Picos Vulcânicos', unlockLvl: 12, tempoBase: 80, dureza: 8, img: 'fire_serpe.png', drops: { carne: 5, escama: 5, sangue: 5 } }
 }
+
+// === 10. SISTEMA DE ALQUIMIA (LABORATÓRIO) ===
+export const RECEITAS_ALQUIMIA = {
+  plasma: { baseTime: 10, custo: { carne: 2, cristal: 1 } },
+  soro_reg: { baseTime: 15, custo: { osso: 2, ferro: 2 } },
+  solucao: { baseTime: 20, custo: { couro: 2, cobre: 1 } },
+  resina: { baseTime: 25, custo: { osso: 4, pedra: 5 } },
+  derme: { baseTime: 30, custo: { escama: 2, rubi: 1 } },
+  neutralizador: { baseTime: 40, custo: { sangue: 2, obsidiana: 1 } },
+  estimulante: { baseTime: 50, custo: { presa: 2, esmeralda: 1 } },
+  soro_psi: { baseTime: 60, custo: { sangue: 4, safira: 1 } }
+}
+
+// O multiplicador de Custo e Tempo para cada Tier
+export const MULTIPLICADOR_ALQUIMIA = {
+  1: { cost: 1, time: 1 },
+  2: { cost: 2.5, time: 1.5 },
+  3: { cost: 5, time: 2.5 },
+  4: { cost: 10, time: 4 }
+}

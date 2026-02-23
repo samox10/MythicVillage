@@ -28,7 +28,8 @@ export const useGameStore = defineStore('game', () => {
     { id: 4, key: 'centrorecrutamento', level: 1 },
     { id: 5, key: 'mina', level: 1 },
     { id: 6, key: 'hospital', level: 0 },
-    { id: 7, key: 'destrinchador', level: 0 } 
+    { id: 7, key: 'destrinchador', level: 0 },
+    { id: 8, key: 'laboratorio', level: 0 }
   ])
   const medicalInventory = ref({
     plasma: [10, 10, 10, 10], 

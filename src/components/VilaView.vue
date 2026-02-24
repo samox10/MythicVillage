@@ -30,6 +30,12 @@ const buildingDefinitions = [
       if (lvl === 0) return 'Fechado'
       return `Meds até Tier ${Math.min(lvl, 4)}`
     }
+  },
+  { id: 9, key: 'forja', name: 'Forja Vulcânica', type: 'PRODUÇÃO', desc: 'Cria equipamentos para os habitantes', img: '⚒️', baseCost: 4000, baseTime: 1, reqId: 4, reqLvl: 2, 
+    effectDesc: (lvl) => {
+      if (lvl === 0) return 'Desativada'
+      return `Equipamentos Liberais`
+    }
   }
 ]
 

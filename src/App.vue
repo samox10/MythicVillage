@@ -41,6 +41,7 @@ onMounted(() => {
     hospitalStore.hospitalTick()   // <--- O "MOTOR" DO HOSPITAL
     butcheryStore.butcheryTick()  // <--- O "MOTOR" DO DESTRINCHAMENTO
     alchemyStore.alchemyTick()    // <--- O "MOTOR" DO LABORATÓRIO
+    forgeStore.forgeTick()        // <--- O "MOTOR" DA FORJA
   }, 1000)
 })
 
